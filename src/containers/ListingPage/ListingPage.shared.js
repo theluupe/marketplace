@@ -7,7 +7,7 @@ import { timestampToDate } from '../../util/dates';
 import { isUserAuthorized } from '../../util/userHelpers';
 import { NO_ACCESS_PAGE_USER_PENDING_APPROVAL, createSlug } from '../../util/urlHelpers';
 
-import { Page, LayoutSingleColumn } from '../../components';
+import { LayoutSingleColumn, Page } from '../../components';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 
 import css from './ListingPage.module.css';
@@ -269,7 +269,7 @@ export const handleToggleFavorites = parameters => async isFavorite => {
   const { onFetchCurrentUser, routes, location, history } = parameters;
   const currentUser = await onFetchCurrentUser();
   // Only allow signed-in users to save favorites
-  if (!currentUser) {
+  if (!currentUser || Object.keys(currentUser).length === 0) {
     const state = {
       from: `${location.pathname}${location.search}${location.hash}`,
     };
