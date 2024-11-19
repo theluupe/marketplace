@@ -53,6 +53,7 @@
   "BatchEditListingProductDetails.subtitle": "Please note: if any images feature identifiable people or places, you must have releases or be able to obtain them. If you don’t indicate that you do, your photo(s) will not be approved.",
   "BatchEditListingProductDetails.title": "Manage your market",
   "BatchEditListingProductDetails.progressModal.submitButtonText": "Submit for Review",
+  "BatchEditListingProductDetails.progressModal.submitButtonTextEditMode": "Save",
   "BatchEditListingProductDetails.progressModal.title": "Upload is in Progress",
   "BatchEditListingProductDetails.validationModal.title": "Incomplete Information for Selected Files",
   "BatchEditListingProductDetails.validationModal.header": "The following listings have missing required information:",
