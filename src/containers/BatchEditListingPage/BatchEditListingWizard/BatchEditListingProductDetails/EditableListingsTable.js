@@ -234,7 +234,7 @@ export const EditableListingsTable = props => {
         </TableHeaderTitle>
       ),
       dataIndex: 'imageSize',
-      width: 240,
+      width: 260,
       render: getImageSizeLabel,
       sorter: stringSorter,
     },

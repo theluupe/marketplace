@@ -86,3 +86,94 @@
   font-size: 14px;
   font-style: italic;
 }
+
+.moneyFieldContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  position: relative;
+}
+
+.moneyFieldContainer .editableCell {
+  width: 100%;
+}
+
+.moneyFieldContainer .formItem {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.moneyFieldContainer .moneyFieldPricingGuide {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--colorGrey500);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.editableCell {
+  cursor: text;
+  min-height: 32px;
+  padding: 4px 16px 4px 11px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 100px;
+  position: relative;
+}
+
+.editableCell.moneyField {
+  cursor: pointer;
+}
+
+.editableCell:hover {
+  background-color: var(--colorGrey100);
+  border: 1px solid var(--colorGrey300);
+}
+
+.editableCell:hover .editIcon {
+  opacity: 1;
+}
+
+.cellContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellContent.textarea {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 300px;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.emptyValue {
+  color: var(--colorGrey400);
+  font-style: normal;
+  user-select: none;
+}
+
+.editIcon {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  margin-left: 8px;
+  flex-shrink: 0;
+  stroke: var(--colorGrey700);
+}
+
+.editIcon :global(.pencil) {
+  stroke: var(--colorGrey700);
+}
