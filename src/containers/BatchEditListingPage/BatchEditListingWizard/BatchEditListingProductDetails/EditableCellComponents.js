@@ -133,7 +133,7 @@ const EditableCell = ({
             onChange={e => setTempValue(e.target.value)}
             onBlur={save}
             onKeyDown={handleKeyPress}
-            autoSize={{ minRows: 2, maxRows: 6 }}
+            autoSize={{ minRows: 1, maxRows: 6 }}
             placeholder={placeholder}
             className={css.formItem}
           />
@@ -387,4 +387,9 @@ export const EditableCellComponents = {
     row: EditableRow,
     cell: EditableCell,
   },
+  Cell: EditableCell, // Direct export for our custom table
+  Row: EditableRow,
 };
+
+// Also export directly for easier importing
+export { EditableCell, EditableRow };

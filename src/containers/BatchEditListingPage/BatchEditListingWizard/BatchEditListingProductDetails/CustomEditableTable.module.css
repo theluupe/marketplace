@@ -1,0 +1,253 @@
+.tableContainer {
+  overflow: auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: white;
+  max-height: 80vh;
+}
+
+.customTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fafafa;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.tableHeader {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 1px solid #d9d9d9;
+  background: #fafafa;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: hidden;
+  user-select: none;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.sortableHeader:hover {
+  background: #f0f0f0;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0; /* Allow flexbox to shrink */
+}
+
+.headerContent > span:first-child {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.sortIndicator {
+  color: #1890ff;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.checkboxHeader,
+.checkboxCell {
+  width: 50px;
+  padding: 12px 16px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.checkboxHeader {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.tableCell {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+  transition: background-color 0.2s;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
+.customTable tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.customTable tbody tr:hover {
+  background-color: #fafafa;
+}
+
+.customTable tbody tr:hover .tableCell,
+.customTable tbody tr:hover .checkboxCell {
+  background-color: #fafafa;
+}
+
+.selectedRow {
+  background-color: #e6f7ff !important;
+}
+
+.selectedRow .tableCell,
+.selectedRow .checkboxCell {
+  background-color: #e6f7ff !important;
+}
+
+.selectedRow:hover,
+.selectedRow:hover .tableCell,
+.selectedRow:hover .checkboxCell {
+  background-color: #d1f2ff !important;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+}
+
+.spinner {
+  color: #1890ff;
+  font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tableContainer {
+    max-height: 60vh;
+  }
+  
+  .tableHeader,
+  .tableCell,
+  .checkboxHeader,
+  .checkboxCell {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* Custom scrollbar for better UX */
+.tableContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Focus styles for accessibility */
+.checkboxHeader input:focus,
+.checkboxCell input:focus {
+  outline: 2px solid #1890ff;
+  outline-offset: 2px;
+}
+
+/* Ensure proper alignment for checkbox cells */
+.checkboxHeader input,
+.checkboxCell input {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+/* Improve text wrapping in cells */
+.tableCell {
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Fix for image cells */
+.tableCell:has(img) {
+  padding: 8px 16px;
+}
+
+/* Firefox-specific fixes for table layout */
+@-moz-document url-prefix() {
+  .customTable {
+    table-layout: fixed !important;
+  }
+  
+  .tableHeader,
+  .tableCell {
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Ensure table maintains proper width constraints */
+.customTable th,
+.customTable td {
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Prevent jumping when editing cells */
+.tableCell .ant-input,
+.tableCell .ant-input-affix-wrapper {
+  min-height: 32px !important;
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 6px !important;
+  padding: 4px 11px !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* Switch component should not take full width */
+.tableCell .ant-switch {
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.tableCell .ant-input:focus,
+.tableCell .ant-input-affix-wrapper:focus,
+.tableCell .ant-input-focused {
+  border-color: #1890ff !important;
+  box-shadow: none !important;
+}
+
+.tableCell .ant-input-affix-wrapper-focused {
+  border-color: #1890ff !important;
+  box-shadow: none !important;
+}
+
+/* Specific styling for textarea in cells */
+.tableCell textarea.ant-input {
+  min-height: 32px !important;
+  max-height: 120px !important;
+  padding: 4px 11px !important;
+  resize: vertical !important;
+  line-height: 1.4 !important;
+} 
