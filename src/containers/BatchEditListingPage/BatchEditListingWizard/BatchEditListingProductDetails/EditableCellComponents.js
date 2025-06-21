@@ -133,7 +133,6 @@ const EditableCell = ({
             onChange={e => setTempValue(e.target.value)}
             onBlur={save}
             onKeyDown={handleKeyPress}
-            autoSize={{ minRows: 1, maxRows: 6 }}
             placeholder={placeholder}
             className={css.formItem}
           />
@@ -185,7 +184,7 @@ const EditableCell = ({
             value={tempValue}
             onChange={newValue => {
               // Filter out empty strings and whitespace-only strings
-              const filteredValue = Array.isArray(newValue) 
+              const filteredValue = Array.isArray(newValue)
                 ? newValue.filter(tag => tag && tag.trim().length > 0)
                 : newValue;
               setTempValue(filteredValue);
@@ -257,7 +256,6 @@ const EditableCell = ({
           }}
           checkedChildren="Yes"
           unCheckedChildren="No"
-          className={css.formItem}
           disabled={disabled(record)}
         />
       );
@@ -311,10 +309,10 @@ const EditableCell = ({
           value={value}
           onChange={newValue => {
             // Filter out empty strings and whitespace-only strings
-            const filteredValue = Array.isArray(newValue) 
+            const filteredValue = Array.isArray(newValue)
               ? newValue.filter(tag => tag && tag.trim().length > 0)
               : newValue;
-            
+
             const values = { ...record, [dataIndex]: filteredValue };
             const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
             if (handleSave) {
@@ -364,7 +362,7 @@ const EditableCell = ({
     const displayValue = renderDisplayValue();
     const isEmpty = displayValue === '—';
     const isTextarea = editControlType === 'textarea';
-    
+
     return (
       <div className={css.editableCell} onClick={toggleEdit}>
         <span className={`${css.cellContent} ${isEmpty ? css.emptyValue : ''} ${isTextarea ? css.textarea : ''}`}>

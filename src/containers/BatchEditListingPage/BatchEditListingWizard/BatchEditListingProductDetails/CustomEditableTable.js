@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
-import { Flex, Image } from 'antd';
+import { Flex, Image, Pagination } from 'antd';
 import imagePlaceholder from '../../../../assets/image-placeholder.jpg';
 import { NamedLink } from '../../../../components';
 import { EditableCell } from './EditableCellComponents';
@@ -146,12 +146,14 @@ export const CustomEditableTable = memo((props) => {
     selectedRowKeys = [],
     listings = [],
     loading = false,
+    pageSize = 50, // Default page size
   } = props;
   
   const intl = useIntl();
   const { categories: imageryCategoryOptions, usages: usageOptions } = listingFieldsOptions;
 
   const [sortConfig, setSortConfig] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleSave = useCallback((updatedData) => {
     onSave(updatedData);
@@ -177,11 +179,9 @@ export const CustomEditableTable = memo((props) => {
     onSelectChange(newSelectedKeys);
   }, [selectedRowKeys, onSelectChange]);
 
-  const handleSelectAll = useCallback(() => {
-    const allIds = listings.map(listing => listing.id);
-    const newSelectedKeys = selectedRowKeys.length === allIds.length ? [] : allIds;
-    onSelectChange(newSelectedKeys);
-  }, [listings, selectedRowKeys, onSelectChange]);
+  const handlePageChange = useCallback((page, size) => {
+    setCurrentPage(page);
+  }, []);
 
   // Full columns configuration with editable functionality
   const columns = useMemo(() => {
@@ -398,8 +398,36 @@ export const CustomEditableTable = memo((props) => {
     });
   }, [listings, sortConfig]);
 
-  const allSelected = selectedRowKeys.length === listings.length && listings.length > 0;
-  const partialSelected = selectedRowKeys.length > 0 && !allSelected;
+  // Paginated data
+  const paginatedListings = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return sortedListings.slice(startIndex, endIndex);
+  }, [sortedListings, currentPage, pageSize]);
+
+  // Current page selection state
+  const currentPageIds = useMemo(() => 
+    paginatedListings.map(listing => listing.id), 
+    [paginatedListings]
+  );
+  
+  const currentPageSelectedCount = useMemo(() => 
+    currentPageIds.filter(id => selectedRowKeys.includes(id)).length,
+    [currentPageIds, selectedRowKeys]
+  );
+
+  // Update selection logic for current page
+  const allCurrentPageSelected = currentPageSelectedCount === currentPageIds.length && currentPageIds.length > 0;
+  const partialCurrentPageSelected = currentPageSelectedCount > 0 && !allCurrentPageSelected;
+
+  // Define handleSelectAll after the computed values are available
+  const handleSelectAll = useCallback(() => {
+    // Toggle selection for current page only
+    const newSelectedKeys = allCurrentPageSelected 
+      ? selectedRowKeys.filter(key => !currentPageIds.includes(key)) // Remove current page items
+      : [...new Set([...selectedRowKeys, ...currentPageIds])]; // Add current page items
+    onSelectChange(newSelectedKeys);
+  }, [allCurrentPageSelected, selectedRowKeys, currentPageIds, onSelectChange]);
 
   if (loading) {
     return (
@@ -425,11 +453,11 @@ export const CustomEditableTable = memo((props) => {
             sortConfig={sortConfig}
             onSort={handleSort}
             onSelectAll={handleSelectAll}
-            allSelected={allSelected}
-            partialSelected={partialSelected}
+            allSelected={allCurrentPageSelected}
+            partialSelected={partialCurrentPageSelected}
           />
           <tbody>
-            {sortedListings.map((record, index) => (
+            {paginatedListings.map((record, index) => (
               <TableRow
                 key={record.id}
                 record={record}
@@ -442,6 +470,22 @@ export const CustomEditableTable = memo((props) => {
           </tbody>
         </table>
       </div>
+      {listings.length > pageSize && (
+        <div className={customTableCss.paginationContainer}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={listings.length}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={listings.length > pageSize * 5}
+            showTotal={(total, range) =>
+              `Showing ${range[0]}-${range[1]} of ${total} items`
+            }
+            className={customTableCss.pagination}
+          />
+        </div>
+      )}
     </div>
   );
 });

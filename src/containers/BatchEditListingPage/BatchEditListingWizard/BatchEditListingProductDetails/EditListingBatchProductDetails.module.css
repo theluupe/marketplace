@@ -62,8 +62,9 @@
 }
 
 .formItem:focus {
-  border: none;
-  box-shadow: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
+  transition: all ease-in-out 100ms;
 }
 
 .modalContent {
@@ -178,37 +179,3 @@
   stroke: var(--colorGrey700);
 }
 
-/* Prevent jumping when switching to edit mode */
-.formItem {
-  width: 100% !important;
-  margin: 0 !important;
-}
-
-.formItem.ant-input,
-.formItem.ant-input:focus,
-.formItem.ant-input:hover {
-  min-height: 32px !important;
-  padding: 4px 11px !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-  border: 1px solid var(--colorGrey300) !important;
-}
-
-.formItem.ant-input:focus {
-  border-color: var(--colorPrimary500) !important;
-}
-
-/* Specific styles for textarea to prevent jumping */
-.formItem :global(.ant-input) {
-  min-height: 32px !important;
-  padding: 4px 11px !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-  border: 1px solid var(--colorGrey300) !important;
-  resize: vertical !important;
-}
-
-.formItem :global(.ant-input:focus) {
-  border-color: var(--colorPrimary500) !important;
-  box-shadow: none !important;
-}

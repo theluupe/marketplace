@@ -1,9 +1,9 @@
 .tableContainer {
-  overflow: auto;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   background: white;
-  max-height: 80vh;
+  overflow-x: auto;
+  width: 100%;
 }
 
 .customTable {
@@ -135,7 +135,7 @@
   .tableContainer {
     max-height: 60vh;
   }
-  
+
   .tableHeader,
   .tableCell,
   .checkboxHeader,
@@ -197,7 +197,7 @@
   .customTable {
     table-layout: fixed !important;
   }
-  
+
   .tableHeader,
   .tableCell {
     overflow: hidden !important;
@@ -213,41 +213,40 @@
   text-overflow: ellipsis;
 }
 
-/* Prevent jumping when editing cells */
-.tableCell .ant-input,
-.tableCell .ant-input-affix-wrapper {
-  min-height: 32px !important;
-  border: 1px solid #d9d9d9 !important;
-  border-radius: 6px !important;
-  padding: 4px 11px !important;
-  box-shadow: none !important;
-  width: 100% !important;
-  margin: 0 !important;
+/* Pagination styling */
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid #f0f0f0;
+  background: white;
 }
 
-/* Switch component should not take full width */
-.tableCell .ant-switch {
-  width: auto !important;
-  margin: 0 !important;
+.pagination {
+  margin: 0;
 }
 
-.tableCell .ant-input:focus,
-.tableCell .ant-input-affix-wrapper:focus,
-.tableCell .ant-input-focused {
-  border-color: #1890ff !important;
-  box-shadow: none !important;
+.pagination .ant-pagination-total-text {
+  margin-right: 16px;
+  color: #666;
+  font-size: 14px;
 }
 
-.tableCell .ant-input-affix-wrapper-focused {
-  border-color: #1890ff !important;
-  box-shadow: none !important;
+/* Fix vertical alignment of pagination buttons - more aggressive approach */
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item) {
+  display: flex !important;
 }
 
-/* Specific styling for textarea in cells */
-.tableCell textarea.ant-input {
-  min-height: 32px !important;
-  max-height: 120px !important;
-  padding: 4px 11px !important;
-  resize: vertical !important;
-  line-height: 1.4 !important;
-} 
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item) :global(a) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item-link) {
+  display: flex;
+  justify-content: center !important;
+}

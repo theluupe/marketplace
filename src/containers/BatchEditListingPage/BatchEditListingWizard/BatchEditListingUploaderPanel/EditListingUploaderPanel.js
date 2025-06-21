@@ -4,10 +4,14 @@ import { Button, H3 } from '../../../../components';
 import css from './EditListingUploaderPanel.module.css';
 import { Dashboard } from '@uppy/react';
 import { Skeleton, Space } from 'antd';
+import { useSelector } from 'react-redux';
+import { getAllThumbnailsReady } from '../../BatchEditListingPage.duck';
 
 const EditListingUploaderPanel = props => {
   const { onSubmit, submitReady, uppy } = props;
   const hasFiles = uppy ? uppy.getFiles().length > 0 : uppy;
+  const allThumbnailsReady = useSelector(getAllThumbnailsReady);
+  const isProcessingThumbnails = hasFiles && !allThumbnailsReady;
 
   return (
     <div className={css.root}>
@@ -23,10 +27,10 @@ const EditListingUploaderPanel = props => {
           <Button
             className={css.submitButton}
             type="button"
-            inProgress={false}
+            inProgress={isProcessingThumbnails}
             ready={submitReady}
             onClick={onSubmit}
-            disabled={!hasFiles}
+            disabled={!hasFiles || !allThumbnailsReady}
           >
             <FormattedMessage id="BatchEditListingWizard.new.saveUpload"></FormattedMessage>
           </Button>
