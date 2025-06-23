@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Flex, Image, Pagination } from 'antd';
 import imagePlaceholder from '../../../../assets/image-placeholder.jpg';
 import { NamedLink } from '../../../../components';
@@ -41,37 +41,39 @@ export const getLicensingGuideLink = () => (
 // Simple table header component
 const TableHeader = memo(({ columns, sortConfig, onSort, onSelectAll, allSelected, partialSelected }) => {
   return (
-    <thead className={customTableCss.stickyHeader}>
-      <tr>
-        <th className={customTableCss.checkboxHeader}>
-          <input
-            type="checkbox"
-            checked={allSelected}
-            ref={input => {
-              if (input) input.indeterminate = partialSelected;
-            }}
-            onChange={onSelectAll}
-          />
-        </th>
-        {columns.map((column) => (
-          <th 
-            key={column.dataIndex}
-            style={{ width: column.width }}
-            className={`${customTableCss.tableHeader} ${column.sorter ? customTableCss.sortableHeader : ''}`}
-            onClick={column.sorter ? () => onSort(column.dataIndex, column.sorter) : undefined}
-          >
-            <div className={customTableCss.headerContent}>
-              {column.title}
-              {column.sorter && sortConfig?.key === column.dataIndex && (
-                <span className={customTableCss.sortIndicator}>
-                  {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                </span>
-              )}
-            </div>
+    <table className={customTableCss.headerTable}>
+      <thead>
+        <tr>
+          <th className={customTableCss.checkboxHeader}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={input => {
+                if (input) input.indeterminate = partialSelected;
+              }}
+              onChange={onSelectAll}
+            />
           </th>
-        ))}
-      </tr>
-    </thead>
+          {columns.map((column) => (
+            <th 
+              key={column.dataIndex}
+              style={{ width: column.width }}
+              className={`${customTableCss.tableHeader} ${column.sorter ? customTableCss.sortableHeader : ''}`}
+              onClick={column.sorter ? () => onSort(column.dataIndex, column.sorter) : undefined}
+            >
+              <div className={customTableCss.headerContent}>
+                {column.title}
+                {column.sorter && sortConfig?.key === column.dataIndex && (
+                  <span className={customTableCss.sortIndicator}>
+                    {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </div>
+            </th>
+          ))}
+        </tr>
+      </thead>
+    </table>
   );
 });
 
@@ -154,6 +156,10 @@ export const CustomEditableTable = memo((props) => {
 
   const [sortConfig, setSortConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Refs for synchronized scrolling
+  const headerScrollRef = useRef(null);
+  const bodyScrollRef = useRef(null);
 
   const handleSave = useCallback((updatedData) => {
     onSave(updatedData);
@@ -182,6 +188,41 @@ export const CustomEditableTable = memo((props) => {
   const handlePageChange = useCallback((page, size) => {
     setCurrentPage(page);
   }, []);
+
+  // Synchronized scrolling
+  const handleHeaderScroll = useCallback((e) => {
+    if (bodyScrollRef.current) {
+      bodyScrollRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  }, []);
+
+  const handleBodyScroll = useCallback((e) => {
+    if (headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  }, []);
+
+  // Set up scroll synchronization
+  useEffect(() => {
+    const headerElement = headerScrollRef.current;
+    const bodyElement = bodyScrollRef.current;
+
+    if (headerElement) {
+      headerElement.addEventListener('scroll', handleHeaderScroll);
+    }
+    if (bodyElement) {
+      bodyElement.addEventListener('scroll', handleBodyScroll);
+    }
+
+    return () => {
+      if (headerElement) {
+        headerElement.removeEventListener('scroll', handleHeaderScroll);
+      }
+      if (bodyElement) {
+        bodyElement.removeEventListener('scroll', handleBodyScroll);
+      }
+    };
+  }, [handleHeaderScroll, handleBodyScroll]);
 
   // Full columns configuration with editable functionality
   const columns = useMemo(() => {
@@ -326,7 +367,7 @@ export const CustomEditableTable = memo((props) => {
           </TableHeaderTitle>
         ),
         dataIndex: 'releases',
-        width: 300,
+        width: 320,
         editable: true,
         editControlType: 'switch',
       },
@@ -446,8 +487,10 @@ export const CustomEditableTable = memo((props) => {
           onSaveListing={onSave}
         />
       </Flex>
-      <div className={customTableCss.tableContainer}>
-        <table className={customTableCss.customTable}>
+      
+      {/* Sticky Header - outside the table container */}
+      <div className={customTableCss.stickyHeader}>
+        <div className={customTableCss.tableHeaderInner} ref={headerScrollRef}>
           <TableHeader
             columns={columns}
             sortConfig={sortConfig}
@@ -456,19 +499,27 @@ export const CustomEditableTable = memo((props) => {
             allSelected={allCurrentPageSelected}
             partialSelected={partialCurrentPageSelected}
           />
-          <tbody>
-            {paginatedListings.map((record, index) => (
-              <TableRow
-                key={record.id}
-                record={record}
-                columns={columns}
-                onSave={handleSave}
-                isSelected={selectedRowKeys.includes(record.id)}
-                onRowSelect={handleRowSelect}
-              />
-            ))}
-          </tbody>
-        </table>
+        </div>
+      </div>
+
+      {/* Table Body */}
+      <div className={customTableCss.tableContainer} ref={bodyScrollRef}>
+        <div className={customTableCss.tableBody}>
+          <table className={customTableCss.bodyTable}>
+            <tbody>
+              {paginatedListings.map((record, index) => (
+                <TableRow
+                  key={record.id}
+                  record={record}
+                  columns={columns}
+                  onSave={handleSave}
+                  isSelected={selectedRowKeys.includes(record.id)}
+                  onRowSelect={handleRowSelect}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       {listings.length > pageSize && (
         <div className={customTableCss.paginationContainer}>

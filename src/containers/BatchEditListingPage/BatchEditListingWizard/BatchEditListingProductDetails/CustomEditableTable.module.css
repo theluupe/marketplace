@@ -1,133 +1,173 @@
+.stickyHeader {
+  position: sticky;
+  top: 80px; /* Account for main page header + extra spacing for better visual separation */
+  z-index: 10;
+  background: #fafafa;
+  border-bottom: 1px solid #d9d9d9;
+  overflow: hidden;
+  margin-bottom: -1px; /* Eliminate gap with table body */
+}
+
 .tableContainer {
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  position: relative;
   background: white;
+  overflow-x: auto; /* Keep horizontal scroll */
+}
+
+.tableHeaderInner {
   overflow-x: auto;
-  width: 100%;
+  overflow-y: hidden;
+  /* Hide scrollbar but maintain scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tableHeaderInner::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.tableBody {
+  /* No height restriction - let it expand naturally */
 }
 
 .customTable {
   width: 100%;
-  border-collapse: collapse;
   table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.stickyHeader {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fafafa;
-  border-bottom: 1px solid #d9d9d9;
+.headerTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
 }
 
-.tableHeader {
+.bodyTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+}
+
+.headerTable th,
+.bodyTable td {
   padding: 12px 16px;
+  vertical-align: middle;
   text-align: left;
-  font-weight: 600;
-  color: #262626;
-  border-bottom: 1px solid #d9d9d9;
-  background: #fafafa;
-  white-space: normal;
   word-wrap: break-word;
-  overflow: hidden;
-  user-select: none;
+  overflow-wrap: break-word;
+  position: relative;
+}
+
+.headerTable th {
+  background: #fafafa;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid #d9d9d9;
+  padding: 16px 20px;
+  position: relative;
+}
+
+.headerTable th:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%; /* Start at 25% from top */
+  bottom: 25%; /* End at 25% from bottom */
+  width: 1px;
+  background-color: #f0f0f0;
+}
+
+.bodyTable td {
+  background: white;
+  transition: background-color 0.2s;
+}
+
+.tableBody tr:hover td {
+  background-color: #fafafa;
+}
+
+.selectedRow td {
+  background-color: #e6f7ff;
+}
+
+.selectedRow:hover td {
+  background-color: #bae7ff;
+}
+
+.checkboxHeader,
+.checkboxCell {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+  padding: 8px;
 }
 
 .sortableHeader {
   cursor: pointer;
-  transition: background-color 0.2s;
+  user-select: none;
 }
 
 .sortableHeader:hover {
-  background: #f0f0f0;
+  background-color: #f0f0f0;
 }
 
 .headerContent {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-width: 0; /* Allow flexbox to shrink */
-}
-
-.headerContent > span:first-child {
-  flex: 1;
-  min-width: 0; /* Allow text to wrap */
+  line-height: 1.4;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .sortIndicator {
-  color: #1890ff;
-  font-size: 12px;
   margin-left: 4px;
-}
-
-.checkboxHeader,
-.checkboxCell {
-  width: 50px;
-  padding: 12px 16px;
-  text-align: center;
-  vertical-align: middle;
-  border-bottom: 1px solid #d9d9d9;
-}
-
-.checkboxHeader {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-.tableCell {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  vertical-align: middle;
-  transition: background-color 0.2s;
-  word-wrap: break-word;
-  overflow: hidden;
-}
-
-.customTable tbody tr {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.customTable tbody tr:hover {
-  background-color: #fafafa;
-}
-
-.customTable tbody tr:hover .tableCell,
-.customTable tbody tr:hover .checkboxCell {
-  background-color: #fafafa;
-}
-
-.selectedRow {
-  background-color: #e6f7ff !important;
-}
-
-.selectedRow .tableCell,
-.selectedRow .checkboxCell {
-  background-color: #e6f7ff !important;
-}
-
-.selectedRow:hover,
-.selectedRow:hover .tableCell,
-.selectedRow:hover .checkboxCell {
-  background-color: #d1f2ff !important;
+  font-size: 12px;
+  color: #1890ff;
 }
 
 .loadingContainer {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 200px;
-  background: white;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  height: 200px;
+  font-size: 16px;
+  color: #666;
 }
 
 .spinner {
-  color: #1890ff;
-  font-size: 16px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1890ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.paginationContainer {
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+  background: white;
+}
+
+.pagination {
+  text-align: center;
 }
 
 /* Responsive adjustments */
@@ -136,8 +176,8 @@
     max-height: 60vh;
   }
 
-  .tableHeader,
-  .tableCell,
+  .headerTable th,
+  .bodyTable td,
   .checkboxHeader,
   .checkboxCell {
     padding: 8px 12px;
@@ -182,13 +222,13 @@
 }
 
 /* Improve text wrapping in cells */
-.tableCell {
+.bodyTable td {
   word-wrap: break-word;
   word-break: break-word;
 }
 
 /* Fix for image cells */
-.tableCell:has(img) {
+.bodyTable td:has(img) {
   padding: 8px 16px;
 }
 
@@ -198,8 +238,8 @@
     table-layout: fixed !important;
   }
 
-  .tableHeader,
-  .tableCell {
+  .headerTable th,
+  .bodyTable td {
     overflow: hidden !important;
     text-overflow: ellipsis;
   }
@@ -211,26 +251,6 @@
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Pagination styling */
-.paginationContainer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 16px 0;
-  border-top: 1px solid #f0f0f0;
-  background: white;
-}
-
-.pagination {
-  margin: 0;
-}
-
-.pagination .ant-pagination-total-text {
-  margin-right: 16px;
-  color: #666;
-  font-size: 14px;
 }
 
 /* Fix vertical alignment of pagination buttons - more aggressive approach */
