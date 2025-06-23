@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Flex, Image, Pagination } from 'antd';
 import imagePlaceholder from '../../../../assets/image-placeholder.jpg';
-import { NamedLink } from '../../../../components';
+import { NamedLink, IconCaretUp, IconCaretDown } from '../../../../components';
 import { EditableCell } from './EditableCellComponents';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getImageSizeLabel } from '../../imageHelpers';
@@ -63,9 +63,14 @@ const TableHeader = memo(({ columns, sortConfig, onSort, onSelectAll, allSelecte
             >
               <div className={customTableCss.headerContent}>
                 {column.title}
-                {column.sorter && sortConfig?.key === column.dataIndex && (
+                {column.sorter && (
                   <span className={customTableCss.sortIndicator}>
-                    {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    <IconCaretUp 
+                      className={`${customTableCss.caretUp} ${sortConfig?.key === column.dataIndex && sortConfig.direction === 'asc' ? customTableCss.active : ''}`}
+                    />
+                    <IconCaretDown 
+                      className={`${customTableCss.caretDown} ${sortConfig?.key === column.dataIndex && sortConfig.direction === 'desc' ? customTableCss.active : ''}`}
+                    />
                   </span>
                 )}
               </div>
@@ -319,7 +324,7 @@ export const CustomEditableTable = memo((props) => {
           </TableHeaderTitle>
         ),
         dataIndex: 'isIllustration',
-        width: 200,
+        width: 240,
         editable: true,
         editControlType: 'switch',
         disabled: record => record.isAi,

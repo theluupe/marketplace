@@ -1,0 +1,8 @@
+.root {
+  color: #bfbfbf;
+  transition: color 0.2s ease;
+}
+
+.root.active {
+  color: #1890ff;
+} 
