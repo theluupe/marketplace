@@ -2,7 +2,7 @@ import { createUploadSignature } from './api';
 
 const MAX_FILE_SIZE_GB = 2; // Value in GB
 const MAX_TOTAL_FILE_SIZE_GB = 2; // Value in GB
-const MAX_NUMBER_OF_FILES = 200;
+export const MAX_NUMBER_OF_FILES = 200;
 
 export async function createUppyInstance(meta, onBeforeUpload) {
   try {
@@ -13,7 +13,7 @@ export async function createUppyInstance(meta, onBeforeUpload) {
     );
     // const { default: Dropbox } = await import('@uppy/dropbox/lib/Dropbox');
     // const { default: GoogleDrive } = await import('@uppy/google-drive/lib/GoogleDrive');
-    const { default: GoldenRetriever } = await import('@uppy/golden-retriever');
+    // const { default: GoldenRetriever } = await import('@uppy/golden-retriever');
     const uppy = new Uppy({
       onBeforeUpload,
       restrictions: {
@@ -33,33 +33,32 @@ export async function createUppyInstance(meta, onBeforeUpload) {
       companionAllowedHosts: COMPANION_ALLOWED_HOSTS,
     };
 
-    uppy
-      .use(Transloadit, {
-        assemblyOptions: async file => {
-          const { params, signature } = await createUploadSignature({ ...meta });
-          return {
-            service: process.env.REACT_APP_TRANSLOADIT_SERVICE_URL,
-            params: JSON.parse(params),
-            signature,
-          };
-        },
-        waitForEncoding: true,
-        waitForMetadata: true,
-        limit: 5,
-      })
-      .use(GoldenRetriever, { serviceWorker: true });
+    uppy.use(Transloadit, {
+      assemblyOptions: async file => {
+        const { params, signature } = await createUploadSignature({ ...meta });
+        return {
+          service: process.env.REACT_APP_TRANSLOADIT_SERVICE_URL,
+          params: JSON.parse(params),
+          signature,
+        };
+      },
+      waitForEncoding: true,
+      waitForMetadata: true,
+      limit: 5,
+    });
+    //.use(GoldenRetriever, { serviceWorker: true });
     // .use(Dropbox, config)
     // .use(GoogleDrive, config);
 
     // Register Service Worker if available
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then(registration =>
-          console.log('ServiceWorker registered with scope:', registration.scope)
-        )
-        .catch(error => console.error('ServiceWorker registration failed:', error));
-    }
+    // if ('serviceWorker' in navigator) {
+    //   navigator.serviceWorker
+    //     .register('/sw.js')
+    //     .then(registration =>
+    //       console.log('ServiceWorker registered with scope:', registration.scope)
+    //     )
+    //     .catch(error => console.error('ServiceWorker registration failed:', error));
+    // }
 
     return uppy;
   } catch (error) {

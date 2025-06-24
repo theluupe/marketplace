@@ -216,7 +216,12 @@ export default function reducer(state = initialState, action = {}) {
     case SET_LISTINGS_DEFAULTS:
       return { ...state, listingDefaults: payload };
     case INITIALIZE_UPPY:
-      return { ...state, uppy: payload.uppy, listings: payload.files, allThumbnailsReady: areAllThumbnailsReady(payload.files) };
+      return {
+        ...state,
+        uppy: payload.uppy,
+        listings: payload.files,
+        allThumbnailsReady: areAllThumbnailsReady(payload.files),
+      };
     case ADD_FILE: {
       const newListings = [...state.listings, payload];
       return {
