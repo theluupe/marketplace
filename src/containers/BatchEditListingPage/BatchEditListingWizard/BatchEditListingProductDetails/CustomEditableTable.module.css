@@ -1,6 +1,6 @@
 .stickyHeader {
   position: sticky;
-  top: 80px; /* Account for main page header + extra spacing for better visual separation */
+  top: 113px; /* Position directly after top pagination (64px + 49px calculated height) */
   z-index: 10;
   background: #fafafa;
   border-bottom: 1px solid #d9d9d9;
@@ -181,14 +181,39 @@
   }
 }
 
+.topPaginationContainer {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 64px; /* Position below the main page header */
+  z-index: 11; /* Higher than table header (which is z-index: 10) */
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.topPaginationInfo {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+}
+
+.topPaginationControls {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .paginationContainer {
   padding: 16px;
   border-top: 1px solid #f0f0f0;
   background: white;
+  display: flex;
+  justify-content: center;
 }
 
 .pagination {
-  text-align: center;
+  /* Remove text-align since we're using flexbox for centering */
 }
 
 /* Responsive adjustments */
@@ -275,11 +300,13 @@
 }
 
 /* Fix vertical alignment of pagination buttons - more aggressive approach */
-.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item) {
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item),
+.topPaginationContainer :global(.ant-pagination) :global(.ant-pagination-item) {
   display: flex !important;
 }
 
-.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item) :global(a) {
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item) :global(a),
+.topPaginationContainer :global(.ant-pagination) :global(.ant-pagination-item) :global(a) {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,7 +314,9 @@
   height: 100%;
 }
 
-.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item-link) {
+.paginationContainer :global(.ant-pagination) :global(.ant-pagination-item-link),
+.topPaginationContainer :global(.ant-pagination) :global(.ant-pagination-item-link) {
   display: flex;
+  align-items: center;
   justify-content: center !important;
 }

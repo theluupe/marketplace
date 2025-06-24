@@ -493,6 +493,27 @@ export const CustomEditableTable = memo((props) => {
         />
       </Flex>
       
+      {/* Top Pagination - appears above sticky header */}
+      {listings.length > pageSize && (
+        <div className={customTableCss.topPaginationContainer}>
+          <div className={customTableCss.topPaginationInfo}>
+            {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, listings.length)} of ${listings.length} items`}
+          </div>
+          <div className={customTableCss.topPaginationControls}>
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={listings.length}
+              onChange={handlePageChange}
+              showSizeChanger={false}
+              showQuickJumper={listings.length > pageSize * 5}
+              showTotal={false}
+              className={customTableCss.pagination}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Sticky Header - outside the table container */}
       <div className={customTableCss.stickyHeader}>
         <div className={customTableCss.tableHeaderInner} ref={headerScrollRef}>
@@ -535,9 +556,7 @@ export const CustomEditableTable = memo((props) => {
             onChange={handlePageChange}
             showSizeChanger={false}
             showQuickJumper={listings.length > pageSize * 5}
-            showTotal={(total, range) =>
-              `Showing ${range[0]}-${range[1]} of ${total} items`
-            }
+            showTotal={false}
             className={customTableCss.pagination}
           />
         </div>
