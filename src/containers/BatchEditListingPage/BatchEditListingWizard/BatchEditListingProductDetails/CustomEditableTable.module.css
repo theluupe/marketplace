@@ -5,7 +5,6 @@
   background: #fafafa;
   border-bottom: 1px solid #d9d9d9;
   overflow: hidden;
-  margin-bottom: -1px; /* Eliminate gap with table body */
 }
 
 .tableContainer {
@@ -24,10 +23,6 @@
 
 .tableHeaderInner::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
-}
-
-.tableBody {
-  /* No height restriction - let it expand naturally */
 }
 
 .customTable {
@@ -193,8 +188,8 @@
   justify-content: center;
 }
 
-.pagination {
-  /* Remove text-align since we're using flexbox for centering */
+.pagination .ant-pagination-item-active {
+  color: red !important; /* Override Ant Design default color */
 }
 
 /* Responsive adjustments */

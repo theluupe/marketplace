@@ -1591,3 +1591,43 @@ textarea {
 .uppy-Dashboard-Item.is-video .video-overlay {
   display: block;
 }
+
+.ant-pagination .ant-pagination-item:not(.ant-pagination-item-active):hover,
+.ant-pagination .ant-pagination-prev:hover .ant-pagination-item-link,
+.ant-pagination .ant-pagination-next:hover .ant-pagination-item-link {
+  color: #5c9dff;
+  background-color: transparent;
+}
+
+.ant-pagination .ant-pagination-item:not(.ant-pagination-item-active) a:hover {
+  color: #5c9dff;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  border: none;
+  border-bottom: 3px solid var(--colorBlack) !important;
+  border-radius: 0;
+}
+
+.ant-pagination .ant-pagination-item-active:hover {
+  border: none;
+  border-bottom: 3px solid var(--colorBlack);
+}
+
+
+.ant-pagination .ant-pagination-prev,
+.ant-pagination .ant-pagination-next {
+  padding-top: 10px;
+}
+
+.ant-pagination .ant-pagination-prev,
+.ant-pagination .ant-pagination-next,
+.ant-pagination > li:not(.ant-pagination-item-active) {
+  border-bottom-width: 3px;
+  border-bottom-style: solid;
+  border-bottom-color: transparent;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  color: var(--colorBlack);
+}

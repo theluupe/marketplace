@@ -152,7 +152,7 @@ export const CustomEditableTable = memo(props => {
     onSelectChange,
     selectedRowKeys = [],
     listings = [],
-    pageSize = 50, // Default page size
+    pageSize = 50,
   } = props;
 
   const intl = useIntl();
@@ -464,16 +464,6 @@ export const CustomEditableTable = memo(props => {
     [allItemIds, selectedRowKeys]
   );
 
-  // Current page selection state
-  const currentPageIds = useMemo(() => paginatedListings.map(listing => listing.id), [
-    paginatedListings,
-  ]);
-
-  const currentPageSelectedCount = useMemo(
-    () => currentPageIds.filter(id => selectedRowKeys.includes(id)).length,
-    [currentPageIds, selectedRowKeys]
-  );
-
   // Update selection logic for all pages
   const allItemsSelected = allItemsSelectedCount === allItemIds.length && allItemIds.length > 0;
   const partialItemsSelected = allItemsSelectedCount > 0 && !allItemsSelected;
@@ -497,31 +487,27 @@ export const CustomEditableTable = memo(props => {
         />
       </Flex>
 
-      {/* Top Pagination - appears above sticky header */}
-      {listings.length > pageSize && (
-        <div className={customTableCss.topPaginationContainer}>
-          <div className={customTableCss.topPaginationInfo}>
-            {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
-              currentPage * pageSize,
-              listings.length
-            )} of ${listings.length} items`}
-          </div>
-          <div className={customTableCss.topPaginationControls}>
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={listings.length}
-              onChange={handlePageChange}
-              showSizeChanger={false}
-              showQuickJumper={listings.length > pageSize * 5}
-              showTotal={false}
-              className={customTableCss.pagination}
-            />
-          </div>
+      <div className={customTableCss.topPaginationContainer}>
+        <div className={customTableCss.topPaginationInfo}>
+          {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
+            currentPage * pageSize,
+            listings.length
+          )} of ${listings.length} items`}
         </div>
-      )}
+        <div className={customTableCss.topPaginationControls}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={listings.length}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={listings.length > pageSize * 5}
+            showTotal={false}
+            className={customTableCss.pagination}
+          />
+        </div>
+      </div>
 
-      {/* Sticky Header - outside the table container */}
       <div className={customTableCss.stickyHeader}>
         <div className={customTableCss.tableHeaderInner} ref={headerScrollRef}>
           <TableHeader
@@ -535,9 +521,8 @@ export const CustomEditableTable = memo(props => {
         </div>
       </div>
 
-      {/* Table Body */}
       <div className={customTableCss.tableContainer} ref={bodyScrollRef}>
-        <div className={customTableCss.tableBody}>
+        <div>
           <table className={customTableCss.bodyTable}>
             <tbody>
               {paginatedListings.map((record, index) => (
@@ -554,20 +539,19 @@ export const CustomEditableTable = memo(props => {
           </table>
         </div>
       </div>
-      {listings.length > pageSize && (
-        <div className={customTableCss.paginationContainer}>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={listings.length}
-            onChange={handlePageChange}
-            showSizeChanger={false}
-            showQuickJumper={listings.length > pageSize * 5}
-            showTotal={false}
-            className={customTableCss.pagination}
-          />
-        </div>
-      )}
+
+      <div className={customTableCss.paginationContainer}>
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={listings.length}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper={listings.length > pageSize * 5}
+          showTotal={false}
+          className={customTableCss.pagination}
+        />
+      </div>
     </div>
   );
 });
