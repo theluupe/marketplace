@@ -451,6 +451,17 @@ export const CustomEditableTable = memo((props) => {
     return sortedListings.slice(startIndex, endIndex);
   }, [sortedListings, currentPage, pageSize]);
 
+  // All items selection state
+  const allItemIds = useMemo(() => 
+    listings.map(listing => listing.id), 
+    [listings]
+  );
+  
+  const allItemsSelectedCount = useMemo(() => 
+    allItemIds.filter(id => selectedRowKeys.includes(id)).length,
+    [allItemIds, selectedRowKeys]
+  );
+
   // Current page selection state
   const currentPageIds = useMemo(() => 
     paginatedListings.map(listing => listing.id), 
@@ -462,18 +473,18 @@ export const CustomEditableTable = memo((props) => {
     [currentPageIds, selectedRowKeys]
   );
 
-  // Update selection logic for current page
-  const allCurrentPageSelected = currentPageSelectedCount === currentPageIds.length && currentPageIds.length > 0;
-  const partialCurrentPageSelected = currentPageSelectedCount > 0 && !allCurrentPageSelected;
+  // Update selection logic for all pages
+  const allItemsSelected = allItemsSelectedCount === allItemIds.length && allItemIds.length > 0;
+  const partialItemsSelected = allItemsSelectedCount > 0 && !allItemsSelected;
 
-  // Define handleSelectAll after the computed values are available
+  // Define handleSelectAll to work across all pages
   const handleSelectAll = useCallback(() => {
-    // Toggle selection for current page only
-    const newSelectedKeys = allCurrentPageSelected 
-      ? selectedRowKeys.filter(key => !currentPageIds.includes(key)) // Remove current page items
-      : [...new Set([...selectedRowKeys, ...currentPageIds])]; // Add current page items
+    // Toggle selection for all items across all pages
+    const newSelectedKeys = allItemsSelected 
+      ? [] // Deselect all items
+      : [...allItemIds]; // Select all items
     onSelectChange(newSelectedKeys);
-  }, [allCurrentPageSelected, selectedRowKeys, currentPageIds, onSelectChange]);
+  }, [allItemsSelected, allItemIds, onSelectChange]);
 
   if (loading) {
     return (
@@ -522,8 +533,8 @@ export const CustomEditableTable = memo((props) => {
             sortConfig={sortConfig}
             onSort={handleSort}
             onSelectAll={handleSelectAll}
-            allSelected={allCurrentPageSelected}
-            partialSelected={partialCurrentPageSelected}
+            allSelected={allItemsSelected}
+            partialSelected={partialItemsSelected}
           />
         </div>
       </div>
