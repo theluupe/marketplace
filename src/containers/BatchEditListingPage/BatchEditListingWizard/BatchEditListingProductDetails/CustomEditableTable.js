@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Flex, Image, Pagination } from 'antd';
 import imagePlaceholder from '../../../../assets/image-placeholder.jpg';
-import { NamedLink, IconCaretUp, IconCaretDown } from '../../../../components';
+import { IconCaretDown, IconCaretUp, NamedLink } from '../../../../components';
 import { EditableCell } from './EditableCellComponents';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getImageSizeLabel } from '../../imageHelpers';
@@ -39,73 +39,73 @@ export const getLicensingGuideLink = () => (
 );
 
 // Simple table header component
-const TableHeader = memo(({ columns, sortConfig, onSort, onSelectAll, allSelected, partialSelected }) => {
-  return (
-    <table className={customTableCss.headerTable}>
-      <thead>
-        <tr>
-          <th className={customTableCss.checkboxHeader}>
-            <input
-              type="checkbox"
-              checked={allSelected}
-              ref={input => {
-                if (input) input.indeterminate = partialSelected;
-              }}
-              onChange={onSelectAll}
-            />
-          </th>
-          {columns.map((column) => (
-            <th 
-              key={column.dataIndex}
-              style={{ width: column.width }}
-              className={`${customTableCss.tableHeader} ${column.sorter ? customTableCss.sortableHeader : ''}`}
-              onClick={column.sorter ? () => onSort(column.dataIndex, column.sorter) : undefined}
-            >
-              <div className={customTableCss.headerContent}>
-                {column.title}
-                {column.sorter && (
-                  <span className={customTableCss.sortIndicator}>
-                    <IconCaretUp 
-                      className={`${customTableCss.caretUp} ${sortConfig?.key === column.dataIndex && sortConfig.direction === 'asc' ? customTableCss.active : ''}`}
-                    />
-                    <IconCaretDown 
-                      className={`${customTableCss.caretDown} ${sortConfig?.key === column.dataIndex && sortConfig.direction === 'desc' ? customTableCss.active : ''}`}
-                    />
-                  </span>
-                )}
-              </div>
+const TableHeader = memo(
+  ({ columns, sortConfig, onSort, onSelectAll, allSelected, partialSelected }) => {
+    return (
+      <table className={customTableCss.headerTable}>
+        <thead>
+          <tr>
+            <th className={customTableCss.checkboxHeader}>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={input => {
+                  if (input) input.indeterminate = partialSelected;
+                }}
+                onChange={onSelectAll}
+              />
             </th>
-          ))}
-        </tr>
-      </thead>
-    </table>
-  );
-});
+            {columns.map(column => (
+              <th
+                key={column.dataIndex}
+                style={{ width: column.width }}
+                className={`${customTableCss.tableHeader} ${
+                  column.sorter ? customTableCss.sortableHeader : ''
+                }`}
+                onClick={column.sorter ? () => onSort(column.dataIndex, column.sorter) : undefined}
+              >
+                <div className={customTableCss.headerContent}>
+                  {column.title}
+                  {column.sorter && (
+                    <span className={customTableCss.sortIndicator}>
+                      <IconCaretUp
+                        className={`${customTableCss.caretUp} ${
+                          sortConfig?.key === column.dataIndex && sortConfig.direction === 'asc'
+                            ? customTableCss.active
+                            : ''
+                        }`}
+                      />
+                      <IconCaretDown
+                        className={`${customTableCss.caretDown} ${
+                          sortConfig?.key === column.dataIndex && sortConfig.direction === 'desc'
+                            ? customTableCss.active
+                            : ''
+                        }`}
+                      />
+                    </span>
+                  )}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+      </table>
+    );
+  }
+);
 
 TableHeader.displayName = 'TableHeader';
 
 // Table row component with editable cell support
-const TableRow = memo(({ 
-  record, 
-  columns, 
-  onSave,
-  isSelected, 
-  onRowSelect,
-}) => {
+const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => {
   return (
-    <tr 
-      className={`${isSelected ? customTableCss.selectedRow : ''}`}
-    >
+    <tr className={`${isSelected ? customTableCss.selectedRow : ''}`}>
       <td className={customTableCss.checkboxCell}>
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onRowSelect(record.id)}
-        />
+        <input type="checkbox" checked={isSelected} onChange={() => onRowSelect(record.id)} />
       </td>
-      {columns.map((column) => {
+      {columns.map(column => {
         const value = record[column.dataIndex];
-        
+
         if (column.editable) {
           return (
             <EditableCell
@@ -128,10 +128,10 @@ const TableRow = memo(({
             </EditableCell>
           );
         }
-        
+
         return (
-          <td 
-            key={`${record.id}-${column.dataIndex}`} 
+          <td
+            key={`${record.id}-${column.dataIndex}`}
             className={customTableCss.tableCell}
             style={{ width: column.width }}
           >
@@ -145,30 +145,32 @@ const TableRow = memo(({
 
 TableRow.displayName = 'TableRow';
 
-export const CustomEditableTable = memo((props) => {
+export const CustomEditableTable = memo(props => {
   const {
     onSave,
     listingFieldsOptions,
     onSelectChange,
     selectedRowKeys = [],
     listings = [],
-    loading = false,
     pageSize = 50, // Default page size
   } = props;
-  
+
   const intl = useIntl();
   const { categories: imageryCategoryOptions, usages: usageOptions } = listingFieldsOptions;
 
   const [sortConfig, setSortConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Refs for synchronized scrolling
   const headerScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
 
-  const handleSave = useCallback((updatedData) => {
-    onSave(updatedData);
-  }, [onSave]);
+  const handleSave = useCallback(
+    updatedData => {
+      onSave(updatedData);
+    },
+    [onSave]
+  );
 
   const handleSort = useCallback((key, sorter) => {
     setSortConfig(prevConfig => {
@@ -176,32 +178,35 @@ export const CustomEditableTable = memo((props) => {
         return {
           key,
           direction: prevConfig.direction === 'asc' ? 'desc' : 'asc',
-          sorter
+          sorter,
         };
       }
       return { key, direction: 'asc', sorter };
     });
   }, []);
 
-  const handleRowSelect = useCallback((id) => {
-    const newSelectedKeys = selectedRowKeys.includes(id)
-      ? selectedRowKeys.filter(key => key !== id)
-      : [...selectedRowKeys, id];
-    onSelectChange(newSelectedKeys);
-  }, [selectedRowKeys, onSelectChange]);
+  const handleRowSelect = useCallback(
+    id => {
+      const newSelectedKeys = selectedRowKeys.includes(id)
+        ? selectedRowKeys.filter(key => key !== id)
+        : [...selectedRowKeys, id];
+      onSelectChange(newSelectedKeys);
+    },
+    [selectedRowKeys, onSelectChange]
+  );
 
   const handlePageChange = useCallback((page, size) => {
     setCurrentPage(page);
   }, []);
 
   // Synchronized scrolling
-  const handleHeaderScroll = useCallback((e) => {
+  const handleHeaderScroll = useCallback(e => {
     if (bodyScrollRef.current) {
       bodyScrollRef.current.scrollLeft = e.target.scrollLeft;
     }
   }, []);
 
-  const handleBodyScroll = useCallback((e) => {
+  const handleBodyScroll = useCallback(e => {
     if (headerScrollRef.current) {
       headerScrollRef.current.scrollLeft = e.target.scrollLeft;
     }
@@ -438,7 +443,7 @@ export const CustomEditableTable = memo((props) => {
     return [...listings].sort((a, b) => {
       const aVal = a[sortConfig.key];
       const bVal = b[sortConfig.key];
-      
+
       const result = sortConfig.sorter(aVal, bVal);
       return sortConfig.direction === 'desc' ? -result : result;
     });
@@ -452,24 +457,20 @@ export const CustomEditableTable = memo((props) => {
   }, [sortedListings, currentPage, pageSize]);
 
   // All items selection state
-  const allItemIds = useMemo(() => 
-    listings.map(listing => listing.id), 
-    [listings]
-  );
-  
-  const allItemsSelectedCount = useMemo(() => 
-    allItemIds.filter(id => selectedRowKeys.includes(id)).length,
+  const allItemIds = useMemo(() => listings.map(listing => listing.id), [listings]);
+
+  const allItemsSelectedCount = useMemo(
+    () => allItemIds.filter(id => selectedRowKeys.includes(id)).length,
     [allItemIds, selectedRowKeys]
   );
 
   // Current page selection state
-  const currentPageIds = useMemo(() => 
-    paginatedListings.map(listing => listing.id), 
-    [paginatedListings]
-  );
-  
-  const currentPageSelectedCount = useMemo(() => 
-    currentPageIds.filter(id => selectedRowKeys.includes(id)).length,
+  const currentPageIds = useMemo(() => paginatedListings.map(listing => listing.id), [
+    paginatedListings,
+  ]);
+
+  const currentPageSelectedCount = useMemo(
+    () => currentPageIds.filter(id => selectedRowKeys.includes(id)).length,
     [currentPageIds, selectedRowKeys]
   );
 
@@ -480,19 +481,11 @@ export const CustomEditableTable = memo((props) => {
   // Define handleSelectAll to work across all pages
   const handleSelectAll = useCallback(() => {
     // Toggle selection for all items across all pages
-    const newSelectedKeys = allItemsSelected 
+    const newSelectedKeys = allItemsSelected
       ? [] // Deselect all items
       : [...allItemIds]; // Select all items
     onSelectChange(newSelectedKeys);
   }, [allItemsSelected, allItemIds, onSelectChange]);
-
-  if (loading) {
-    return (
-      <div className={customTableCss.loadingContainer}>
-        <div className={customTableCss.spinner}>Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -503,12 +496,15 @@ export const CustomEditableTable = memo((props) => {
           onSaveListing={onSave}
         />
       </Flex>
-      
+
       {/* Top Pagination - appears above sticky header */}
       {listings.length > pageSize && (
         <div className={customTableCss.topPaginationContainer}>
           <div className={customTableCss.topPaginationInfo}>
-            {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, listings.length)} of ${listings.length} items`}
+            {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
+              currentPage * pageSize,
+              listings.length
+            )} of ${listings.length} items`}
           </div>
           <div className={customTableCss.topPaginationControls}>
             <Pagination
@@ -576,4 +572,4 @@ export const CustomEditableTable = memo((props) => {
   );
 });
 
-CustomEditableTable.displayName = 'CustomEditableTable'; 
+CustomEditableTable.displayName = 'CustomEditableTable';
