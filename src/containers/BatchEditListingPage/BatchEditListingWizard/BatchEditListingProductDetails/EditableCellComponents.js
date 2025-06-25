@@ -3,6 +3,7 @@ import { Input, InputNumber, Select, Switch } from 'antd';
 import { NamedLink } from '../../../../components';
 import css from './EditListingBatchProductDetails.module.css';
 import { EditOutlined } from '@ant-design/icons';
+import TagsInput from './TagsInput';
 
 const { TextArea } = Input;
 
@@ -134,7 +135,7 @@ const EditableCell = ({
             onBlur={save}
             onKeyDown={handleKeyPress}
             placeholder={placeholder}
-            className={css.formItem}
+            rows={4}
           />
         );
       case 'selectMultiple':
@@ -178,23 +179,13 @@ const EditableCell = ({
         );
       case 'tags':
         return (
-          <Select
+          <TagsInput
             ref={inputRef}
-            mode="tags"
             value={tempValue}
-            onChange={newValue => {
-              // Filter out empty strings and whitespace-only strings
-              const filteredValue = Array.isArray(newValue)
-                ? newValue.filter(tag => tag && tag.trim().length > 0)
-                : newValue;
-              setTempValue(filteredValue);
-            }}
-            onBlur={save}
+            onChange={setTempValue}
             placeholder={placeholder}
-            maxTagCount={maxSelection}
-            className={css.formItem}
-            style={{ width: '100%' }}
-            open={true}
+            maxSelection={maxSelection}
+            onBlur={save}
           />
         );
       case 'switch':
@@ -304,25 +295,18 @@ const EditableCell = ({
 
     if (editControlType === 'tags') {
       return (
-        <Select
-          mode="tags"
+        <TagsInput
           value={value}
           onChange={newValue => {
-            // Filter out empty strings and whitespace-only strings
-            const filteredValue = Array.isArray(newValue)
-              ? newValue.filter(tag => tag && tag.trim().length > 0)
-              : newValue;
-
-            const values = { ...record, [dataIndex]: filteredValue };
+            const values = { ...record, [dataIndex]: newValue };
             const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
             if (handleSave) {
               handleSave(updatedValues);
             }
           }}
           placeholder={placeholder}
-          maxTagCount={maxSelection}
-          className={css.formItem}
-          style={{ width: '100%' }}
+          maxSelection={maxSelection}
+          disabled={disabled(record)}
         />
       );
     }

@@ -13,14 +13,12 @@ import css from './EditListingBatchProductDetails.module.css';
 import customTableCss from './CustomEditableTable.module.css';
 
 const stringSorter = (a, b) => {
-  // Handle null/undefined values
   const strA = a || '';
   const strB = b || '';
   return strA.toString().localeCompare(strB.toString(), 'en', { sensitivity: 'base' });
 };
 
 const numberSorter = (a, b) => {
-  // Handle null/undefined values and convert to numbers
   const numA = Number(a) || 0;
   const numB = Number(b) || 0;
   return numA - numB;
@@ -96,7 +94,6 @@ const TableHeader = memo(
 
 TableHeader.displayName = 'TableHeader';
 
-// Table row component with editable cell support
 const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => {
   return (
     <tr className={`${isSelected ? customTableCss.selectedRow : ''}`}>
@@ -152,7 +149,7 @@ export const CustomEditableTable = memo(props => {
     onSelectChange,
     selectedRowKeys = [],
     listings = [],
-    pageSize = 50,
+    pageSize = 25,
   } = props;
 
   const intl = useIntl();
@@ -436,7 +433,6 @@ export const CustomEditableTable = memo(props => {
     ];
   }, [intl, imageryCategoryOptions, usageOptions]);
 
-  // Sorted data
   const sortedListings = useMemo(() => {
     if (!sortConfig) return listings;
 
@@ -449,14 +445,12 @@ export const CustomEditableTable = memo(props => {
     });
   }, [listings, sortConfig]);
 
-  // Paginated data
   const paginatedListings = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return sortedListings.slice(startIndex, endIndex);
   }, [sortedListings, currentPage, pageSize]);
 
-  // All items selection state
   const allItemIds = useMemo(() => listings.map(listing => listing.id), [listings]);
 
   const allItemsSelectedCount = useMemo(

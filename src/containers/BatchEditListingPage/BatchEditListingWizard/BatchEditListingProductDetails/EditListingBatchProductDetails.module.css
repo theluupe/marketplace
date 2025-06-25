@@ -159,6 +159,7 @@
   max-height: 120px;
   overflow-y: auto;
   line-height: 1.4;
+  font-size: 0.875rem; /* 14px */
 }
 
 .emptyValue {
@@ -177,5 +178,61 @@
 
 .editIcon :global(.pencil) {
   stroke: var(--colorGrey700);
+}
+
+.tagsContainer {
+  position: relative;
+  width: 100%;
+}
+
+.copyButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+  color: var(--colorGrey600);
+}
+
+.copyButton:hover {
+  color: var(--colorGrey800);
+}
+
+.tagsContainer:hover .copyButton {
+  opacity: 1;
+}
+
+.copyButton.copied {
+  color: var(--colorSuccess);
+  opacity: 1;
+}
+
+.copyButton.copied::after {
+  content: 'Copied!';
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--colorSuccess);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
