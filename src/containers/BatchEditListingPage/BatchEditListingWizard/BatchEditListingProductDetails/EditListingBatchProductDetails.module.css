@@ -62,8 +62,9 @@
 }
 
 .formItem:focus {
-  border: none;
-  box-shadow: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
+  transition: all ease-in-out 100ms;
 }
 
 .modalContent {
@@ -85,4 +86,160 @@
   margin-top: 16px;
   font-size: 14px;
   font-style: italic;
+}
+
+.moneyFieldContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  position: relative;
+}
+
+.moneyFieldContainer .editableCell {
+  width: 100%;
+}
+
+.moneyFieldContainer .formItem {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.moneyFieldContainer .moneyFieldPricingGuide {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--colorGrey500);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.editableCell {
+  cursor: text;
+  min-height: 32px;
+  padding: 4px 16px 4px 11px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 100px;
+  position: relative;
+}
+
+.editableCell.moneyField {
+  cursor: pointer;
+}
+
+.editableCell:hover {
+  background-color: var(--colorGrey100);
+  border: 1px solid var(--colorGrey300);
+}
+
+.editableCell:hover .editIcon {
+  opacity: 1;
+}
+
+.cellContent {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellContent.textarea {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 300px;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.4;
+  font-size: 0.875rem; /* 14px */
+}
+
+.emptyValue {
+  color: var(--colorGrey400);
+  font-style: normal;
+  user-select: none;
+}
+
+.editIcon {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  margin-left: 8px;
+  flex-shrink: 0;
+  stroke: var(--colorGrey700);
+}
+
+.editIcon :global(.pencil) {
+  stroke: var(--colorGrey700);
+}
+
+.tagsContainer {
+  position: relative;
+  width: 100%;
+}
+
+.copyButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+  color: var(--colorGrey600);
+}
+
+.copyButton:hover {
+  color: var(--colorGrey800);
+}
+
+.tagsContainer:hover .copyButton {
+  opacity: 1;
+}
+
+.copyButton.copied {
+  color: var(--colorSuccess);
+  opacity: 1;
+}
+
+.copyButton.copied::after {
+  content: 'Copied!';
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--colorSuccess);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }

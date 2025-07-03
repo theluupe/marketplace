@@ -19,7 +19,7 @@ import {
   SET_SELECTED_ROWS,
 } from '../../BatchEditListingPage.duck';
 import { useDispatch, useSelector } from 'react-redux';
-import { EditableListingsTable, getLicensingGuideLink } from './EditableListingsTable';
+import { CustomEditableTable, getLicensingGuideLink } from './CustomEditableTable';
 import useStickyHeader from '../useStickyHeader';
 import {
   ExclamationCircleOutlined,
@@ -192,16 +192,14 @@ export const EditListingBatchProductDetails = props => {
       </Flex>
 
       <div>
-        <EditableListingsTable
+        <CustomEditableTable
           onSave={handleUpdateListing}
           listingFieldsOptions={listingFieldsOptions}
           onSelectChange={onSelectChange}
           selectedRowKeys={selectedRowKeys}
-          loading={
-            loading || showProgressModal || csvUploadInProgress || listingsCreationInProgress
-          }
           listings={listings}
-        ></EditableListingsTable>
+          editMode={editMode}
+        ></CustomEditableTable>
       </div>
 
       <Modal

@@ -37,6 +37,7 @@
   "BatchEditListingUploaderPanel.subtitle": "Puedes subir varias imágenes a la vez. Una vez subidas, puedes editar el título de la imagen, la descripción, las palabras clave y más antes de enviarlas para revisión.",
   "BatchEditListingWizard.tabLabelDetails": "Detalles",
   "BatchEditListingWizard.tabLabelUpload": "Subir",
+  "BatchEditListingWizard.new.processingThumbnails": "Procesando archivos...",
   "BatchEditListingWizard.new.saveUpload": "Siguiente",
   "BatchEditListingWizard.edit.saveUpload": "Guardar cambios",
   "BatchEditListingWizard.new.saveProductDetails": "Enviar para revisión",
@@ -50,7 +51,7 @@
   "BatchEditListingProductDetails.validationModal.content": "Por favor, asegúrate de que todas las publicaciones tengan una categoría, título, descripción y precio válidos antes de guardar. Puedes ingresar la información faltante o deseleccionar los archivos no válidos para continuar.",
   "BatchEditListingProductDetails.aiContentModal.content": "Para continuar listando estos productos, debes cumplir con los términos de The Luupe para contenido generado por IA.",
   "BatchEditListingProductDetails.aiContentModal.title": "Estás listando archivos marcados como contenido generado por IA.",
-  "BatchEditListingProductDetails.aiContentModal.optIn": "He leído y acepto los términos de The Luupe para listar contenido generado por IA."
+  "BatchEditListingProductDetails.aiContentModal.optIn": "He leído y acepto los términos de The Luupe para listar contenido generado por IA.",
   "BatchEditListingProductDetails.warningRefresh": "NOTA: si refrescas/navegas fuera, perderás tu progreso.",
   "BookingDateRangeFilter.labelPlain": "Fechas",
   "BookingDateRangeFilter.labelPopup": "Fechas",

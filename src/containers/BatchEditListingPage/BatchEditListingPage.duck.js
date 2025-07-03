@@ -200,10 +200,15 @@ const initialState = {
   csvUploadError: null,
   setStockInProgress: false,
   setStockError: null,
+  allThumbnailsReady: false,
 };
 
 export default function reducer(state = initialState, action = {}) {
   const { type, payload } = action;
+
+  function areAllThumbnailsReady(listings) {
+    return listings.length > 0 && listings.every(l => !!l.preview);
+  }
 
   switch (type) {
     case SET_USER_ID:
@@ -211,33 +216,46 @@ export default function reducer(state = initialState, action = {}) {
     case SET_LISTINGS_DEFAULTS:
       return { ...state, listingDefaults: payload };
     case INITIALIZE_UPPY:
-      return { ...state, uppy: payload.uppy, listings: payload.files };
-    case ADD_FILE:
       return {
         ...state,
-        listings: [...state.listings, payload],
+        uppy: payload.uppy,
+        listings: payload.files,
+        allThumbnailsReady: areAllThumbnailsReady(payload.files),
+      };
+    case ADD_FILE: {
+      const newListings = [...state.listings, payload];
+      return {
+        ...state,
+        listings: newListings,
         selectedRowsKeys: _.uniq([...state.selectedRowsKeys, payload.id]),
+        allThumbnailsReady: areAllThumbnailsReady(newListings),
       };
-    case REMOVE_FILE:
+    }
+    case REMOVE_FILE: {
+      const newListings = state.listings.filter(file => file.id !== payload.id);
       return {
         ...state,
-        listings: state.listings.filter(file => file.id !== payload.id),
+        listings: newListings,
         selectedRowsKeys: state.selectedRowsKeys.filter(key => key !== payload.id),
+        allThumbnailsReady: areAllThumbnailsReady(newListings),
       };
+    }
     case RESET_FILES:
-      return { ...state, listings: [], selectedRowsKeys: [] };
+      return { ...state, listings: [], selectedRowsKeys: [], allThumbnailsReady: false };
     case PREVIEW_GENERATED: {
       const { id, preview } = payload;
+      const newListings = state.listings.map(listing =>
+        listing.id === id
+          ? {
+              ...listing,
+              preview,
+            }
+          : listing
+      );
       return {
         ...state,
-        listings: state.listings.map(listing =>
-          listing.id === id
-            ? {
-                ...listing,
-                preview,
-              }
-            : listing
-        ),
+        listings: newListings,
+        allThumbnailsReady: areAllThumbnailsReady(newListings),
       };
     }
     case FETCH_LISTING_OPTIONS: {
@@ -372,6 +390,7 @@ export const getCsvUploadState = state => {
   const { csvUploadInProgress, csvUploadError } = state.BatchEditListingPage;
   return { csvUploadInProgress, csvUploadError };
 };
+export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThumbnailsReady;
 
 function updateAiTermsStatus(getState, dispatch) {
   if (getAiTermsAccepted(getState())) {

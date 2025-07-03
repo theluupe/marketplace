@@ -37,6 +37,7 @@
   "BatchEditListingUploaderPanel.subtitle": "Sie können mehrere Bilder gleichzeitig hochladen. Nach dem Hochladen können Sie den Bildtitel, die Beschreibung, Schlüsselwörter und mehr bearbeiten, bevor Sie sie zur Überprüfung einreichen.",
   "BatchEditListingWizard.tabLabelDetails": "Details",
   "BatchEditListingWizard.tabLabelUpload": "Hochladen",
+  "BatchEditListingWizard.new.processingThumbnails": "Dateien werden verarbeitet...",
   "BatchEditListingWizard.new.saveUpload": "Weiter",
   "BatchEditListingWizard.edit.saveUpload": "Änderungen speichern",
   "BatchEditListingWizard.new.saveProductDetails": "Zur Überprüfung einreichen",
@@ -50,7 +51,7 @@
   "BatchEditListingProductDetails.validationModal.content": "Bitte stellen Sie sicher, dass alle Einträge eine gültige Kategorie, einen Titel, eine Beschreibung und einen Preis haben, bevor Sie speichern. Sie können entweder die fehlenden Informationen eingeben oder die ungültigen Dateien abwählen, um fortzufahren.",
   "BatchEditListingProductDetails.aiContentModal.content": "Um diese Produkte zu listen, müssen Sie den Bedingungen von The Luupe für KI-generierte Inhalte zustimmen.",
   "BatchEditListingProductDetails.aiContentModal.title": "Sie listen Dateien auf, die als KI-generierte Inhalte markiert sind.",
-  "BatchEditListingProductDetails.aiContentModal.optIn": "Ich habe die Bedingungen von The Luupe für das Listen von KI-generierten Inhalten gelesen und akzeptiere sie."
+  "BatchEditListingProductDetails.aiContentModal.optIn": "Ich habe die Bedingungen von The Luupe für das Listen von KI-generierten Inhalten gelesen und akzeptiere sie.",
   "BatchEditListingProductDetails.warningRefresh": "HINWEIS: Wenn Sie die Seite aktualisieren oder weg navigieren, verlieren Sie Ihren Fortschritt.",
   "BookingDateRangeFilter.labelPlain": "Daten",
   "BookingDateRangeFilter.labelPopup": "Daten",

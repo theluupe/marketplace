@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Input, InputNumber, Select, Switch } from 'antd';
 import { NamedLink } from '../../../../components';
 import css from './EditListingBatchProductDetails.module.css';
+import { EditOutlined } from '@ant-design/icons';
+import TagsInput from './TagsInput';
 
 const { TextArea } = Input;
 
@@ -20,14 +22,93 @@ const EditableCell = ({
   children, // Content for non-editable cells
   ...restProps
 }) => {
+  const [editing, setEditing] = useState(false);
+  const [tempValue, setTempValue] = useState('');
+  const inputRef = useRef(null);
+
   const value = record[dataIndex] !== undefined ? record[dataIndex] : '';
 
-  const handleChange = newValue => {
-    const values = { ...record, [dataIndex]: newValue };
+  useEffect(() => {
+    if (editing) {
+      setTempValue(value);
+      // Focus the input after it's rendered
+      setTimeout(() => {
+        if (inputRef.current) {
+          if (inputRef.current.focus) {
+            inputRef.current.focus();
+          } else if (inputRef.current.input && inputRef.current.input.focus) {
+            inputRef.current.input.focus();
+          }
+        }
+      }, 0);
+    }
+  }, [editing, value]);
+
+  const toggleEdit = () => {
+    setEditing(!editing);
+  };
+
+  const save = () => {
+    setEditing(false);
+    const values = { ...record, [dataIndex]: tempValue };
     const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
 
-    if (handleSave) {
+    if (handleSave && tempValue !== value) {
       handleSave(updatedValues);
+    }
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setTempValue(value);
+  };
+
+  const handleKeyPress = e => {
+    if (e.key === 'Enter' && editControlType !== 'textarea') {
+      save();
+    } else if (e.key === 'Escape') {
+      cancel();
+    }
+  };
+
+  const renderDisplayValue = () => {
+    switch (editControlType) {
+      case 'selectMultiple':
+        if (Array.isArray(value) && value.length > 0) {
+          return value
+            .map(v => {
+              const option = options?.find(opt => opt.value === v);
+              return option ? option.label : v;
+            })
+            .join(', ');
+        }
+        return placeholder || '—';
+
+      case 'select':
+        if (value) {
+          const option = options?.find(opt => opt.value === value);
+          return option ? option.label : value;
+        }
+        return placeholder || '—';
+
+      case 'tags':
+        if (Array.isArray(value) && value.length > 0) {
+          return value.join(', ');
+        }
+        return placeholder || '—';
+
+      case 'switch':
+        return value ? 'Yes' : 'No';
+
+      case 'money':
+        return value ? `$${value}` : '—';
+
+      case 'text':
+      case 'textarea':
+        return value || '—';
+
+      default:
+        return value || '—';
     }
   };
 
@@ -36,9 +117,11 @@ const EditableCell = ({
       case 'text':
         return (
           <Input
-            value={value}
-            onChange={e => handleChange(e.target.value)}
-            onBlur={() => handleChange(value)}
+            ref={inputRef}
+            value={tempValue}
+            onChange={e => setTempValue(e.target.value)}
+            onBlur={save}
+            onKeyDown={handleKeyPress}
             placeholder={placeholder}
             className={css.formItem}
           />
@@ -46,54 +129,81 @@ const EditableCell = ({
       case 'textarea':
         return (
           <TextArea
-            value={value}
-            onChange={e => handleChange(e.target.value)}
-            autoSize
+            ref={inputRef}
+            value={tempValue}
+            onChange={e => setTempValue(e.target.value)}
+            onBlur={save}
+            onKeyDown={handleKeyPress}
             placeholder={placeholder}
-            className={css.formItem}
+            rows={4}
           />
         );
       case 'selectMultiple':
         return (
           <Select
-            value={value}
+            ref={inputRef}
+            value={tempValue}
             mode="multiple"
             options={options}
-            onChange={handleChange}
+            onChange={setTempValue}
+            onBlur={save}
             placeholder={placeholder}
             maxCount={maxSelection}
             className={css.formItem}
             style={{ width: '100%' }}
+            open={true}
           />
         );
       case 'select':
         return (
           <Select
-            value={value}
+            ref={inputRef}
+            value={tempValue}
             options={options}
-            onChange={handleChange}
+            onChange={val => {
+              setTempValue(val);
+              setTimeout(() => {
+                const values = { ...record, [dataIndex]: val };
+                const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+                if (handleSave) {
+                  handleSave(updatedValues);
+                }
+                setEditing(false);
+              }, 100);
+            }}
             placeholder={placeholder}
             className={css.formItem}
             style={{ width: '100%' }}
+            open={true}
           />
         );
       case 'tags':
         return (
-          <Select
-            mode="tags"
-            value={value}
-            onChange={handleChange}
+          <TagsInput
+            ref={inputRef}
+            value={tempValue}
+            onChange={setTempValue}
             placeholder={placeholder}
-            maxTagCount={maxSelection}
-            className={css.formItem}
-            style={{ width: '100%' }}
+            maxSelection={maxSelection}
+            onBlur={save}
           />
         );
       case 'switch':
         return (
           <Switch
-            checked={!!value} // Ensure the value is a boolean
-            onChange={checked => handleChange(checked)}
+            ref={inputRef}
+            checked={!!tempValue}
+            onChange={checked => {
+              setTempValue(checked);
+              setTimeout(() => {
+                const values = { ...record, [dataIndex]: checked };
+                const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+                if (handleSave) {
+                  handleSave(updatedValues);
+                }
+                setEditing(false);
+              }, 100);
+            }}
             checkedChildren="Yes"
             unCheckedChildren="No"
             className={css.formItem}
@@ -102,27 +212,156 @@ const EditableCell = ({
         );
       case 'money':
         return (
-          <>
-            <InputNumber
-              value={value}
-              onChange={handleChange}
-              placeholder={placeholder}
-              formatter={val => `$ ${val}`}
-              className={css.formItem}
-            />
-            <div className={css.moneyFieldPricingGuide}>
-              <NamedLink name="CMSPage" params={{ pageId: 'pricing-guide' }}>
-                Pricing guide
-              </NamedLink>
-            </div>
-          </>
+          <InputNumber
+            ref={inputRef}
+            value={tempValue}
+            onChange={setTempValue}
+            onBlur={save}
+            onKeyDown={handleKeyPress}
+            placeholder={placeholder}
+            formatter={val => `$ ${val}`}
+            className={css.formItem}
+          />
         );
       default:
         return null;
     }
   };
 
-  return <td {...restProps}>{editable ? renderEditableField() : children}</td>;
+  const renderCell = () => {
+    if (!editable) {
+      return children;
+    }
+
+    // Always show Switch component for switch type, never in edit mode
+    if (editControlType === 'switch') {
+      return (
+        <Switch
+          checked={!!value}
+          onChange={checked => {
+            const values = { ...record, [dataIndex]: checked };
+            const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+            if (handleSave) {
+              handleSave(updatedValues);
+            }
+          }}
+          checkedChildren="Yes"
+          unCheckedChildren="No"
+          disabled={disabled(record)}
+        />
+      );
+    }
+
+    // Always show Select components for select types, never in edit mode
+    if (editControlType === 'select') {
+      return (
+        <Select
+          value={value}
+          options={options}
+          onChange={val => {
+            const values = { ...record, [dataIndex]: val };
+            const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+            if (handleSave) {
+              handleSave(updatedValues);
+            }
+          }}
+          placeholder={placeholder}
+          className={css.formItem}
+          style={{ width: '100%' }}
+        />
+      );
+    }
+
+    if (editControlType === 'selectMultiple') {
+      return (
+        <Select
+          value={value}
+          mode="multiple"
+          options={options}
+          onChange={newValue => {
+            const values = { ...record, [dataIndex]: newValue };
+            const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+            if (handleSave) {
+              handleSave(updatedValues);
+            }
+          }}
+          placeholder={placeholder}
+          maxCount={maxSelection}
+          className={css.formItem}
+          style={{ width: '100%' }}
+        />
+      );
+    }
+
+    if (editControlType === 'tags') {
+      return (
+        <TagsInput
+          value={value}
+          onChange={newValue => {
+            const values = { ...record, [dataIndex]: newValue };
+            const updatedValues = onBeforeSave ? onBeforeSave(values) : values;
+            if (handleSave) {
+              handleSave(updatedValues);
+            }
+          }}
+          placeholder={placeholder}
+          maxSelection={maxSelection}
+          disabled={disabled(record)}
+        />
+      );
+    }
+
+    if (editing) {
+      if (editControlType === 'money') {
+        return (
+          <div className={css.moneyFieldContainer}>
+            {renderEditableField()}
+            <div className={css.moneyFieldPricingGuide}>
+              <NamedLink name="CMSPage" params={{ pageId: 'pricing-guide' }} target="_blank">
+                Pricing guide
+              </NamedLink>
+            </div>
+          </div>
+        );
+      }
+      return renderEditableField();
+    }
+
+    if (editControlType === 'money') {
+      return (
+        <div className={css.moneyFieldContainer}>
+          <div className={`${css.editableCell} ${css.moneyField}`} onClick={toggleEdit}>
+            <span className={css.cellContent}>{renderDisplayValue()}</span>
+            <EditOutlined />
+          </div>
+          <div className={css.moneyFieldPricingGuide}>
+            <NamedLink name="CMSPage" params={{ pageId: 'pricing-guide' }} target="_blank">
+              Pricing guide
+            </NamedLink>
+          </div>
+        </div>
+      );
+    }
+
+    const displayValue = renderDisplayValue();
+    const isEmpty = displayValue === '—';
+    const isTextarea = editControlType === 'textarea';
+
+    return (
+      <div className={css.editableCell} onClick={toggleEdit}>
+        <span
+          className={`${css.cellContent} ${isEmpty ? css.emptyValue : ''} ${
+            isTextarea ? css.textarea : ''
+          }`}
+        >
+          {displayValue}
+        </span>
+        <EditOutlined />
+      </div>
+    );
+  };
+
+  return <td {...restProps}>{renderCell()}</td>;
 };
 
 const EditableRow = ({ index, ...props }) => {
@@ -134,4 +373,9 @@ export const EditableCellComponents = {
     row: EditableRow,
     cell: EditableCell,
   },
+  Cell: EditableCell, // Direct export for our custom table
+  Row: EditableRow,
 };
+
+// Also export directly for easier importing
+export { EditableCell, EditableRow };

@@ -37,6 +37,7 @@
   "BatchEditListingUploaderPanel.subtitle": "Vous pouvez télécharger plusieurs images à la fois. Une fois téléchargées, vous pouvez modifier le titre de l'image, la description, les mots-clés et plus avant de les soumettre pour révision.",
   "BatchEditListingWizard.tabLabelDetails": "Détails",
   "BatchEditListingWizard.tabLabelUpload": "Télécharger",
+  "BatchEditListingWizard.new.processingThumbnails": "Traitement des fichiers...",
   "BatchEditListingWizard.new.saveUpload": "Suivant",
   "BatchEditListingWizard.edit.saveUpload": "Enregistrer les modifications",
   "BatchEditListingWizard.new.saveProductDetails": "Soumettre pour révision",
@@ -50,7 +51,7 @@
   "BatchEditListingProductDetails.validationModal.content": "Veuillez vous assurer que toutes les annonces ont une catégorie, un titre, une description et un prix valides avant de sauvegarder. Vous pouvez soit saisir les informations manquantes, soit désélectionner les fichiers non valides pour continuer.",
   "BatchEditListingProductDetails.aiContentModal.content": "Pour continuer à lister ces produits, vous devez respecter les conditions de The Luupe pour le contenu généré par IA.",
   "BatchEditListingProductDetails.aiContentModal.title": "Vous listez des fichiers marqués comme contenu généré par IA.",
-  "BatchEditListingProductDetails.aiContentModal.optIn": "J'ai lu et j'accepte les conditions de The Luupe pour lister le contenu généré par IA."
+  "BatchEditListingProductDetails.aiContentModal.optIn": "J'ai lu et j'accepte les conditions de The Luupe pour lister le contenu généré par IA.",
   "BatchEditListingProductDetails.warningRefresh": "REMARQUE : si vous actualisez/naviguez ailleurs, vous perdrez votre progression.",
   "BookingDateRangeFilter.labelPlain": "Dates",
   "BookingDateRangeFilter.labelPopup": "Dates",
