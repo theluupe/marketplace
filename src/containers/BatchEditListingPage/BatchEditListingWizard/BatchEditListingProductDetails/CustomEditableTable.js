@@ -150,6 +150,7 @@ export const CustomEditableTable = memo(props => {
     selectedRowKeys = [],
     listings = [],
     pageSize = 25,
+    editMode = false,
   } = props;
 
   const intl = useIntl();
@@ -446,6 +447,9 @@ export const CustomEditableTable = memo(props => {
   }, [listings, sortConfig]);
 
   const paginatedListings = useMemo(() => {
+    if (editMode) {
+      return sortedListings;
+    }
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return sortedListings.slice(startIndex, endIndex);
@@ -482,24 +486,28 @@ export const CustomEditableTable = memo(props => {
       </Flex>
 
       <div className={customTableCss.topPaginationContainer}>
-        <div className={customTableCss.topPaginationInfo}>
-          {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
-            currentPage * pageSize,
-            listings.length
-          )} of ${listings.length} items`}
-        </div>
-        <div className={customTableCss.topPaginationControls}>
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={listings.length}
-            onChange={handlePageChange}
-            showSizeChanger={false}
-            showQuickJumper={listings.length > pageSize * 5}
-            showTotal={false}
-            className={customTableCss.pagination}
-          />
-        </div>
+        {!editMode && (
+          <>
+            <div className={customTableCss.topPaginationInfo}>
+              {`Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(
+                currentPage * pageSize,
+                listings.length
+              )} of ${listings.length} items`}
+            </div>
+            <div className={customTableCss.topPaginationControls}>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={listings.length}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+                showQuickJumper={listings.length > pageSize * 5}
+                showTotal={false}
+                className={customTableCss.pagination}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className={customTableCss.stickyHeader}>
@@ -535,16 +543,18 @@ export const CustomEditableTable = memo(props => {
       </div>
 
       <div className={customTableCss.paginationContainer}>
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={listings.length}
-          onChange={handlePageChange}
-          showSizeChanger={false}
-          showQuickJumper={listings.length > pageSize * 5}
-          showTotal={false}
-          className={customTableCss.pagination}
-        />
+        {!editMode && (
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={listings.length}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={listings.length > pageSize * 5}
+            showTotal={false}
+            className={customTableCss.pagination}
+          />
+        )}
       </div>
     </div>
   );

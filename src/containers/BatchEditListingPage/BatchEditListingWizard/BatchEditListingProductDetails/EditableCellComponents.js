@@ -349,7 +349,11 @@ const EditableCell = ({
 
     return (
       <div className={css.editableCell} onClick={toggleEdit}>
-        <span className={`${css.cellContent} ${isEmpty ? css.emptyValue : ''} ${isTextarea ? css.textarea : ''}`}>
+        <span
+          className={`${css.cellContent} ${isEmpty ? css.emptyValue : ''} ${
+            isTextarea ? css.textarea : ''
+          }`}
+        >
           {displayValue}
         </span>
         <EditOutlined />

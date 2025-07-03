@@ -198,6 +198,7 @@ export const EditListingBatchProductDetails = props => {
           onSelectChange={onSelectChange}
           selectedRowKeys={selectedRowKeys}
           listings={listings}
+          editMode={editMode}
         ></CustomEditableTable>
       </div>
 
