@@ -127,7 +127,7 @@ export class SearchPageComponent extends Component {
                 categoryIds: ['creatives'],
               },
               listingTypeConfig: {
-                limitToListingTypeIds: true,
+                limitToListingTypeIds: false,
                 listingTypeIds: ['profile-listing'],
               },
             },
