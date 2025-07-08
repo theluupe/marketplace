@@ -1,12 +1,4 @@
-@import '../../../styles/customMediaQueries.css';
-
 .root {
-  composes: marketplaceModalBottomWrapperText from global;
-  padding-bottom: 6px;
-
-  @media (--viewportMedium) {
-    padding-bottom: 8px;
-  }
 }
 
 .finePrint {

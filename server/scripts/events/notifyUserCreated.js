@@ -1,4 +1,4 @@
-const { identifyUserEvent } = require('../../api-util/analytics');
+const { identifyUserEvent, trackManagementAPIEvent } = require('../../api-util/analytics');
 const { updateAuth0User } = require('../../api-util/auth0Helper');
 const {
   USER_TYPES,
@@ -134,6 +134,32 @@ function script() {
     }
   }
 
+  async function identifyUserHandler(userId, userAttributes) {
+    const { profile, email } = userAttributes;
+    const { firstName, lastName } = profile;
+    const { newsletterOptIn } = profile?.privateData || {};
+    const { userType } = profile.publicData || {};
+    const isSeller = userType === USER_TYPES.SELLER;
+    const isBrand = userType === USER_TYPES.BRAND;
+    const isProd = process.env.NODE_ENV === 'production';
+    const eventUser = { id: userId, email };
+    const eventTraits = {
+      firstName,
+      lastName,
+      type: isBrand ? 'BRAND' : 'BUYER',
+      creatorFoundingMember: 'NO',
+      communityUser: 'NO',
+      isProdUser: isProd ? 'YES' : 'NO',
+      subscribedToNewsletter: !!newsletterOptIn ? 'YES' : 'NO',
+      ...(isSeller ? { sellerStatus: SELLER_STATUS.APPLIED } : {}),
+    };
+    identifyUserEvent(eventUser, eventTraits);
+    if (!!newsletterOptIn) {
+      const eventUser = { id: userId, email };
+      trackManagementAPIEvent('User subscribed to newsletter', eventUser);
+    }
+  }
+
   async function referralProgramOptIn(userId, email, firstName, lastName) {
     const integrationSdk = integrationSdkInit();
     const referralManagerClient = new RAMClient();
@@ -160,20 +186,7 @@ function script() {
       const { userType } = profile.publicData;
       const isBuyer = userType === USER_TYPES.BUYER;
       const isSeller = userType === USER_TYPES.SELLER;
-      const isBrand = userType === USER_TYPES.BRAND;
-      const isProd = process.env.NODE_ENV === 'production';
-      const eventUser = { id: userId, email };
-      const eventTraits = {
-        firstName,
-        lastName,
-        type: isBrand ? 'BRAND' : 'BUYER',
-        creatorFoundingMember: 'NO',
-        subscribedToNewsletter: 'NO',
-        communityUser: 'NO',
-        isProdUser: isProd ? 'YES' : 'NO',
-        ...(isSeller ? { sellerStatus: SELLER_STATUS.APPLIED } : {}),
-      };
-      identifyUserEvent(eventUser, eventTraits);
+      identifyUserHandler(userId, user.attributes);
       try {
         await referralProgramOptIn(userId, email, firstName, lastName);
         if (isBuyer) {

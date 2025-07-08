@@ -37,6 +37,19 @@
 
 .bottomWrapper {
   composes: marketplaceModalBottomWrapper from global;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkboxesContainer {
+  display: flex;
+  flex-direction: column;
+  margin-top: -24px;
+
+  @media (--viewportMedium) {
+    gap: 4px;
+  }
 }
 
 .row,
