@@ -1,8 +1,6 @@
 import React from 'react';
-
-import { requiredFieldArrayCheckbox } from '../../../util/validators';
-import { FieldCheckboxGroup } from '../../../components';
-
+import { FieldCheckbox } from '../../../components';
+import { requiredCheckbox } from '../../../util/validators';
 import { FormattedMessage, intlShape } from '../../../util/reactIntl';
 
 import css from './TermsAndConditions.module.css';
@@ -60,20 +58,15 @@ const TermsAndConditions = props => {
 
   return (
     <div className={css.root}>
-      <FieldCheckboxGroup
+      <FieldCheckbox
         name="terms"
         id={formId ? `${formId}.terms-accepted` : 'terms-accepted'}
-        optionLabelClassName={css.finePrint}
-        options={[
-          {
-            key: 'tos-and-privacy',
-            label: intl.formatMessage(
-              { id: 'AuthenticationPage.termsAndConditionsAcceptText' },
-              { termsLink, privacyLink }
-            ),
-          },
-        ]}
-        validate={requiredFieldArrayCheckbox(
+        label={intl.formatMessage(
+          { id: 'AuthenticationPage.termsAndConditionsAcceptText' },
+          { termsLink, privacyLink }
+        )}
+        textClassName={css.finePrint}
+        validate={requiredCheckbox(
           intl.formatMessage({ id: 'AuthenticationPage.termsAndConditionsAcceptRequired' })
         )}
       />

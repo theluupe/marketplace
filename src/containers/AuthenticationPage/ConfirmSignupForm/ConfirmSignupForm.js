@@ -21,6 +21,7 @@ import {
 } from '../../../components';
 import UserFieldDisplayName from '../UserFieldDisplayName';
 import UserFieldPhoneNumber from '../UserFieldPhoneNumber';
+import NewsletterOptIn from '../NewsletterOptIn/NewsletterOptIn';
 
 import css from './ConfirmSignupForm.module.css';
 
@@ -181,7 +182,7 @@ const ConfirmSignupFormComponent = props => (
                   ? getBrandUserFieldInputs(fieldKey, isBrandAdmin)
                   : true;
                 return showField ? (
-                  <CustomExtendedDataField {...fieldProps} formId={formId} />
+                  <CustomExtendedDataField {...fieldProps} formId={formId} key={fieldKey} />
                 ) : null;
               })}
             </div>
@@ -209,7 +210,10 @@ const ConfirmSignupFormComponent = props => (
           ) : null}
 
           <div className={css.bottomWrapper}>
-            {termsAndConditions}
+            <div className={css.checkboxesContainer}>
+              <NewsletterOptIn formId={formId} />
+              {termsAndConditions}
+            </div>
             <PrimaryButton type="submit" inProgress={submitInProgress} disabled={submitDisabled}>
               <FormattedMessage id="ConfirmSignupForm.signUp" />
             </PrimaryButton>

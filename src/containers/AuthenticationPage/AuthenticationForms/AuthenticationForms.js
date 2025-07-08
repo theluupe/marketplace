@@ -83,6 +83,7 @@ const ConfirmIdProviderInfoForm = props => {
       lastName: newLastName,
       displayName,
       location: newLocation,
+      newsletterOptIn,
       ...rest
     } = values;
     const displayNameMaybe = displayName ? { displayName: displayName.trim() } : {};
@@ -104,7 +105,7 @@ const ConfirmIdProviderInfoForm = props => {
     const withHiddenPrivateData = isStudioBrand(userType) && !!brandStudioId;
     // Pass other values as extended data according to user field configuration
     const extendedDataMaybe =
-      !isEmpty(rest) || withHiddenPrivateData
+      !isEmpty(rest) || withHiddenPrivateData || newsletterOptIn
         ? {
             publicData: {
               userType,
@@ -114,6 +115,7 @@ const ConfirmIdProviderInfoForm = props => {
               ...pickUserFieldsData(rest, 'private', userType, userFields),
               ...(!!brandStudioId && { brandStudioId }),
               ...(!!location && { location }),
+              ...(!!newsletterOptIn && { newsletterOptIn }),
             },
             protectedData: {
               ...pickUserFieldsData(rest, 'protected', userType, userFields),

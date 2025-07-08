@@ -60,6 +60,13 @@ export const uniqueString = (currentIndex, stringArray, getMessage, toSlug) => v
   return isUnique ? VALID : getMessage(value, slug);
 };
 
+export const requiredCheckbox = message => value => {
+  if (!value) {
+    return message;
+  }
+  return VALID;
+};
+
 export const requiredFieldArrayCheckbox = message => value => {
   if (!value) {
     return message;
