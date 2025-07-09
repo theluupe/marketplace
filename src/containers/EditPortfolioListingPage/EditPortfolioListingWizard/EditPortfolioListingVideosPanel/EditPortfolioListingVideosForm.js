@@ -5,7 +5,7 @@ import arrayMutators from 'final-form-arrays';
 import { FieldArray } from 'react-final-form-arrays';
 import classNames from 'classnames';
 import { FormattedMessage, injectIntl } from '../../../../util/reactIntl';
-import { AspectRatioWrapper, Button, Form } from '../../../../components';
+import { AspectRatioWrapper, Button, Form, IconDotsVertical } from '../../../../components';
 import { RemoveImageButton } from '../EditPortfolioListingItemsPanel/ListingImage';
 import css from './EditPortfolioListingVideosForm.module.css';
 import { FieldAddMedia } from '../EditPortfolioListingItemsPanel/AddMediaField';
@@ -15,7 +15,6 @@ import VideoPlayer from '../../../../components/VideoPlayer/VideoPlayer';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableVideo from '../EditPortfolioListingItemsPanel/SortableVideo';
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import IconDotsVertical from '../../../../components/IconDotsVertical/IconDotsVertical';
 import { VIDEOS } from '../EditPortfolioListingWizardTab';
 
 const PublishListingError = ({ error }) =>
