@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { message } from 'antd';
+import { DownloadOutlined, ExpandAltOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import ReactImageGallery from 'react-image-gallery';
 
@@ -66,8 +68,10 @@ const getFirstImageAspectRatio = (firstImage, scaledVariant) => {
  */
 const ListingImageGallery = props => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const downloadButtonRef = useRef(null);
   const intl = useIntl();
-  const { rootClassName, className, images, imageVariants, thumbnailVariants } = props;
+  const { rootClassName, className, images, imageVariants, thumbnailVariants, listingId } = props;
   const thumbVariants = thumbnailVariants || imageVariants;
   // imageVariants are scaled variants.
   const { aspectWidth, aspectHeight } = getFirstImageAspectRatio(images?.[0], imageVariants[0]);
@@ -146,26 +150,74 @@ const ListingImageGallery = props => {
       </button>
     );
   };
+
+  const handleDownload = async () => {
+    const errorMsg = intl.formatMessage({ id: 'ListingImageGallery.downloadCompError' });
+    const successMsg = intl.formatMessage({ id: 'ListingImageGallery.downloadCompSuccess' });
+    if (!items[0] || !listingId) {
+      messageApi.error(errorMsg);
+      return;
+    }
+    const image = items[0].image;
+    const variants = image?.attributes?.variants || {};
+    const variantKey = 'scaled-large';
+    const url = variants[variantKey]?.url || Object.values(variants)[0]?.url;
+    if (!url) {
+      messageApi.error(errorMsg);
+      return;
+    }
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `TL_Unlicensed_Comp_${listingId}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      messageApi.success(successMsg);
+    } catch (e) {
+      messageApi.error(errorMsg);
+    } finally {
+      // Ensure button returns to normal state
+      if (downloadButtonRef.current) {
+        downloadButtonRef.current.blur();
+      }
+    }
+  };
+
   const renderFullscreenButton = (onClick, isFullscreen) => {
-    return isFullscreen ? (
-      <Button
-        onClick={onClick}
-        rootClassName={css.close}
-        title={intl.formatMessage({ id: 'ListingImageGallery.closeModalTitle' })}
-      >
-        <span className={css.closeText}>
-          <FormattedMessage id="ListingImageGallery.closeModal" />
-        </span>
-        <IconClose rootClassName={css.closeIcon} />
-      </Button>
-    ) : (
-      <button className={css.openFullscreen} onClick={onClick}>
-        <FormattedMessage
-          id="ListingImageGallery.viewImagesButton"
-          values={{ count: images.length }}
-        />
-      </button>
-    );
+    if (isFullscreen) {
+      return (
+        <Button
+          onClick={onClick}
+          rootClassName={css.close}
+          title={intl.formatMessage({ id: 'ListingImageGallery.closeModalTitle' })}
+        >
+          <span className={css.closeText}>
+            <FormattedMessage id="ListingImageGallery.closeModal" />
+          </span>
+          <IconClose rootClassName={css.closeIcon} />
+        </Button>
+      );
+    } else {
+      return (
+        <div className={css.ctaWrapper}>
+          <button
+            ref={downloadButtonRef}
+            className={css.ctaButton}
+            onClick={handleDownload}
+            type="button"
+          >
+            <DownloadOutlined /> <FormattedMessage id="ListingImageGallery.downloadCompButton" />
+          </button>
+          <button className={css.ctaButton} onClick={onClick}>
+            <ExpandAltOutlined /> <FormattedMessage id="ListingImageGallery.viewImagesButton" />
+          </button>
+        </div>
+      );
+    }
   };
 
   if (items.length === 0) {
@@ -175,17 +227,20 @@ const ListingImageGallery = props => {
   const classes = classNames(rootClassName || css.root, className);
 
   return (
-    <ReactImageGallery
-      additionalClass={classes}
-      items={items}
-      renderItem={renderItem}
-      renderThumbInner={renderThumbInner}
-      onScreenChange={onScreenChange}
-      renderLeftNav={renderLeftNav}
-      renderRightNav={renderRightNav}
-      renderFullscreenButton={renderFullscreenButton}
-      {...IMAGE_GALLERY_OPTIONS}
-    />
+    <>
+      {contextHolder}
+      <ReactImageGallery
+        additionalClass={classes}
+        items={items}
+        renderItem={renderItem}
+        renderThumbInner={renderThumbInner}
+        onScreenChange={onScreenChange}
+        renderLeftNav={renderLeftNav}
+        renderRightNav={renderRightNav}
+        renderFullscreenButton={renderFullscreenButton}
+        {...IMAGE_GALLERY_OPTIONS}
+      />
+    </>
   );
 };
 

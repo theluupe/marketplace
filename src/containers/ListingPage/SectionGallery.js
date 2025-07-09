@@ -14,6 +14,7 @@ const SectionGallery = props => {
         images={images}
         imageVariants={imageVariants}
         thumbnailVariants={thumbnailVariants}
+        listingId={listing?.id?.uuid || listing?.id}
       />
     </section>
   );

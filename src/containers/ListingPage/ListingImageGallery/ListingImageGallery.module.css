@@ -174,24 +174,23 @@
   }
 }
 
-.openFullscreen {
-  /* Hide on mobile. Currently react-image-gallery fullscreen mode is broken on
-     mobile, and mobile doesn't really benefit from fullscreen anyways. */
-  display: none;
-
-  composes: buttonSmall from global;
-
-  /* Position and dimensions */
+.ctaWrapper {
+  display: flex;
+  gap: 6px;
   position: absolute;
-  bottom: 19px;
-  right: 24px;
-
-  /* Ensure the button is on top of the navRight area */
+  bottom: 18px;
+  right: 18px;
   z-index: 1;
 
-  @media (--viewportLarge) {
-    display: block;
+  @media (--viewportMedium) {
+    gap: 8px;
   }
+}
+
+.ctaButton {
+  display: block;
+  composes: buttonSmall from global;
+  border-radius: var(--borderRadiusMedium);
 }
 
 .close {
