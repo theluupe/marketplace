@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { message } from 'antd';
-import { DownloadOutlined, ExpandAltOutlined } from '@ant-design/icons';
+import { DownloadOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import ReactImageGallery from 'react-image-gallery';
 
@@ -12,6 +12,7 @@ import {
   IconClose,
   IconArrowHead,
   ResponsiveImage,
+  IconExpand,
 } from '../../../components';
 
 // Copied directly from
@@ -213,7 +214,7 @@ const ListingImageGallery = props => {
             <DownloadOutlined /> <FormattedMessage id="ListingImageGallery.downloadCompButton" />
           </button>
           <button className={css.ctaButton} onClick={onClick}>
-            <ExpandAltOutlined /> <FormattedMessage id="ListingImageGallery.viewImagesButton" />
+            <IconExpand /> <FormattedMessage id="ListingImageGallery.viewImagesButton" />
           </button>
         </div>
       );

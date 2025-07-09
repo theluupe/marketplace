@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import { FormattedMessage, injectIntl } from '../../../../util/reactIntl';
 import { isUploadImageOverLimitError } from '../../../../util/errors';
 import { composeValidators, nonEmptyArray } from '../../../../util/validators';
-import { Button, Form } from '../../../../components';
+import { Button, Form, IconDotsVertical } from '../../../../components';
 import ListingImage from './ListingImage';
 import css from './EditPortfolioListingFilesForm.module.css';
 import { FieldAddMedia } from './AddMediaField';
@@ -16,7 +16,6 @@ import { removeImageFromListing, uploadMedia } from '../../EditPortfolioListingP
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableImage from './SortableImage';
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import IconDotsVertical from '../../../../components/IconDotsVertical/IconDotsVertical';
 import { IMAGES } from '../EditPortfolioListingWizardTab';
 
 const ImageUploadError = ({ uploadOverLimit, uploadImageError }) =>
