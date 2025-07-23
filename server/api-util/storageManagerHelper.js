@@ -27,6 +27,15 @@ class StorageManagerClient {
       throw error;
     }
   }
+
+  async deleteAsset(bucketName, assetPath) {
+    return await this.client.delete(`/assets`, {
+      data: {
+        bucketName,
+        assetPath,
+      },
+    });
+  }
 }
 
 module.exports = {
