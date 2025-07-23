@@ -1,5 +1,6 @@
 const { trackManagementAPIEvent } = require('../../api-util/analytics');
 const { generateScript, integrationSdkInit } = require('../../api-util/scriptManager');
+const { StorageManagerClient } = require('../../api-util/storageManagerHelper');
 const { LISTING_TYPES } = require('../../api-util/metadataHelper');
 
 const SCRIPT_NAME = 'notifyProductListingRejected';
@@ -85,6 +86,30 @@ function script() {
   const analyzeEventsBatch = async events => {
     const eventGroups = groupEventsByAuthor(events);
     try {
+      try {
+        const storageManagerClient = new StorageManagerClient();
+        for (const event of events) {
+          const { resourceType, eventType, previousValues } = event.attributes;
+          const { attributes: listing } = previousValues;
+          const isProductListing = listing?.publicData?.listingType === LISTING_TYPES.PRODUCT;
+          const isValidEvent =
+            resourceType === RESOURCE_TYPE && eventType === EVENT_TYPES && isProductListing;
+          if (!isValidEvent) {
+            return;
+          }
+          const { originalAssetUrl } = listing?.privateData || {};
+          const { pathname } = new URL(originalAssetUrl);
+          const assetPath = pathname
+            .replace(`/${process.env.MARKETPLACE_ASSETS_BUCKET}`, '')
+            .substring(1);
+          await storageManagerClient.deleteAsset(process.env.MARKETPLACE_ASSETS_BUCKET, assetPath);
+        }
+      } catch (error) {
+        console.error(
+          '[notifyProductListingRejected] - Error deleting the asset from the storage:',
+          error
+        );
+      }
       for (const eventGroup of eventGroups) {
         const { authorId, listings } = eventGroup;
         const { email } = await getAuthor(authorId);
