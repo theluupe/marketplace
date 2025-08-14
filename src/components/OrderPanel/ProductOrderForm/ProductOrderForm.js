@@ -3,6 +3,7 @@ import { Form as FinalForm, FormSpy } from 'react-final-form';
 
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { propTypes } from '../../../util/types';
+import { parse } from '../../../util/urlHelpers';
 import { numberAtLeast, required } from '../../../util/validators';
 import { PURCHASE_PROCESS_NAME } from '../../../transactions/transaction';
 
@@ -44,8 +45,15 @@ const handleFetchLineItems = ({
     (!displayDeliveryMethod || deliveryMethod) &&
     !fetchLineItemsInProgress
   ) {
+    const queryParams = parse(location.search);
+    const licenseDealId = queryParams.licenseDeal;
+    const orderData = {
+      stockReservationQuantity,
+      ...deliveryMethodMaybe,
+      ...(licenseDealId ? { licenseDealId } : {}),
+    };
     onFetchTransactionLineItems({
-      orderData: { stockReservationQuantity, ...deliveryMethodMaybe },
+      orderData,
       listingId,
       isOwnListing,
     });
@@ -132,6 +140,7 @@ const renderForm = formRenderProps => {
     price,
     payoutDetailsWarning,
     marketplaceName,
+    location,
     values,
   } = formRenderProps;
 

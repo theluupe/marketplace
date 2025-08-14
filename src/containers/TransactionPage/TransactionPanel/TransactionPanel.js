@@ -271,6 +271,7 @@ export class TransactionPanelComponent extends Component {
               transactionRole={transactionRole}
               processState={stateData.processState}
               processStates={stateData.states}
+              protectedData={protectedData}
             />
 
             <InquiryMessageMaybe

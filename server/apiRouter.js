@@ -9,6 +9,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const { deserialize } = require('./api-util/sdk');
+const { authenticateAuth0, authenticateAuth0Callback } = require('./api/auth/auth0');
+const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const initiateLoginAs = require('./api/initiate-login-as');
 const loginAs = require('./api/login-as');
 const transactionLineItems = require('./api/transaction-line-items');
@@ -18,9 +20,8 @@ const { generateDownloadUrls } = require('./api/digital-product-download');
 const { referralProgramOptIn } = require('./api/referral-manager');
 const { retryProductListingCreatedScript, retryUserCreatedScript } = require('./api/scripts-retry');
 const transitionPrivileged = require('./api/transition-privileged');
-const createUserWithIdp = require('./api/auth/createUserWithIdp');
-const { authenticateAuth0, authenticateAuth0Callback } = require('./api/auth/auth0');
 const transloaditParams = require('./api/transloadit-params');
+const validateLicenseDeal = require('./api/validate-license-deal');
 
 const router = express.Router();
 
@@ -62,9 +63,10 @@ router.get('/login-as', loginAs);
 router.post('/transaction-line-items', transactionLineItems);
 router.post('/initiate-privileged', initiatePrivileged);
 router.post('/referral-program/opt-in', referralProgramOptIn);
+router.post('/transaction/product-download', generateDownloadUrls);
 router.post('/transition-privileged', transitionPrivileged);
 router.post('/transloadit-params', transloaditParams);
-router.post('/transaction/product-download', generateDownloadUrls);
+router.post('/validate-license-deal', validateLicenseDeal);
 
 // Scripts Retries:
 router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);

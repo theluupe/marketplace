@@ -461,6 +461,27 @@
   }
 }
 
+.customTermsContainer {
+  background-color: var(--colorGrey50);
+  border: 1px solid var(--colorGrey100);
+  border-radius: 4px;
+  padding: 16px;
+  margin: 5px 0 15px 0;
+}
+
+.customTermsText {
+  margin: 0;
+  color: var(--colorGrey700);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.licenseLink {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* Prop to be passed to SendMessageForm component */
 .sendMessageForm {
   position: relative;
