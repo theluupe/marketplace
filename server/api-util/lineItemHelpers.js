@@ -3,6 +3,7 @@ const moment = require('moment-timezone/builds/moment-timezone-with-data-10-year
 const { types } = require('sharetribe-flex-sdk');
 const { Money } = types;
 
+const { integrationSdkInit } = require('./scriptManager');
 const { getAmountAsDecimalJS, convertDecimalJSToNumber } = require('./currency');
 const { nightsBetween, daysBetween } = require('./dates');
 const LINE_ITEM_NIGHT = 'line-item/night';
@@ -289,4 +290,62 @@ exports.hasCommissionPercentage = commission => {
   // Only create a line item if the percentage is set to be more than zero
   const isMoreThanZero = percentage > 0;
   return isDefined && isMoreThanZero;
+};
+
+/**
+ * Check if a license deal is valid for a listing-user combination
+ * @param {string} listingId - The ID of the listing
+ * @param {string} licenseDealId - The ID of the license deal
+ * @param {string} currentUserId - The ID of the current user
+ * @returns {Object} License deal object if valid, otherwise undefined
+ */
+exports.hasLicenseDeal = async (listingId, licenseDealId, currentUserId) => {
+  if (!listingId || !licenseDealId || !currentUserId) {
+    return;
+  }
+  try {
+    const integrationSdk = integrationSdkInit();
+    const result = await integrationSdk.listings.show({ id: listingId });
+    const listing = result.data.data;
+    const publicData = listing.attributes.publicData || {};
+    const privateData = listing.attributes.privateData || {};
+    const customLicenseDeals = privateData.customLicenseDeals || [];
+    const matchingLicenseDeal = customLicenseDeals.find(licenseDeal => {
+      return licenseDeal.id === licenseDealId && licenseDeal.buyerId === currentUserId;
+    });
+    const now = new Date();
+    const expiresAt = new Date(matchingLicenseDeal?.expiresAt);
+    const isExpired = now > expiresAt;
+    const isPublished = listing.attributes.state === 'published';
+    const isProductListing = publicData.listingType === 'product-listing';
+    if (!isPublished || !isProductListing || !matchingLicenseDeal || isExpired) {
+      return;
+    }
+    return matchingLicenseDeal;
+  } catch {
+    return;
+  }
+};
+
+/**
+ * Get license upgrade line item based on license deal data
+ *
+ * @param {Object} licenseDeal - License deal object with customPrice and customTerms
+ * @param {string} currency - Currency for the transaction
+ * @returns {Object} License upgrade line item
+ */
+exports.getLicenseUpgradeLineItem = (licenseDeal, currency) => {
+  const { customPrice } = licenseDeal || {};
+  if (customPrice && currency) {
+    const unitPrice = new Money(customPrice, currency);
+    return [
+      {
+        code: 'line-item/license-upgrade',
+        unitPrice,
+        quantity: 1,
+        includeFor: ['customer', 'provider'],
+      },
+    ];
+  }
+  return [];
 };

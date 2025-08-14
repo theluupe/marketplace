@@ -9,6 +9,7 @@ import {
   NO_ACCESS_PAGE_INITIATE_TRANSACTIONS,
   NO_ACCESS_PAGE_USER_PENDING_APPROVAL,
   createSlug,
+  parse,
 } from '../../util/urlHelpers';
 
 import { H2, LayoutSingleColumn, Page } from '../../components';
@@ -147,6 +148,7 @@ export const handleSubmit = parameters => values => {
     callSetInitialValues,
     onInitializeCardPaymentData,
     routes,
+    location,
   } = parameters;
   const listingId = new UUID(params.id);
   const listing = getListing(listingId);
@@ -211,12 +213,14 @@ export const handleSubmit = parameters => values => {
   onInitializeCardPaymentData();
 
   // Redirect to CheckoutPage
+  // Preserve current query parameters (like licenseDeal) when navigating to checkout
+  const currentSearchParams = location ? parse(location.search) : {};
   history.push(
     createResourceLocatorString(
       'CheckoutPage',
       routes,
       { id: listing.id.uuid, slug: createSlug(listing.attributes.title) },
-      {}
+      currentSearchParams
     )
   );
 };

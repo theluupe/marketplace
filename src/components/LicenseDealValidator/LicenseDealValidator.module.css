@@ -1,0 +1,29 @@
+.container {
+  margin-bottom: 24px;
+}
+
+.contactMessage {
+  margin-bottom: 0;
+}
+
+.licensePrice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.price {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--colorSuccess);
+}
+
+.expiryInfo {
+  margin-top: 8px;
+  color: var(--colorGrey500);
+}
+
+.expiryInfo small {
+  font-size: 12px;
+}

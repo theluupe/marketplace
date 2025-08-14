@@ -156,3 +156,7 @@ export const generateDownloadUrls = body => {
 export const referralProgramOptIn = body => {
   return post(`/api/referral-program/opt-in`, body);
 };
+
+export const validateLicenseDeal = body => {
+  return post(`/api/validate-license-deal`, body);
+};

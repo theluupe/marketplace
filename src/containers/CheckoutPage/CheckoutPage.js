@@ -78,6 +78,7 @@ const EnhancedCheckoutPage = props => {
       transaction,
       fetchSpeculatedTransaction,
       fetchStripeCustomer,
+      location,
     } = props;
     const initialData = { orderData, listing, transaction };
     const data = handlePageData(initialData, STORAGE_KEY, history);
@@ -94,6 +95,7 @@ const EnhancedCheckoutPage = props => {
           fetchSpeculatedTransaction,
           fetchStripeCustomer,
           config,
+          location,
         });
       }
     }

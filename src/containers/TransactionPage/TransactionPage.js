@@ -10,7 +10,7 @@ import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { createResourceLocatorString, findRouteByRouteName } from '../../util/routes';
 import { LISTING_UNIT_TYPES, propTypes } from '../../util/types';
 import { timestampToDate } from '../../util/dates';
-import { createSlug } from '../../util/urlHelpers';
+import { createSlug, parse } from '../../util/urlHelpers';
 import {
   INQUIRY_PROCESS_NAME,
   TX_TRANSITION_ACTOR_CUSTOMER as CUSTOMER,
@@ -189,12 +189,14 @@ export const TransactionPageComponent = props => {
     onInitializeCardPaymentData();
 
     // Redirect to CheckoutPage
+    // Preserve current query parameters (like licenseDeal) when navigating to checkout
+    const currentSearchParams = props.location ? parse(props.location.search) : {};
     history.push(
       createResourceLocatorString(
         'CheckoutPage',
         routeConfiguration,
         { id: currentListing.id.uuid, slug: createSlug(currentListing.attributes.title) },
-        {}
+        currentSearchParams
       )
     );
   };
