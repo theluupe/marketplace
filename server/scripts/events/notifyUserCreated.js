@@ -161,16 +161,29 @@ function script() {
   }
 
   async function referralProgramOptIn(userId, email, firstName, lastName) {
-    const integrationSdk = integrationSdkInit();
-    const referralManagerClient = new RAMClient();
-    const rfUser = await referralManagerClient.qualifyReferral(userId, email, firstName, lastName);
-    const { code } = rfUser || {};
-    await integrationSdk.users.updateProfile({
-      id: userId,
-      privateData: {
-        referralCode: code,
-      },
-    });
+    try {
+      const integrationSdk = integrationSdkInit();
+      const referralManagerClient = new RAMClient();
+      const rfUser = await referralManagerClient.qualifyReferral(
+        userId,
+        email,
+        firstName,
+        lastName
+      );
+      const { code } = rfUser || {};
+      await integrationSdk.users.updateProfile({
+        id: userId,
+        privateData: {
+          referralCode: code,
+        },
+      });
+    } catch (error) {
+      slackUserCreatedErrorWorkflow(userId);
+      console.error(
+        `[notifyUserCreated] Error qualifying referral (won't stop excecution) | userId: ${userId} | Error:`,
+        error
+      );
+    }
     return;
   }
 

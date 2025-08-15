@@ -249,6 +249,7 @@ export const ListingPageComponent = props => {
     callSetInitialValues,
     getListing,
     onInitializeCardPaymentData,
+    location,
   });
 
   const handleOrderSubmit = values => {

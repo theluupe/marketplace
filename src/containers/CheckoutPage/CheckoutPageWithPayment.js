@@ -6,7 +6,7 @@ import { pathByRouteName } from '../../util/routes';
 import { isValidCurrencyForTransactionProcess } from '../../util/fieldHelpers.js';
 import { propTypes } from '../../util/types';
 import { ensureTransaction } from '../../util/data';
-import { createSlug } from '../../util/urlHelpers';
+import { createSlug, parse } from '../../util/urlHelpers';
 import { isTransactionInitiateListingNotFoundError } from '../../util/errors';
 import { getProcess, isBookingProcessAlias } from '../../transactions/transaction';
 
@@ -32,6 +32,7 @@ import StripePaymentForm from './StripePaymentForm/StripePaymentForm';
 import DetailsSideCard from './DetailsSideCard';
 import MobileListingImage from './MobileListingImage';
 import MobileOrderBreakdown from './MobileOrderBreakdown';
+import LicenseDealValidator from '../../components/LicenseDealValidator/LicenseDealValidator';
 
 import css from './CheckoutPage.module.css';
 
@@ -94,7 +95,7 @@ const prefixPriceVariantProperties = priceVariant => {
  * @param {Object} config app-wide configs. This contains hosted configs too.
  * @returns orderParams.
  */
-const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config) => {
+const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config, location) => {
   const quantity = pageData.orderData?.quantity;
   const quantityMaybe = quantity ? { quantity } : {};
   const seats = pageData.orderData?.seats;
@@ -108,6 +109,11 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
   const priceVariantNameMaybe = priceVariantName ? { priceVariantName } : {};
   const priceVariant = priceVariants?.find(pv => pv.name === priceVariantName);
   const priceVariantMaybe = priceVariant ? prefixPriceVariantProperties(priceVariant) : {};
+
+  // Parse licenseDeal from query parameters if location is available
+  const queryParams = location ? parse(location.search) : {};
+  const licenseDealId = queryParams.licenseDeal;
+  const licenseDealIdMaybe = licenseDealId ? { licenseDealId } : {};
 
   const protectedDataMaybe = {
     protectedData: {
@@ -136,6 +142,7 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
     ...priceVariantNameMaybe,
     ...protectedDataMaybe,
     ...optionalPaymentParams,
+    ...licenseDealIdMaybe,
   };
   return orderParams;
 };
@@ -197,6 +204,7 @@ export const loadInitialDataForStripePayments = ({
   fetchSpeculatedTransaction,
   fetchStripeCustomer,
   config,
+  location,
 }) => {
   // Fetch currentUser with stripeCustomer entity
   // Note: since there's need for data loading in "componentWillMount" function,
@@ -208,7 +216,13 @@ export const loadInitialDataForStripePayments = ({
   // The way to pass it to checkout page is through pageData.orderData
   const shippingDetails = {};
   const optionalPaymentParams = {};
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+  const orderParams = getOrderParams(
+    pageData,
+    shippingDetails,
+    optionalPaymentParams,
+    config,
+    location
+  );
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
@@ -222,6 +236,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   const {
     history,
     config,
+    location,
     routeConfiguration,
     speculatedTransaction,
     currentUser,
@@ -290,7 +305,13 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
 
   // These are the order parameters for the first payment-related transition
   // which is either initiate-transition or initiate-transition-after-enquiry
-  const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+  const orderParams = getOrderParams(
+    pageData,
+    shippingDetails,
+    optionalPaymentParams,
+    config,
+    location
+  );
 
   // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
   processCheckoutWithPayment(orderParams, requestPaymentParams)
@@ -547,6 +568,9 @@ export const CheckoutPageWithPayment = props => {
               <FormattedMessage id="CheckoutPage.listingTitle" values={{ listingTitle }} />
             </H4>
           </div>
+
+          <LicenseDealValidator listingId={listing.id.uuid} currency={config.currency} />
+
           <MobileOrderBreakdown
             speculateTransactionErrorMessage={errorMessages.speculateTransactionErrorMessage}
             breakdown={breakdown}

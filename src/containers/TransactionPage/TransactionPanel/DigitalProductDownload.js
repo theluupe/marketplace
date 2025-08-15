@@ -15,9 +15,15 @@ export default function DigitalProductDownload({
   transactionRole,
   processState,
   processStates,
+  protectedData,
 }) {
   const config = useConfiguration();
   const { marketplaceRootURL } = config;
+
+  // Extract licenseDeal from protectedData
+  const licenseDeal = protectedData?.licenseDeal;
+  const customTerms = licenseDeal?.customTerms;
+
   async function downloadHanlder() {
     const { filename, url } = await generateDownloadUrls({
       transactionId,
@@ -59,11 +65,16 @@ export default function DigitalProductDownload({
               <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseTitle" />
             </Heading>
             <div className={css.feedContent}>
+              {customTerms && (
+                <div className={css.customTermsContainer}>
+                  <p className={css.customTermsText}>{customTerms}</p>
+                </div>
+              )}
               <Button
                 type="link"
                 target="_blank"
                 href={`${marketplaceRootURL}/p/standard-royalty-free-license`}
-                className={css.portfolioLink}
+                className={css.licenseLink}
               >
                 <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseLink" />
               </Button>

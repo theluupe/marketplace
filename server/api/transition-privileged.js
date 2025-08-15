@@ -1,4 +1,5 @@
 const { transactionLineItems } = require('../api-util/lineItems');
+const { hasLicenseDeal } = require('../api-util/lineItemHelpers');
 const {
   getSdk,
   getTrustedSdk,
@@ -14,34 +15,58 @@ module.exports = (req, res) => {
   let lineItems = null;
 
   const listingPromise = () => sdk.listings.show({ id: bodyParams?.params?.listingId });
+  const currentUserPromise = async () => {
+    try {
+      const currentUserResponse = await sdk.currentUser.show();
+      const currentUser = currentUserResponse?.data?.data;
+      const currentUserId = currentUser?.id?.uuid;
+      return currentUserId;
+    } catch (error) {
+      return undefined;
+    }
+  };
 
-  Promise.all([listingPromise(), fetchCommission(sdk)])
-    .then(([showListingResponse, fetchAssetsResponse]) => {
+  Promise.all([listingPromise(), fetchCommission(sdk), currentUserPromise()])
+    .then(async ([showListingResponse, fetchAssetsResponse, currentUserId]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
 
       const { providerCommission, customerCommission } =
         commissionAsset?.type === 'jsonAsset' ? commissionAsset.attributes.data : {};
 
-      lineItems = transactionLineItems(
+      lineItems = await transactionLineItems(
         listing,
         { ...orderData, ...bodyParams.params },
         providerCommission,
-        customerCommission
+        customerCommission,
+        currentUserId
       );
 
-      return getTrustedSdk(req);
+      return { listing, orderData: { ...orderData, ...bodyParams.params }, currentUserId };
     })
-    .then(trustedSdk => {
+    .then(async ({ listing, orderData, currentUserId }) => {
+      const listingId = listing.id.uuid;
+      const licenseDealId = orderData?.licenseDealId;
+      const licenseDeal = await hasLicenseDeal(listingId, licenseDealId, currentUserId);
+      const additionalProtectedData = licenseDeal ? { licenseDeal } : {};
+      const trustedSdk = await getTrustedSdk(req);
+      return { trustedSdk, additionalProtectedData };
+    })
+    .then(({ trustedSdk, additionalProtectedData }) => {
       // Omit listingId from params (transition/request-payment-after-inquiry does not need it)
       const { listingId, ...restParams } = bodyParams?.params || {};
+      const protectedData = {
+        ...(restParams?.protectedData || {}),
+        ...additionalProtectedData,
+      };
 
-      // Add lineItems to the body params
+      // Add lineItems and additional protected data to the body params
       const body = {
         ...bodyParams,
         params: {
           ...restParams,
           lineItems,
+          protectedData,
         },
       };
 

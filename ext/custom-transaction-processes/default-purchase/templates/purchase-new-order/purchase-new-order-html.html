@@ -91,6 +91,34 @@
                             </tr>
                           </tbody>
                         </table>
+                        {{/eq}}{{#eq "line-item/license-upgrade" code}}
+                        <table align="center" border="0" cellPadding="0" cellSpacing="0" role="presentation" width="100%">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <td>
+                                  <p style="font-size:16px;line-height:1.4;margin:16px 0;color:#484848;margin-top:1px;margin-bottom:1px">{{t "PurchaseNewOrder.ExtendedLicenseLabel" "Extended License"}}</p>
+                                </td>
+                                <td style="text-align:right">
+                                  <p style="font-size:16px;line-height:1.4;margin:16px 0;color:#484848;margin-top:1px;margin-bottom:1px">{{> format-money money=line-total}}</p>
+                                </td>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        {{#if protected-data.licenseDeal.customTerms}}
+                        <table align="center" border="0" cellPadding="0" cellSpacing="0" role="presentation" width="100%">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <td colspan="2">
+                                  <p style="font-size:14px;line-height:1.4;margin:8px 0;color:#666;font-style:italic;padding-left:16px">{{protected-data.licenseDeal.customTerms}}</p>
+                                </td>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        {{/if}}
                         {{/eq}}{{#eq "line-item/provider-commission" code}}
                         <table align="center" border="0" cellPadding="0" cellSpacing="0" role="presentation" width="100%">
                           <tbody>
@@ -134,8 +162,7 @@
                   </p>
                 {{else}}
                 <p style="font-size:16px;line-height:1.4;margin:16px 0;color:#484848">
-                  {{t "PurchaseNewOrder.DeliveryDetails" "Once {customerDisplayName} has picked up {listingTitle}, remember to mark it as delivered from <salelink>order details</salelink> to receive your payment." customerDisplayName=customer.display-name listingTitle=listing.title salelink=(html-tag "a" target=(concat "_blank") style=(concat "text-decoration:none;color:" (asset "design/branding.json" "marketplaceColors.notificationPrimaryButton" "#007DF2")) href=(concat marketplace.url "/sale/" (url-encode id) "/"))}}
-
+                  {{t "PurchaseNewOrder.DeliveryDetails"  customerDisplayName=customer.display-name licenselink=(html-tag "a" target=(concat "_blank") style=(concat "text-decoration:none;color:" (asset "design/branding.json" "marketplaceColors.notificationPrimaryButton" "#007DF2")) href=(concat marketplace.url "/p/standard-royalty-free-license"))}}
                 <p style="font-size:16px;line-height:1.4;margin:16px 0;color:#484848;font-weight:700">{{t "PurchaseNewOrder.MarkAsDelivered" "If the order has not been marked as delivered within two weeks, it will expire automatically and you won't get paid."}}</p>
                 {{/eq}}
                 <table style="padding:16px 0 0" align="center" border="0" cellPadding="0" cellSpacing="0" role="presentation" width="100%">

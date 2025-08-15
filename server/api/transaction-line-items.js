@@ -9,20 +9,31 @@ module.exports = (req, res) => {
 
   const listingPromise = () =>
     isOwnListing ? sdk.ownListings.show({ id: listingId }) : sdk.listings.show({ id: listingId });
+  const currentUserPromise = async () => {
+    try {
+      const currentUserResponse = await sdk.currentUser.show();
+      const currentUser = currentUserResponse?.data?.data;
+      const currentUserId = currentUser?.id?.uuid;
+      return currentUserId;
+    } catch (error) {
+      return undefined;
+    }
+  };
 
-  Promise.all([listingPromise(), fetchCommission(sdk)])
-    .then(([showListingResponse, fetchAssetsResponse]) => {
+  Promise.all([listingPromise(), fetchCommission(sdk), currentUserPromise()])
+    .then(async ([showListingResponse, fetchAssetsResponse, currentUserId]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
 
       const { providerCommission, customerCommission } =
         commissionAsset?.type === 'jsonAsset' ? commissionAsset.attributes.data : {};
 
-      const lineItems = transactionLineItems(
+      const lineItems = await transactionLineItems(
         listing,
         orderData,
         providerCommission,
-        customerCommission
+        customerCommission,
+        currentUserId
       );
 
       // Because we are using returned lineItems directly in this template we need to use the helper function
