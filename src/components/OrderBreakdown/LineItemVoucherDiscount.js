@@ -11,18 +11,17 @@ import css from './OrderBreakdown.module.css';
  * @component
  * @param {Object} props
  * @param {Array<propTypes.lineItem>} props.lineItems - The line items to render
- * @param {boolean} props.isCustomer - Whether the customer is the one receiving the discount
  * @param {intlShape} props.intl - The intl object
  * @returns {JSX.Element}
  */
 const LineItemVoucherDiscount = props => {
-  const { lineItems, isCustomer, intl } = props;
+  const { lineItems, intl } = props;
 
   const voucherDiscountLineItem = lineItems.find(
     item => item.code === LINE_ITEM_VOUCHER_DISCOUNT && !item.reversal
   );
 
-  return isCustomer && voucherDiscountLineItem ? (
+  return voucherDiscountLineItem ? (
     <div className={css.lineItem}>
       <span className={css.itemLabel}>
         <FormattedMessage id="OrderBreakdown.voucherDiscount" />

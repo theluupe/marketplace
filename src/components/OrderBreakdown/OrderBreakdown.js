@@ -119,7 +119,7 @@ export const OrderBreakdownComponent = props => {
       <LineItemShippingFeeMaybe lineItems={lineItems} intl={intl} />
       <LineItemPickupFeeMaybe lineItems={lineItems} intl={intl} />
       <LineItemLicenseUpgrade lineItems={lineItems} intl={intl} />
-      <LineItemVoucherDiscount lineItems={lineItems} isCustomer={isCustomer} intl={intl} />
+      <LineItemVoucherDiscount lineItems={lineItems} intl={intl} />
       <LineItemUnknownItemsMaybe lineItems={lineItems} isProvider={isProvider} intl={intl} />
 
       <LineItemSubTotalMaybe
