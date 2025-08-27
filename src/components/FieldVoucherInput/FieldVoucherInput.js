@@ -22,7 +22,7 @@ const FieldVoucherInput = ({ form, formId, listingId, isLoggedIn }) => {
     }
   }, [voucherCode]);
 
-  const handleVoucherSubmit = async (e) => {
+  const handleVoucherSubmit = async e => {
     e.preventDefault();
     setIsValidating(true);
     setError(null);
@@ -32,7 +32,7 @@ const FieldVoucherInput = ({ form, formId, listingId, isLoggedIn }) => {
       const data = await validateVoucher({ voucherCode, listingId });
       const withValidLicenseDeal = data.isValid;
       if (!withValidLicenseDeal) {
-        throw new Error("Invalid voucher code");
+        throw new Error('Invalid voucher code');
       }
       setIsApplied(true);
       form.change('isVoucherApplied', true);
@@ -90,11 +90,7 @@ const FieldVoucherInput = ({ form, formId, listingId, isLoggedIn }) => {
           className={css.voucherField}
           onChange={handleOnChange}
         />
-        <FieldTextInput
-          id={`${formId}.isVoucherApplied`}
-          name="isVoucherApplied"
-          type="hidden"
-        />
+        <FieldTextInput id={`${formId}.isVoucherApplied`} name="isVoucherApplied" type="hidden" />
         <AButton
           icon={isValidating ? <LoadingOutlined /> : <SendOutlined />}
           disabled={isValidating || !voucherCode}
@@ -103,21 +99,17 @@ const FieldVoucherInput = ({ form, formId, listingId, isLoggedIn }) => {
         />
       </div>
 
-      {error && (
-        <Alert
-          className={css.error}
-          message={error}
-          type="error"
-        />
-      )}
+      {error && <Alert className={css.error} message={error} type="error" />}
     </div>
-  )
+  );
 
   const items = [
     {
       key: '1',
       label: intl.formatMessage({ id: 'FieldVoucherInput.label' }),
-      children: isLoggedIn ? itemContent : (
+      children: isLoggedIn ? (
+        itemContent
+      ) : (
         <span className={css.loginText}>
           <FormattedMessage id="FieldVoucherInput.loginText" />
         </span>
@@ -127,7 +119,7 @@ const FieldVoucherInput = ({ form, formId, listingId, isLoggedIn }) => {
       },
     },
   ];
-  return <Collapse className={css.collapse} ghost items={items} />
+  return <Collapse className={css.collapse} ghost items={items} />;
 };
 
 export default FieldVoucherInput;

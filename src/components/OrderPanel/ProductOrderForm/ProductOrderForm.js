@@ -320,7 +320,12 @@ const renderForm = formRenderProps => {
         </div>
       ) : null}
 
-      <FieldVoucherInput form={formApi} formId={formId} listingId={listingId.uuid} isLoggedIn={isLoggedIn} />
+      <FieldVoucherInput
+        form={formApi}
+        formId={formId}
+        listingId={listingId.uuid}
+        isLoggedIn={isLoggedIn}
+      />
 
       <div className={css.licenseOptions}>
         <div>

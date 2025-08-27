@@ -354,7 +354,7 @@ exports.getLicenseUpgradeLineItem = (licenseDeal, currency) => {
 
 exports.validateVoucher = async (currentUserId, voucherCode) => {
   if (!voucherCode || !currentUserId) {
-    return ({ isValid: false });
+    return { isValid: false };
   }
   try {
     const integrationSdk = integrationSdkInit();
@@ -367,36 +367,39 @@ exports.validateVoucher = async (currentUserId, voucherCode) => {
     };
     return await validateVoucherForUser(customer, voucherCode);
   } catch {
-    return ({ isValid: false });
+    return { isValid: false };
   }
 };
 
 // Provider commission reduces the amount of money that is paid out to provider.
 // Therefore, the provider commission line-item should have negative effect to the payout total.
 exports.getNegation = percentage => {
-  return (percentage === 0 ) ? percentage : -1 * percentage;
+  return percentage === 0 ? percentage : -1 * percentage;
 };
 
 exports.getDiscount = (discount, commission) => {
-  return (discount < 0) ? 0 : (discount > commission) ? commission : discount;
+  return discount < 0 ? 0 : discount > commission ? commission : discount;
 };
 
 exports.getVoucherDiscountLineItem = (voucherData, baseLineItems, providerCommission) => {
   if (!voucherData || !voucherData.isValid) {
     return [];
   }
-  const percentOff = this.getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
+  const percentOff = this.getDiscount(
+    voucherData?.discount?.percent_off,
+    providerCommission.percentage
+  );
   const baseAmount = this.calculateTotalFromLineItems(baseLineItems);
   const discount = this.getNegation(percentOff);
   const providerCommissionMaybe = this.hasCommissionPercentage(providerCommission)
     ? [
-      {
-        code: 'line-item/voucher-discount',
-        unitPrice: baseAmount,
-        percentage: discount,
-        includeFor: ['customer', 'provider'],
-      },
-    ]
+        {
+          code: 'line-item/voucher-discount',
+          unitPrice: baseAmount,
+          percentage: discount,
+          includeFor: ['customer', 'provider'],
+        },
+      ]
     : [];
   return providerCommissionMaybe;
 };

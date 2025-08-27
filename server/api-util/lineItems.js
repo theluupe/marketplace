@@ -233,7 +233,6 @@ exports.transactionLineItems = async (
     includeFor: ['customer', 'provider'],
   };
 
-
   const listingId = listing.id.uuid;
   const licenseDealId = orderData?.licenseDealId;
   const voucherCode = orderData?.voucherCode;
@@ -244,8 +243,15 @@ exports.transactionLineItems = async (
   const baseLineItemsForCommission = [order, ...licenseUpgradeLineItem];
 
   const voucherData = await validateVoucher(currentUserId, voucherCode);
-  const voucherDiscountMaybe = getVoucherDiscountLineItem(voucherData, baseLineItemsForCommission, providerCommission);
-  const voucherDiscountPercentage = (!voucherData || !voucherData.isValid) ? 0 : getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
+  const voucherDiscountMaybe = getVoucherDiscountLineItem(
+    voucherData,
+    baseLineItemsForCommission,
+    providerCommission
+  );
+  const voucherDiscountPercentage =
+    !voucherData || !voucherData.isValid
+      ? 0
+      : getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
 
   // Note: extraLineItems for product selling (aka shipping fee)
   // is not included in either customer or provider commission calculation.

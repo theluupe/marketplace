@@ -1,4 +1,4 @@
-const { VoucherifyServerSide } = require('@voucherify/sdk')
+const { VoucherifyServerSide } = require('@voucherify/sdk');
 
 let client;
 
@@ -32,14 +32,14 @@ async function getCustomer(user) {
         name: user.name,
         metadata: {
           marketplace_user_id: user.id,
-          source: 'marketplace'
-        }
+          source: 'marketplace',
+        },
       });
     } else {
       throw error;
     }
   }
-};
+}
 
 /**
  * Validate if a user can redeem a voucher code
@@ -94,52 +94,15 @@ exports.redeemVoucherForUser = async (user, voucherCode, listingId) => {
   }
   try {
     const voucherifyClient = getClient();
-
-
-
-
-
-
-
-    console.warn('\n\n\n*******************************');
-    console.warn('\n[redemption] - user:', user);
-    console.warn('\n[redemption] - voucherCode:', voucherCode);
-    console.warn('\n[redemption] - listingId:', listingId);
-
-
-
-
-
-
-
-
-
     const customer = await getCustomer(user);
-    console.warn('\n----------');
-    console.warn('\n[redemption] - customer:', customer);
-    console.warn('\n[redemption] - customerId:', customerId);
-
-
-
-
-
-
-
-
-
-
-
-    const redemptionResult = await voucherifyClient.redemptions.redeem(
-      voucherCode,
-      {
-        customer: {
-          source_id: customerId,
-        },
-        metadata: {
-          marketplace_listing_id: listingId,
-        },
-      }
-    );
+    const redemptionResult = await voucherifyClient.redemptions.redeem(voucherCode, {
+      customer: {
+        source_id: customerId,
+      },
+      metadata: {
+        marketplace_listing_id: listingId,
+      },
+    });
     const redemption = {
       id: redemptionResult.id,
       date: redemptionResult.date,
@@ -152,56 +115,13 @@ exports.redeemVoucherForUser = async (user, voucherCode, listingId) => {
         campaign_id: redemptionResult.voucher.campaign_id,
         type: redemptionResult.voucher.type,
         discount: redemptionResult.voucher.discount,
-      }
-    }
-
-
-
-
-
-
-
-
-    console.warn('\n[redemption] - redemptionResult:', redemptionResult);
-    console.warn('\n----------');
-    console.warn('\n[redemption] - redemption:', redemption);
-    console.warn('\n*******************************\n\n\n');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      },
+    };
     return {
       redemption,
       customer,
     };
   } catch (error) {
-
-
-
-
-
-
-
-    console.warn('\n[redemption] - error:', error);
-    console.warn('\n*******************************\n\n\n');
-
-
-
-
-
-
-
-
     return;
   }
 };

@@ -22,10 +22,10 @@ const LineItemVoucherDiscount = props => {
     item => item.code === LINE_ITEM_VOUCHER_DISCOUNT && !item.reversal
   );
 
-  return (isCustomer && voucherDiscountLineItem) ? (
+  return isCustomer && voucherDiscountLineItem ? (
     <div className={css.lineItem}>
       <span className={css.itemLabel}>
-          <FormattedMessage id="OrderBreakdown.voucherDiscount" />
+        <FormattedMessage id="OrderBreakdown.voucherDiscount" />
       </span>
       <span className={css.itemValue}>{formatMoney(intl, voucherDiscountLineItem.lineTotal)}</span>
     </div>

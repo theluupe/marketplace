@@ -1,6 +1,4 @@
 const { transactionLineItems } = require('../api-util/lineItems');
-const { hasLicenseDeal } = require('../api-util/lineItemHelpers');
-const { redeemVoucherForUser } = require('../api-util/voucherifyHelper');
 const {
   getSdk,
   getTrustedSdk,
@@ -9,7 +7,7 @@ const {
   fetchCommission,
 } = require('../api-util/sdk');
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
 
   const sdk = getSdk(req, res);
@@ -30,129 +28,34 @@ module.exports = (req, res) => {
       return undefined;
     }
   };
+  const currentUser = await currentUserPromise();
+  const currentUserId = currentUser?.id;
 
-  Promise.all([listingPromise(), fetchCommission(sdk), currentUserPromise()])
-    .then(async ([showListingResponse, fetchAssetsResponse, currentUser]) => {
+  Promise.all([listingPromise(), fetchCommission(sdk)])
+    .then(([showListingResponse, fetchAssetsResponse]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
-      const currentUserId = currentUser?.id;
-
-
-
-
-
-
-
-      console.warn('\n\n\n.............................');
-      console.warn('\n[transactionLineItems][1] - currentUser:', currentUser);
-      console.warn('\n[transactionLineItems][1] - currentUserId:', currentUserId);
-      console.warn('\n----------');
-
-
-
-
-
-
-
-
       const { providerCommission, customerCommission } =
         commissionAsset?.type === 'jsonAsset' ? commissionAsset.attributes.data : {};
-
+      return {
+        listing,
+        commissionAsset: { providerCommission, customerCommission },
+        orderData: { ...orderData, ...bodyParams.params },
+      };
+    })
+    .then(async ({ listing, commissionAsset, orderData }) => {
+      const { providerCommission, customerCommission } = commissionAsset;
       lineItems = await transactionLineItems(
         listing,
-        { ...orderData, ...bodyParams.params },
+        orderData,
         providerCommission,
         customerCommission,
         currentUserId
       );
-
-      return { listing, orderData: { ...orderData, ...bodyParams.params }, currentUser };
+      return { listing, orderData };
     })
-    .then(async ({ listing, orderData, currentUser }) => {
-      const listingId = listing.id.uuid;
-      const licenseDealId = orderData?.licenseDealId;
-      const voucherCode = orderData?.voucherCode;
-      const currentUserId = currentUser?.id;
-
-
-
-
-
-
-
-
-
-      console.warn('\n[transactionLineItems][2] - listingId:', listingId);
-      console.warn('\n[transactionLineItems][2] - currentUser:', currentUser);
-      console.warn('\n[transactionLineItems][2] - currentUserId:', currentUserId);
-      console.warn('\n.............................\n\n\n');
-
-
-
-
-
-
-
-
-
-  // WELCOME50
-
-
-    /**
-     * [TODO]
-     * - Probar con comision tanto de comprador como de vendedor
-     * - Quitar la comision al comprador cuando termine las pruebas
-     * - Probar con una custom license (solo comision al vendedor)
-     */
-
-
-
-
-    /**
-     * TODO:
-     *  - Revisar flow de voucherify con el equipo y ver lo de los productos, etc..
-     *  - Crear el ambiente de PROD
-     *  - Actualizar el secret manager
-     *  - Crear en PROD
-     *      - Campaign
-     *      - Metadata de marketplace_listing_id en el redeem
-     *      - Crear rule de una vez por usuario (no se si es necesario)
-     */
-
-
-
-
-    // console.warn('\n\n\n.............................');
-    // console.warn('\n[transactionLineItems] - providerCommissionMaybe:', providerCommissionMaybe);
-    // console.warn('\n----------');
-    // console.warn('\n[transactionLineItems] - customerCommissionMaybe:', customerCommissionMaybe);
-    // console.warn('\n----------');
-    // console.warn('\n[transactionLineItems] - lineItems:', lineItems);
-    // console.warn('\n.............................\n\n\n');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      const licenseDeal = await hasLicenseDeal(listingId, licenseDealId, currentUserId);
-      const voucherRedemption = await redeemVoucherForUser(currentUser, voucherCode, listingId);
-
-      const licenseDealMaybe = licenseDeal ? { licenseDeal } : {};
-      const voucherRedemptionMaybe = voucherRedemption ? { voucherRedemption } : {};
-      const additionalProtectedData = {
-        ...licenseDealMaybe,
-        ...voucherRedemptionMaybe,
-      };
-
+    .then(async () => {
+      const additionalProtectedData = {};
       const trustedSdk = await getTrustedSdk(req);
       return { trustedSdk, additionalProtectedData };
     })
