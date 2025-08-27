@@ -2,7 +2,7 @@ const { transactionLineItems } = require('../api-util/lineItems');
 const { getSdk, handleError, serialize, fetchCommission } = require('../api-util/sdk');
 const { constructValidLineItems } = require('../api-util/lineItemHelpers');
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const { isOwnListing, listingId, orderData } = req.body;
 
   const sdk = getSdk(req, res);
@@ -14,14 +14,20 @@ module.exports = (req, res) => {
       const currentUserResponse = await sdk.currentUser.show();
       const currentUser = currentUserResponse?.data?.data;
       const currentUserId = currentUser?.id?.uuid;
-      return currentUserId;
+      return {
+        id: currentUserId,
+        email: currentUser.attributes.email,
+        name: currentUser.attributes.profile.displayName || currentUser.attributes.email,
+      };
     } catch (error) {
       return undefined;
     }
   };
+  const currentUser = await currentUserPromise();
+  const currentUserId = currentUser?.id;
 
-  Promise.all([listingPromise(), fetchCommission(sdk), currentUserPromise()])
-    .then(async ([showListingResponse, fetchAssetsResponse, currentUserId]) => {
+  Promise.all([listingPromise(), fetchCommission(sdk)])
+    .then(async ([showListingResponse, fetchAssetsResponse]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
 

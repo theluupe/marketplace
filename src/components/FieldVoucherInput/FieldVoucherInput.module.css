@@ -1,0 +1,81 @@
+@import '../../styles/customMediaQueries.css';
+
+.collapse {
+  margin: 24px 24px 0;
+
+  @media (--viewportMedium) {
+    margin: 24px 0 0;
+  }
+
+  :global(&.ant-collapse > .ant-collapse-item > .ant-collapse-header) {
+    padding: 0;
+    font-weight: var(--fontWeightMedium);
+    font-size: 14px;
+    line-height: 24px;
+  }
+  :global(&.ant-collapse .ant-collapse-content > .ant-collapse-content-box) {
+    padding: 16px 0 0;
+  }
+}
+
+.voucherInput {
+  padding: 16px;
+  background-color: var(--colorGrey50);
+  border: 1px solid var(--colorGrey100);
+  border-radius: 8px;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.voucherField {
+  flex: 1;
+  min-width: 0;
+}
+
+.applyButton {
+  color: var(--marketplaceColor);
+}
+
+.voucherApplied {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.voucherInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.voucherCode {
+  font-weight: var(--fontWeightMedium);
+  font-size: 16px;
+}
+
+.voucherStatus {
+  font-size: 14px;
+  color: var(--colorSuccessDark);
+}
+
+.loginText {
+  font-weight: var(--fontWeightMedium);
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--colorAttention);
+}
+
+.removeButton {
+  color: var(--colorFail);
+}
+
+.error {
+  font-size: 14px;
+  color: var(--colorSuccessDark);
+  margin-top: 16px;
+}
