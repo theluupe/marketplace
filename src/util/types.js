@@ -404,6 +404,7 @@ export const LINE_ITEM_PROVIDER_COMMISSION = 'line-item/provider-commission';
 export const LINE_ITEM_SHIPPING_FEE = 'line-item/shipping-fee';
 export const LINE_ITEM_PICKUP_FEE = 'line-item/pickup-fee';
 export const LINE_ITEM_LICENSE_UPGRADE = 'line-item/license-upgrade';
+export const LINE_ITEM_VOUCHER_DISCOUNT = 'line-item/voucher-discount';
 
 export const LINE_ITEMS = [
   LINE_ITEM_NIGHT,
@@ -416,6 +417,7 @@ export const LINE_ITEMS = [
   LINE_ITEM_SHIPPING_FEE,
   LINE_ITEM_PICKUP_FEE,
   LINE_ITEM_LICENSE_UPGRADE,
+  LINE_ITEM_VOUCHER_DISCOUNT,
 ];
 export const LISTING_UNIT_TYPES = [
   LINE_ITEM_NIGHT,

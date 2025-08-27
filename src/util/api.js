@@ -160,3 +160,7 @@ export const referralProgramOptIn = body => {
 export const validateLicenseDeal = body => {
   return post(`/api/validate-license-deal`, body);
 };
+
+export const validateVoucher = body => {
+  return post(`/api/validate-voucher`, body);
+};

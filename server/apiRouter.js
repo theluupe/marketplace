@@ -22,6 +22,7 @@ const { retryProductListingCreatedScript, retryUserCreatedScript } = require('./
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
 const validateLicenseDeal = require('./api/validate-license-deal');
+const validateVoucher = require('./api/validate-voucher');
 
 const router = express.Router();
 
@@ -67,6 +68,7 @@ router.post('/transaction/product-download', generateDownloadUrls);
 router.post('/transition-privileged', transitionPrivileged);
 router.post('/transloadit-params', transloaditParams);
 router.post('/validate-license-deal', validateLicenseDeal);
+router.post('/validate-voucher', validateVoucher);
 
 // Scripts Retries:
 router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);

@@ -6,6 +6,8 @@ const { Money } = types;
 const { integrationSdkInit } = require('./scriptManager');
 const { getAmountAsDecimalJS, convertDecimalJSToNumber } = require('./currency');
 const { nightsBetween, daysBetween } = require('./dates');
+const { validateVoucherForUser } = require('./voucherifyHelper');
+
 const LINE_ITEM_NIGHT = 'line-item/night';
 const LINE_ITEM_DAY = 'line-item/day';
 
@@ -348,4 +350,53 @@ exports.getLicenseUpgradeLineItem = (licenseDeal, currency) => {
     ];
   }
   return [];
+};
+
+exports.validateVoucher = async (currentUserId, voucherCode) => {
+  if (!voucherCode || !currentUserId) {
+    return ({ isValid: false });
+  }
+  try {
+    const integrationSdk = integrationSdkInit();
+    const result = await integrationSdk.users.show({ id: currentUserId });
+    const currentUser = result.data.data;
+    const customer = {
+      id: currentUserId,
+      email: currentUser.attributes.email,
+      name: currentUser.attributes.profile.displayName || currentUser.attributes.email,
+    };
+    return await validateVoucherForUser(customer, voucherCode);
+  } catch {
+    return ({ isValid: false });
+  }
+};
+
+// Provider commission reduces the amount of money that is paid out to provider.
+// Therefore, the provider commission line-item should have negative effect to the payout total.
+exports.getNegation = percentage => {
+  return (percentage === 0 ) ? percentage : -1 * percentage;
+};
+
+exports.getDiscount = (discount, commission) => {
+  return (discount < 0) ? 0 : (discount > commission) ? commission : discount;
+};
+
+exports.getVoucherDiscountLineItem = (voucherData, baseLineItems, providerCommission) => {
+  if (!voucherData || !voucherData.isValid) {
+    return [];
+  }
+  const percentOff = this.getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
+  const baseAmount = this.calculateTotalFromLineItems(baseLineItems);
+  const discount = this.getNegation(percentOff);
+  const providerCommissionMaybe = this.hasCommissionPercentage(providerCommission)
+    ? [
+      {
+        code: 'line-item/voucher-discount',
+        unitPrice: baseAmount,
+        percentage: discount,
+        includeFor: ['customer', 'provider'],
+      },
+    ]
+    : [];
+  return providerCommissionMaybe;
 };

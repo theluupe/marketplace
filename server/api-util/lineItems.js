@@ -6,7 +6,12 @@ const {
   hasCommissionPercentage,
   hasLicenseDeal,
   getLicenseUpgradeLineItem,
+  getNegation,
+  validateVoucher,
+  getVoucherDiscountLineItem,
+  getDiscount,
 } = require('./lineItemHelpers');
+
 const { types } = require('sharetribe-flex-sdk');
 const { Money } = types;
 
@@ -228,22 +233,22 @@ exports.transactionLineItems = async (
     includeFor: ['customer', 'provider'],
   };
 
-  // Provider commission reduces the amount of money that is paid out to provider.
-  // Therefore, the provider commission line-item should have negative effect to the payout total.
-  const getNegation = percentage => {
-    return -1 * percentage;
-  };
 
   const listingId = listing.id.uuid;
   const licenseDealId = orderData?.licenseDealId;
+  const voucherCode = orderData?.voucherCode;
   const licenseDeal = await hasLicenseDeal(listingId, licenseDealId, currentUserId);
   const licenseUpgradeLineItem = getLicenseUpgradeLineItem(licenseDeal, currency);
 
+  // Calculate the base line items that should be included in commission calculations WITHOUT voucher discount
+  const baseLineItemsForCommission = [order, ...licenseUpgradeLineItem];
+
+  const voucherData = await validateVoucher(currentUserId, voucherCode);
+  const voucherDiscountMaybe = getVoucherDiscountLineItem(voucherData, baseLineItemsForCommission, providerCommission);
+  const voucherDiscountPercentage = (!voucherData || !voucherData.isValid) ? 0 : getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
+
   // Note: extraLineItems for product selling (aka shipping fee)
   // is not included in either customer or provider commission calculation.
-
-  // Calculate the base line items that should be included in commission calculations
-  const baseLineItemsForCommission = [order, ...licenseUpgradeLineItem];
 
   // The provider commission is what the provider pays for the transaction, and
   // it is the subtracted from the order price to get the provider payout:
@@ -253,9 +258,10 @@ exports.transactionLineItems = async (
         {
           code: 'line-item/provider-commission',
           unitPrice: calculateTotalFromLineItems(baseLineItemsForCommission),
-          percentage: getNegation(providerCommission.percentage),
+          percentage: getNegation(providerCommission.percentage - voucherDiscountPercentage),
           includeFor: ['provider'],
         },
+        ...voucherDiscountMaybe,
       ]
     : [];
 
@@ -273,7 +279,7 @@ exports.transactionLineItems = async (
       ]
     : [];
 
-  // Let's keep the base price (order) as first line item, then extra items, then license upgrades, and commissions as last.
+  // Let's keep the base price (order) as first line item, then extra items, then license upgrades, voucher discounts, and commissions as last.
   // Note: the order matters only if OrderBreakdown component doesn't recognize line-item.
   const lineItems = [
     order,

@@ -380,6 +380,7 @@ const OrderPanel = props => {
     marketplaceCurrency,
     listingId: listing.id,
     isOwnListing,
+    currentUser,
     marketplaceName,
     onFetchTransactionLineItems,
     lineItems,

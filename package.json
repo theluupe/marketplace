@@ -30,6 +30,7 @@
     "@uppy/store-redux": "^4.0.0",
     "@uppy/thumbnail-generator": "^4.0.0",
     "@uppy/transloadit": "^4.0.1",
+    "@voucherify/sdk": "^2.9.2",
     "analytics-node": "^6.2.0",
     "antd": "^5.24.6",
     "auth0": "^4.8.0",
