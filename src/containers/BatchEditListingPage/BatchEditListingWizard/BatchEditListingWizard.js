@@ -50,10 +50,11 @@ const BatchEditListingWizard = props => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (currentUser.id?.uuid && !uppyInstance) {
-      dispatch(initializeUppy({ userId: currentUser.id?.uuid }));
+    if (!uppyInstance) {
+      const meta = {};
+      dispatch(initializeUppy(meta));
     }
-  }, [currentUser.id, dispatch]);
+  }, [dispatch]);
 
   // If selectedTab is not active for listing with valid listing type,
   // redirect to the beginning of wizard
