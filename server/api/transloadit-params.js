@@ -37,6 +37,7 @@ module.exports = async (req, res) => {
         userId: currentUserId,
       },
     };
+
     const signature = transloadit.calcSignature(params);
     res
       .status(200)
