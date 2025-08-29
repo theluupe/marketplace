@@ -11,6 +11,7 @@ import {
   Form,
   FieldSelect,
   FieldTextInput,
+  FieldVoucherInput,
   InlineTextButton,
   NamedLink,
   PrimaryButton,
@@ -35,6 +36,8 @@ const handleFetchLineItems = ({
   isOwnListing,
   fetchLineItemsInProgress,
   onFetchTransactionLineItems,
+  location,
+  voucherCode,
 }) => {
   const stockReservationQuantity = Number.parseInt(quantity, 10);
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
@@ -47,10 +50,13 @@ const handleFetchLineItems = ({
   ) {
     const queryParams = parse(location.search);
     const licenseDealId = queryParams.licenseDeal;
+    const licenseDealIdMaybe = licenseDealId ? { licenseDealId } : {};
+    const voucherCodeMaybe = voucherCode ? { voucherCode } : {};
     const orderData = {
       stockReservationQuantity,
       ...deliveryMethodMaybe,
-      ...(licenseDealId ? { licenseDealId } : {}),
+      ...licenseDealIdMaybe,
+      ...voucherCodeMaybe,
     };
     onFetchTransactionLineItems({
       orderData,
@@ -117,7 +123,6 @@ const DeliveryMethodMaybe = props => {
 };
 
 const renderForm = formRenderProps => {
-  const [mounted, setMounted] = useState(false);
   const {
     // FormRenderProps from final-form
     handleSubmit,
@@ -132,6 +137,7 @@ const renderForm = formRenderProps => {
     displayDeliveryMethod,
     listingId,
     isOwnListing,
+    currentUser,
     onFetchTransactionLineItems,
     onContactUser,
     lineItems,
@@ -143,11 +149,18 @@ const renderForm = formRenderProps => {
     location,
     values,
   } = formRenderProps;
+  const isLoggedIn = !!currentUser?.id?.uuid;
+
+  const [mounted, setMounted] = useState(false);
+  const [currentValues, setCurrentValues] = useState({
+    quantity: values?.quantity,
+    deliveryMethod: values?.deliveryMethod,
+    isVoucherApplied: values?.isVoucherApplied,
+  });
 
   // Note: don't add custom logic before useEffect
   useEffect(() => {
     setMounted(true);
-
     // Side-effect: fetch line-items after mounting if possible
     const { quantity, deliveryMethod } = values;
     if (quantity && !formRenderProps.hasMultipleDeliveryMethods) {
@@ -159,14 +172,20 @@ const renderForm = formRenderProps => {
         isOwnListing,
         fetchLineItemsInProgress,
         onFetchTransactionLineItems,
+        location,
       });
     }
   }, []);
 
   // If form values change, update line-items for the order breakdown
   const handleOnChange = formValues => {
-    const { quantity, deliveryMethod } = formValues.values;
-    if (mounted) {
+    const { quantity, deliveryMethod, isVoucherApplied, voucherCode } = formValues.values;
+    const quantityChanged = quantity !== currentValues.quantity;
+    const deliveryMethodChanged = deliveryMethod !== currentValues.deliveryMethod;
+    const appliedVoucherChanged = isVoucherApplied !== currentValues.isVoucherApplied;
+    const shouldRecalculate = quantityChanged || deliveryMethodChanged || appliedVoucherChanged;
+    const includeVoucherCode = isVoucherApplied && voucherCode;
+    if (mounted && shouldRecalculate) {
       handleFetchLineItems({
         quantity,
         deliveryMethod,
@@ -174,6 +193,13 @@ const renderForm = formRenderProps => {
         isOwnListing,
         fetchLineItemsInProgress,
         onFetchTransactionLineItems,
+        location,
+        ...(includeVoucherCode && { voucherCode }),
+      });
+      setCurrentValues({
+        quantity,
+        deliveryMethod,
+        isVoucherApplied,
       });
     }
   };
@@ -294,6 +320,13 @@ const renderForm = formRenderProps => {
         </div>
       ) : null}
 
+      <FieldVoucherInput
+        form={formApi}
+        formId={formId}
+        listingId={listingId.uuid}
+        isLoggedIn={isLoggedIn}
+      />
+
       <div className={css.licenseOptions}>
         <div>
           <FormattedMessage id="ProductOrderForm.licensePurchase" values={{ licenseLink }} />
@@ -384,7 +417,7 @@ const ProductOrderForm = props => {
       ? { deliveryMethod: 'none' }
       : {};
   const hasMultipleDeliveryMethods = pickupEnabled && shippingEnabled;
-  const initialValues = { ...quantityMaybe, ...deliveryMethodMaybe };
+  const initialValues = { ...quantityMaybe, ...deliveryMethodMaybe, isVoucherApplied: false };
 
   return (
     <FinalForm

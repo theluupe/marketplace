@@ -1,5 +1,4 @@
 const { transactionLineItems } = require('../api-util/lineItems');
-const { hasLicenseDeal } = require('../api-util/lineItemHelpers');
 const {
   getSdk,
   getTrustedSdk,
@@ -8,7 +7,7 @@ const {
   fetchCommission,
 } = require('../api-util/sdk');
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const { isSpeculative, orderData, bodyParams, queryParams } = req.body;
 
   const sdk = getSdk(req, res);
@@ -20,35 +19,43 @@ module.exports = (req, res) => {
       const currentUserResponse = await sdk.currentUser.show();
       const currentUser = currentUserResponse?.data?.data;
       const currentUserId = currentUser?.id?.uuid;
-      return currentUserId;
+      return {
+        id: currentUserId,
+        email: currentUser.attributes.email,
+        name: currentUser.attributes.profile.displayName || currentUser.attributes.email,
+      };
     } catch (error) {
       return undefined;
     }
   };
+  const currentUser = await currentUserPromise();
+  const currentUserId = currentUser?.id;
 
-  Promise.all([listingPromise(), fetchCommission(sdk), currentUserPromise()])
-    .then(async ([showListingResponse, fetchAssetsResponse, currentUserId]) => {
+  Promise.all([listingPromise(), fetchCommission(sdk)])
+    .then(([showListingResponse, fetchAssetsResponse]) => {
       const listing = showListingResponse.data.data;
       const commissionAsset = fetchAssetsResponse.data.data[0];
-
       const { providerCommission, customerCommission } =
         commissionAsset?.type === 'jsonAsset' ? commissionAsset.attributes.data : {};
-
+      return {
+        listing,
+        commissionAsset: { providerCommission, customerCommission },
+        orderData: { ...orderData, ...bodyParams.params },
+      };
+    })
+    .then(async ({ listing, commissionAsset, orderData }) => {
+      const { providerCommission, customerCommission } = commissionAsset;
       lineItems = await transactionLineItems(
         listing,
-        { ...orderData, ...bodyParams.params },
+        orderData,
         providerCommission,
         customerCommission,
         currentUserId
       );
-
-      return { listing, orderData: { ...orderData, ...bodyParams.params }, currentUserId };
+      return { listing, orderData };
     })
-    .then(async ({ listing, orderData, currentUserId }) => {
-      const listingId = listing.id.uuid;
-      const licenseDealId = orderData?.licenseDealId;
-      const licenseDeal = await hasLicenseDeal(listingId, licenseDealId, currentUserId);
-      const additionalProtectedData = licenseDeal ? { licenseDeal } : {};
+    .then(async () => {
+      const additionalProtectedData = {};
       const trustedSdk = await getTrustedSdk(req);
       return { trustedSdk, additionalProtectedData };
     })

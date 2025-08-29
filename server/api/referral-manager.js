@@ -1,13 +1,22 @@
 const { trackManagementAPIEvent } = require('../api-util/analytics');
 const { ReferralAPIManagerClient: RAMClient } = require('../api-util/referralManager');
 const { integrationSdkInit } = require('../api-util/scriptManager');
+const { getSdk } = require('../api-util/sdk');
 
 async function referralProgramOptIn(req, res) {
-  const { userId } = req.body;
-  const integrationSdk = integrationSdkInit();
   try {
-    const sdkUser = await integrationSdk.users.show({ id: userId });
-    const userAttributes = sdkUser?.data?.data?.attributes || {};
+    const sdk = getSdk(req, res);
+    const currentUserResponse = await sdk.currentUser.show();
+    const currentUser = currentUserResponse.data.data;
+    const currentUserId = currentUser?.id?.uuid;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        error: 'unauthenticatedUser',
+      });
+    }
+
+    const userAttributes = currentUser?.attributes || {};
     const { email, profile } = userAttributes;
     const { firstName, lastName, privateData } = profile || {};
     const { referralCode } = privateData || {};
@@ -20,13 +29,15 @@ async function referralProgramOptIn(req, res) {
     const referralManagerClient = new RAMClient();
     const rfUser = await referralManagerClient.optIn(email, firstName, lastName);
     const { code } = rfUser || {};
+
+    const integrationSdk = integrationSdkInit();
     await integrationSdk.users.updateProfile({
-      id: userId,
+      id: currentUserId,
       privateData: {
         referralCode: code,
       },
     });
-    const eventUser = { id: userId, email };
+    const eventUser = { id: currentUserId, email };
     trackManagementAPIEvent('REFERRAL_PROGRAM | Auto opt-in', eventUser);
     return res.status(200).send({ code });
   } catch (error) {

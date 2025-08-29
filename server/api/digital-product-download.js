@@ -1,6 +1,7 @@
 const { Storage } = require('@google-cloud/storage');
 const { extname } = require('path');
 
+const { getSdk } = require('../api-util/sdk');
 const { integrationSdkInit } = require('../api-util/scriptManager');
 const { resolveLatestProcessName, getProcess } = require('../api-util/transactions/transaction');
 
@@ -43,9 +44,27 @@ const getStateData = (transaction, process) => {
 };
 
 async function generateDownloadUrls(req, res) {
-  const { transactionId, userId } = req.body;
-  const integrationSdk = integrationSdkInit();
+  const { transactionId } = req.body;
+
+  if (!transactionId) {
+    return res.status(400).json({
+      error: 'missingRequiredParameters',
+    });
+  }
+
   try {
+    const sdk = getSdk(req, res);
+    const currentUserResponse = await sdk.currentUser.show();
+    const currentUser = currentUserResponse.data.data;
+    const currentUserId = currentUser?.id?.uuid;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        error: 'unauthenticatedUser',
+      });
+    }
+
+    const integrationSdk = integrationSdkInit();
     const sdkTransaction = await integrationSdk.transactions.show({
       id: transactionId,
       include: ['customer', 'listing'],
@@ -55,7 +74,7 @@ async function generateDownloadUrls(req, res) {
     const listing = included.find(entry => entry.type === 'listing');
     const customer = transaction?.relationships?.customer?.data;
     const customerId = customer?.id?.uuid;
-    const isCustomer = userId === customerId;
+    const isCustomer = currentUserId === customerId;
     const processName = resolveLatestProcessName(transaction?.attributes?.processName);
 
     const isValidTransaction = isCustomer && processName;

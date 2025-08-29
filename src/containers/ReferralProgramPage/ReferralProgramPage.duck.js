@@ -71,8 +71,7 @@ export const queryReferralCode = () => async (dispatch, getState, sdk) => {
   dispatch(queryFavoritesRequest());
   try {
     const { currentUser } = getState().user;
-    const userId = currentUser?.id?.uuid;
-    const referralCode = currentUser?.attributes.profile.privateData?.referralCode || null;
+    const referralCode = currentUser?.attributes?.profile?.privateData?.referralCode || null;
     const withReferralCode = !!referralCode;
 
     if (withReferralCode) {
@@ -80,7 +79,7 @@ export const queryReferralCode = () => async (dispatch, getState, sdk) => {
       return referralCode;
     }
 
-    const { code } = await referralProgramOptIn({ userId });
+    const { code } = await referralProgramOptIn({});
     dispatch(queryFavoritesSuccess(code));
     return code;
   } catch (error) {
