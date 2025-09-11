@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from 'antd';
 import { HeartOutlined, HeartFilled } from '@ant-design/icons';
+import classNames from 'classnames';
 
 import { FormattedMessage } from '../../../util/reactIntl';
 import {
@@ -13,9 +14,9 @@ import {
 import { pickCustomFieldProps } from '../../../util/fieldHelpers';
 import { isValidURL, stripUrl } from '../../../util/urlHelpers';
 import { getUserTypeFieldInputs } from '../../../util/userHelpers';
-import { richText } from '../../../util/richText';
 
-import { H2, H3, AvatarExtraLarge, NamedLink } from '../../../components';
+import { H2, H3, AvatarExtraLarge, AvatarLarge, NamedLink } from '../../../components';
+import { ExpandableBio } from '../../ListingPage/UserCard/UserCard';
 
 import CustomListingFields from '../../ListingPage/CustomListingFields';
 import SectionMapMaybe from '../../ListingPage/SectionMapMaybe';
@@ -27,7 +28,6 @@ import SectionYoutubeVideoMaybe from '../SectionYoutubeVideoMaybe';
 
 import css from '../ProfilePage.module.css';
 
-const MIN_LENGTH_FOR_LONG_WORDS = 20;
 const PRONOUNS_NOT_LISTED = 'not-listed';
 const PREFER_NOT_TO_SAY_PRONOUNS = 'prefer-not-to-say';
 
@@ -150,11 +150,6 @@ function ProfileInfo({
   const parsedPortfolioLabel = stripUrl(portfolioURL);
   const parsedBookingFormURL = `https://theluupe.typeform.com/booking#creatorname=${displayName}&creatorid=${userId}`;
 
-  const bioWithLinks = richText(bio, {
-    linkify: true,
-    longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
-    longWordClass: css.longWord,
-  });
   const toggleFavorites = () => onToggleFavorites(isFavorite);
   const favoriteButton = isFavorite ? (
     <Button
@@ -173,33 +168,52 @@ function ProfileInfo({
   );
 
   return (
-    <div className={css.profileInfoWrapper}>
+    <div className={css.profileInfoRoot}>
       <div className={css.profileInfoAvatar}>
-        <AvatarExtraLarge user={user} disableProfileLink />
-        <div className={css.mobileSellerHeading}>
-          <H2 as="h1" className={css.sellerHeading}>
-            {displayName}
-          </H2>
-          <div className={css.profileInfoActions}>
-            {showLinkToProfileSettingsPage ? (
-              <div>
-                <NamedLink className={css.editLinkMobile} name="ProfileSettingsPage">
-                  <FormattedMessage id="ProfilePage.editProfileLinkMobile" />
-                </NamedLink>
-              </div>
+        <AvatarExtraLarge user={user} disableProfileLink className={css.avatarDesktop} />
+
+        <div className={css.profileInfoWithAvatarMobile}>
+          <AvatarLarge user={user} disableProfileLink className={css.avatarMobile} />
+          <div className={css.profileInfoContentMobile}>
+            <H2 as="h1" className={css.mobileSellerHeading}>
+              {displayName}
+            </H2>
+            {queryInProgress ? (
+              <H3>
+                <FormattedMessage id="ProfilePage.loadingProfile" />
+              </H3>
             ) : (
-              <div className={css.actionsContainer}>
-                <Button type="primary" className={css.actionButton} href={parsedBookingFormURL}>
-                  <FormattedMessage id="ProfilePage.requestToBook" />
-                </Button>
-                {favoriteButton}
-              </div>
+              <>
+                {showPronouns && <span className={css.pronounsLabel}>({pronouns})</span>}
+                <p className={css.addressLabel}>{address}</p>
+              </>
             )}
           </div>
         </div>
+
+        <div className={css.actionsContainer}>
+          {showLinkToProfileSettingsPage ? (
+            <>
+              <NamedLink className={css.mobileOnly} name="ProfileSettingsPage">
+                <FormattedMessage id="ProfilePage.editProfileLinkMobile" />
+              </NamedLink>
+              <NamedLink className={css.desktopOnly} name="ProfileSettingsPage">
+                <FormattedMessage id="ProfilePage.editProfileLinkDesktop" />
+              </NamedLink>
+            </>
+          ) : (
+            <>
+              <Button type="primary" className={css.actionButton} href={parsedBookingFormURL}>
+                <FormattedMessage id="ProfilePage.requestToBook" />
+              </Button>
+              {favoriteButton}
+            </>
+          )}
+        </div>
       </div>
+
       <div className={css.profileInfoContent}>
-        <div>
+        <div className={css.desktopOnly}>
           <H2 as="h1" className={css.desktopSellerHeading}>
             {displayName}
           </H2>
@@ -214,8 +228,8 @@ function ProfileInfo({
         ) : (
           <>
             <p className={css.creativeSpecialtyLabel}>{creativeSpecialty}</p>
-            <p className={css.addressLabel}>{address}</p>
-            {hasBio && <span className={css.bioLabel}>{bioWithLinks}</span>}
+            <p className={classNames(css.addressLabel, css.desktopOnly)}>{address}</p>
+            {hasBio && <ExpandableBio className={css.bioLabel} bio={bio} />}
             {hasPortfolioURL && (
               <Button
                 type="link"
@@ -227,22 +241,6 @@ function ProfileInfo({
               </Button>
             )}
           </>
-        )}
-      </div>
-      <div className={css.profileInfoActionsDesktop}>
-        {showLinkToProfileSettingsPage ? (
-          <div>
-            <NamedLink className={css.editLinkDesktop} name="ProfileSettingsPage">
-              <FormattedMessage id="ProfilePage.editProfileLinkDesktop" />
-            </NamedLink>
-          </div>
-        ) : (
-          <div className={css.actionsContainer}>
-            {favoriteButton}
-            <Button type="primary" className={css.actionButton} href={parsedBookingFormURL}>
-              <FormattedMessage id="ProfilePage.requestToBook" />
-            </Button>
-          </div>
         )}
       </div>
     </div>

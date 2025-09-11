@@ -35,7 +35,7 @@ import {
   resolveLatestProcessName,
 } from '../../transactions/transaction';
 
-import { ModalInMobile, PrimaryButton, AvatarSmall, H1, H2 } from '../../components';
+import { ModalInMobile, PrimaryButton, AvatarSmall, H2 } from '../../components';
 import PriceVariantPicker from './PriceVariantPicker/PriceVariantPicker';
 
 import css from './OrderPanel.module.css';
@@ -428,7 +428,9 @@ const OrderPanel = props => {
         usePortal
       >
         <div className={css.modalHeading}>
-          <H1 className={css.heading}>{title}</H1>
+          <H2 as="h1" className={css.heading}>
+            {title}
+          </H2>
         </div>
         <div className={css.orderHeading}>
           <div>

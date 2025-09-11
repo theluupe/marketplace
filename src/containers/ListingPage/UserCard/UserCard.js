@@ -31,7 +31,7 @@ const truncated = s => {
   });
 };
 
-const ExpandableBio = props => {
+export const ExpandableBio = props => {
   const [expand, setExpand] = useState(false);
   const { className, bio } = props;
   const bioWithLinks = richText(bio, {

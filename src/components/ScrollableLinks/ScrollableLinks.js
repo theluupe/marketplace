@@ -3,7 +3,14 @@ import { Button, message, Tooltip } from 'antd';
 import Icon, { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { NamedLink } from '../index';
 import css from './ScrollableLinks.module.css';
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -54,6 +61,12 @@ export const ScrollableLinks = props => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );

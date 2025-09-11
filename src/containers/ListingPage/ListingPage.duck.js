@@ -323,11 +323,15 @@ export const showListing = (listingId, config, isOwn = false) => (dispatch, getS
       // Avatars
       'variants.square-small',
       'variants.square-small2x',
+
+      // Scaled COMP variant
+      `variants.comp`,
     ],
     ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
     ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
     ...createImageVariantConfig(`${variantPrefix}-4x`, 1600, aspectRatio),
     ...createImageVariantConfig(`${variantPrefix}-6x`, 2400, aspectRatio),
+    'imageVariant.comp': 'h:3072;w:1200;fit:scale',
   };
 
   const show = isOwn ? sdk.ownListings.show(params) : sdk.listings.show(params);

@@ -81,6 +81,14 @@
 
 .results {
   background-color: var(--colorWhite);
-  margin: 64px auto;
-  padding: 128px;
+  margin: auto;
+
+  @media (--viewportSmall) {
+    margin: 64px auto;
+    padding: 64px;
+  }
+
+  @media (--viewportMedium) {
+    padding: 128px;
+  }
 }

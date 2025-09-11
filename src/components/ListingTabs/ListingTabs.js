@@ -150,8 +150,8 @@ export const ListingTabs = ({
   const contentRenderer = (
     <div>
       {enableCategoryTabs && (
-        <Row gutter={[16, 16]} align="middle" justify="space-between">
-          <Col xs={24} sm={14}>
+        <div className={css.actionsWrapper}>
+          <div className={css.scrollableLinksWrapper}>
             {withCategories && (
               <ScrollableLinks
                 links={categories}
@@ -160,13 +160,13 @@ export const ListingTabs = ({
                 onSortEnd={handlePortfolioSortEnd}
               />
             )}
-          </Col>
+          </div>
           {enableListingManagement && (
-            <Col xs={24} sm={10} style={{ textAlign: 'right' }}>
+            <div className={css.ctaWrapper}>
               <Space size="middle">
                 <AntButton
                   type="text"
-                  className={css.actionButton}
+                  className={classNames(css.actionButton, css.secondaryButton)}
                   onClick={() => goToManageListing(PAGE_MODE_EDIT, listingsQueryParams)}
                 >
                   <FormattedMessage id="ListingTabs.manageButton" />
@@ -179,9 +179,9 @@ export const ListingTabs = ({
                   <FormattedMessage id="ListingTabs.addButton" />
                 </AntButton>
               </Space>
-            </Col>
+            </div>
           )}
-        </Row>
+        </div>
       )}
       <div className={css.listingPanel}>
         {queryInProgress && <Loader messageId={loadingMessageId} />}

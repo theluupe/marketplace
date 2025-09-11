@@ -90,6 +90,11 @@
 .licenseOptions {
   font-size: 14px;
   margin-top: 36px;
+  padding: 0 24px;
+
+  @media (--viewportMedium) {
+    padding: 0;
+  }
 
   .licenseReachOutCTA {
     color: var(--colorGrey700);

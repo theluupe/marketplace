@@ -386,10 +386,6 @@ export const getSaveListingData = state => {
 };
 export const getListingsDefaults = state => state.BatchEditListingPage.listingDefaults;
 export const getIsQueryInProgress = state => state.BatchEditListingPage.queryInProgress;
-export const getCsvUploadState = state => {
-  const { csvUploadInProgress, csvUploadError } = state.BatchEditListingPage;
-  return { csvUploadInProgress, csvUploadError };
-};
 export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThumbnailsReady;
 
 function updateAiTermsStatus(getState, dispatch) {
