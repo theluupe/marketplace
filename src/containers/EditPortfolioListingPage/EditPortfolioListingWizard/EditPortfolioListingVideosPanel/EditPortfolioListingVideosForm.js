@@ -14,7 +14,14 @@ import { LISTING_STATE_DRAFT } from '../../../../util/types';
 import VideoPlayer from '../../../../components/VideoPlayer/VideoPlayer';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableVideo from '../EditPortfolioListingItemsPanel/SortableVideo';
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { VIDEOS } from '../EditPortfolioListingWizardTab';
 
 const PublishListingError = ({ error }) =>
@@ -100,6 +107,12 @@ const EditPortfolioListingVideosFormComponent = props => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );

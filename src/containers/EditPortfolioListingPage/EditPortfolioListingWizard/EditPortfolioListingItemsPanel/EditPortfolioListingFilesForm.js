@@ -15,7 +15,14 @@ import { FieldAddMedia } from './AddMediaField';
 import { removeImageFromListing, uploadMedia } from '../../EditPortfolioListingPage.duck';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableImage from './SortableImage';
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { IMAGES } from '../EditPortfolioListingWizardTab';
 
 const ImageUploadError = ({ uploadOverLimit, uploadImageError }) =>
@@ -123,6 +130,12 @@ const EditPortfolioListingFilesFormComponent = props => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
