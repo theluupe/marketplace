@@ -111,7 +111,7 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
   };
 
   return (
-    <Space size="middle">
+    <div className={css.root}>
       <Button
         type="link"
         target="_blank"
@@ -130,9 +130,9 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
       >
         <Button icon={<UploadOutlined />}>Upload CSV</Button>
       </Upload>
-      <Tooltip title={csvUploadTooltip}>
+      <Tooltip title={csvUploadTooltip} className={css.tooltip}>
         <InfoCircleOutlined />
       </Tooltip>
-    </Space>
+    </div>
   );
 };

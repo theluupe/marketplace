@@ -5,7 +5,6 @@ import { FormattedMessage } from '../../../../util/reactIntl';
 import { Checkbox, Flex, List, Modal, Progress, Space, Typography } from 'antd';
 import {
   getAiTermsRequired,
-  getCsvUploadState,
   getInvalidListings,
   getListingCreationInProgress,
   getListingFieldsOptions,
@@ -83,7 +82,6 @@ export const EditListingBatchProductDetails = props => {
   const aiTermsRequired = useSelector(getAiTermsRequired);
   const selectedRowKeys = useSelector(getSelectedRowsKeys);
   const { failedListings, successfulListings, selectedRowsKeys } = useSelector(getSaveListingData);
-  const { csvUploadInProgress } = useSelector(getCsvUploadState);
 
   const [termsAcceptedCheckbox, setTermsAcceptedCheckbox] = useState(false); // Use state to track checkbox value
   const [showValidationModal, setShowValidationModal] = useState(false);

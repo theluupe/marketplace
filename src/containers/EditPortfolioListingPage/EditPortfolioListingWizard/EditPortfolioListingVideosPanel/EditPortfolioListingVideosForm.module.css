@@ -91,4 +91,5 @@
   z-index: 99;
   color: var(--colorWhite);
   background-color: rgba(0, 0, 0, 0.5);
+  touch-action: none;
 }

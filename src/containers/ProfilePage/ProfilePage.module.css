@@ -251,43 +251,68 @@
   height: 100%;
 }
 
-/* SELLER STYLES */
-.profileInfoWrapper {
-  display: flex;
-  justify-content: space-between;
-  gap: 36px;
-  margin-bottom: 48px;
-  flex-wrap: wrap;
-  width: 100%;
-  max-width: calc(100vw - 64px);
-  overflow: hidden;
+.singleTabLayout {
+  margin-bottom: 36px;
 
-  @media (--viewportMedium) {
-    max-width: calc(100vw - 88px);
-  }
-
+  /* Maps max-width value */
   @media (--viewportLarge) {
-    flex-wrap: nowrap;
+    max-width: 640px;
   }
 }
 
-.profileInfoAvatar,
-.profileInfoActionsDesktop {
-  flex: 1 1 100%;
+/* SELLER STYLES */
+.profileInfoRoot {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 48px;
+  min-width: 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
 
-  @media (--viewportLarge) {
-    flex: 0 0 auto;
-    max-width: 100%;
+  @media (--viewportMedium) {
+    flex-wrap: nowrap;
+    gap: 36px;
   }
 }
 
 .profileInfoAvatar {
+  flex-direction: column;
+  display: flex;
+  gap: 16px;
+  flex: 1 1 100%;
+
+  @media (--viewportMedium) {
+    flex: 0 0 auto;
+  }
+}
+
+.avatarDesktop {
+  display: none;
+
+  @media (--viewportMedium) {
+    display: block;
+  }
+}
+
+.avatarMobile {
+  flex: 0 0 auto;
+}
+
+.profileInfoWithAvatarMobile {
   display: flex;
   gap: 24px;
 
-  @media (--viewportLarge) {
-    display: block;
+  @media (--viewportMedium) {
+    display: none;
   }
+}
+
+.profileInfoContentMobile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
+  gap: 4px;
 }
 
 .profileInfoContent {
@@ -295,50 +320,19 @@
   flex-direction: column;
   justify-content: flex-start;
   min-width: 0;
-  flex: 1 1 100%;
-
-  @media (--viewportLarge) {
-    flex: 1 1 auto;
-  }
-}
-
-.profileInfoActions {
-  display: flex;
-  flex-direction: column;
-}
-
-.profileInfoActionsDesktop {
-  flex-direction: column;
-  display: none;
-
-  @media (--viewportLarge) {
-    display: flex;
-  }
-}
-
-.favoriteButton {
-  color: var(--marketplaceColor);
-}
-
-.sellerHeading {
-  margin-right: 16px;
-}
-
-.desktopSellerHeading {
-  composes: sellerHeading;
-  display: none;
-
-  @media (--viewportLarge) {
-    display: inline;
-  }
+  flex: 1 1 auto;
 }
 
 .mobileSellerHeading {
-  display: inline;
+  padding: 0;
+  margin: 0;
+}
 
-  @media (--viewportLarge) {
-    display: none;
-  }
+.desktopSellerHeading {
+  margin-right: 16px;
+  margin: 0;
+  padding: 0;
+  display: inline;
 }
 
 .pronounsLabel {
@@ -348,7 +342,6 @@
 
 .creativeSpecialtyLabel {
   text-transform: uppercase;
-  font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
@@ -378,7 +371,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: inline-block;
   max-width: 100%;
   text-align: start;
 
@@ -387,24 +379,15 @@
   }
 }
 
-.singleTabLayout {
-  margin-bottom: 36px;
-
-  /* Maps max-width value */
-  @media (--viewportLarge) {
-    max-width: 640px;
-  }
-}
-
 .actionsContainer {
-  flex-direction: column;
-  align-items: baseline;
   display: flex;
-  gap: 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
 
   @media (--viewportMedium) {
-    flex-direction: row;
-    align-items: center;
+    justify-content: space-between;
+    gap: 0;
   }
 }
 
@@ -412,4 +395,24 @@
   font-size: 14px;
   padding: 20px;
   text-transform: uppercase;
+}
+
+.favoriteButton {
+  color: var(--marketplaceColor);
+}
+
+.desktopOnly {
+  display: none;
+
+  @media (--viewportMedium) {
+    display: inline;
+  }
+}
+
+.mobileOnly {
+  display: inline;
+
+  @media (--viewportMedium) {
+    display: none;
+  }
 }

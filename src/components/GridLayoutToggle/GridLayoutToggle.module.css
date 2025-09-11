@@ -1,3 +1,13 @@
+@import '../../styles/customMediaQueries.css';
+
+.root {
+  display: none;
+
+  @media (--viewportSmall) {
+    display: inline-flex;
+  }
+}
+
 .gridViewButton {
   color: var(--colorGrey300);
   cursor: pointer;

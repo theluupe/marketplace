@@ -2,6 +2,7 @@
 
 .root {
   width: 100%;
+  min-width: 0;
   margin: 24px auto 0 auto;
   padding: 0 24px 12px 24px;
 
@@ -102,6 +103,45 @@
 
 .actionButton {
   font-size: 14px;
-  width: 200px;
   padding: 24px;
+
+  @media (--viewportSmall) {
+    width: 200px;
+  }
+}
+
+.actionsWrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  @media (--viewportLarge) {
+    flex-wrap: nowrap;
+  }
+}
+
+.scrollableLinksWrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.ctaWrapper {
+  text-align: center;
+  flex: 1 1 auto;
+
+  @media (--viewportLarge) {
+    flex: 0 0 auto;
+  }
+}
+
+.secondaryButton {
+  background-color: var(--colorGrey100);
+
+  @media (--viewportLarge) {
+    background-color: inherit;
+  }
 }

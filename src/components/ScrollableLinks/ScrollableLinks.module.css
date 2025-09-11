@@ -1,3 +1,5 @@
+@import '../../styles/customMediaQueries.css';
+
 .root {
   display: flex;
   align-items: center;
@@ -19,6 +21,13 @@
   -ms-overflow-style: none;
   padding: 8px 0;
   gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  @media (--viewportSmall) {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
 }
 
 .linksContainer::-webkit-scrollbar {
@@ -54,10 +63,12 @@
   display: inline-flex;
   margin-right: 6px;
   cursor: grab;
+  touch-action: none;
 }
 
 .sortableLinkWrapper {
   display: flex;
   justify-content: center;
   align-items: center;
+  touch-action: none;
 }

@@ -44,11 +44,13 @@
 .heading {
   /* Font */
   color: var(--colorGrey700);
+  line-height: initial;
 
   /* Layout */
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
+
   @media (--viewportMedium) {
     margin-top: 0;
     margin-bottom: 5px;

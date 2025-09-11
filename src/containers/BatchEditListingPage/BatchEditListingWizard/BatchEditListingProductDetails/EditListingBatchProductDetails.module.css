@@ -32,6 +32,14 @@
   background-color: var(--colorWhite);
   z-index: calc(var(--zIndexTopbar) - 1);
   justify-content: space-between;
+  gap: 16px;
+  flex-direction: column;
+  margin-bottom: 16px;
+
+  @media (--viewportMedium) {
+    flex-direction: row;
+    margin-bottom: 0;
+  }
 }
 
 .stickyTitle {
@@ -57,8 +65,11 @@
 
 .stickyHeader.scrolled .submitButton {
   transform: scale(0.8); /* Shrink button */
-  transform-origin: right; /* Ensures scaling happens from the right edge */
-  margin-left: auto; /* Keeps alignment to the right */
+
+  @media (--viewportMedium) {
+    transform-origin: right; /* Ensures scaling happens from the right edge */
+    margin-left: auto; /* Keeps alignment to the right */
+  }
 }
 
 .formItem:focus {
@@ -78,8 +89,12 @@
 }
 
 .csvUploadWrapper {
-  padding: 12px 0;
-  justify-content: flex-end;
+  justify-content: center;
+
+  @media (--viewportMedium) {
+    justify-content: flex-end;
+    padding: 12px 0;
+  }
 }
 
 .moneyFieldPricingGuide {

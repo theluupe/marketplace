@@ -2,9 +2,11 @@ import React from 'react';
 import { Space } from 'antd';
 import Icon, { AppstoreFilled } from '@ant-design/icons';
 import classNames from 'classnames';
-import IconMasonryGrid from '../IconMasonryGrid/IconMasonryGrid';
-import css from './GridLayoutToggle.module.css';
+
 import { GRID_STYLE_MASONRY, GRID_STYLE_SQUARE } from '../../util/types';
+import IconMasonryGrid from '../IconMasonryGrid/IconMasonryGrid';
+
+import css from './GridLayoutToggle.module.css';
 
 const GridLayoutToggle = ({ value, onChange }) => {
   const isMasonry = value === GRID_STYLE_MASONRY;
@@ -16,7 +18,7 @@ const GridLayoutToggle = ({ value, onChange }) => {
   };
 
   return (
-    <Space>
+    <Space className={css.root}>
       <span
         className={classNames(css.gridViewButton, { [css.active]: isMasonry })}
         onClick={() => {

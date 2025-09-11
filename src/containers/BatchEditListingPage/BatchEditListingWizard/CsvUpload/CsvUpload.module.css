@@ -1,7 +1,27 @@
+@import '../../../../styles/customMediaQueries.css';
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  @media (--viewportSmall) {
+    gap: 16px;
+  }
+}
+
 .downloadLink {
   font-size: 14px;
 }
 
 .downloadLink:hover {
   text-decoration: none;
+}
+
+.tooltip {
+  display: none;
+
+  @media (--viewportSmall) {
+    display: block;
+  }
 }

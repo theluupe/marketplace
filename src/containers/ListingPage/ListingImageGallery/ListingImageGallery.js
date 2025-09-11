@@ -161,7 +161,7 @@ const ListingImageGallery = props => {
     }
     const image = items[0].image;
     const variants = image?.attributes?.variants || {};
-    const variantKey = 'scaled-large';
+    const variantKey = 'comp';
     const url = variants[variantKey]?.url || Object.values(variants)[0]?.url;
     if (!url) {
       messageApi.error(errorMsg);

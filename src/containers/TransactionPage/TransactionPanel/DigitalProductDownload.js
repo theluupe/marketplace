@@ -50,16 +50,6 @@ export default function DigitalProductDownload({
     case processStates.REVIEWED:
       return (
         <div>
-          <div className={css.downloadButtonWrapper}>
-            <Button
-              type="primary"
-              icon={<CloudDownloadOutlined />}
-              className={css.downloadButton}
-              onClick={downloadHanlder}
-            >
-              <FormattedMessage id="TransactionPanel.downloadDigitalProduct.downloadButton" />
-            </Button>
-          </div>
           <div className={css.licenseContainer}>
             <Heading as="h3" rootClassName={css.sectionHeading}>
               <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseTitle" />
@@ -79,6 +69,16 @@ export default function DigitalProductDownload({
                 <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseLink" />
               </Button>
             </div>
+          </div>
+          <div className={css.downloadButtonWrapper}>
+            <Button
+              type="primary"
+              icon={<CloudDownloadOutlined />}
+              className={css.downloadButton}
+              onClick={downloadHanlder}
+            >
+              <FormattedMessage id="TransactionPanel.downloadDigitalProduct.downloadButton" />
+            </Button>
           </div>
         </div>
       );

@@ -6,7 +6,7 @@
   justify-content: space-evenly;
   flex-direction: column;
   text-align: center;
-  gap: 48px;
+  gap: 24px;
 
   @media (--viewportMedium) {
     flex-direction: row;
@@ -16,11 +16,12 @@
 }
 
 .line {
-  background-color: var(--colorBlack);
-  margin: 0 50px;
-  height: 1px;
+  margin: 0;
+  height: 0;
+  width: 0;
 
   @media (--viewportMedium) {
+    background-color: var(--colorBlack);
     margin: 100px 0;
     height: auto;
     width: 1.5px;
@@ -46,7 +47,7 @@
 
 .subtitle {
   color: var(--colorBlack);
-  font-size: 25px;
+  font-size: 20px;
   font-style: normal;
   font-weight: var(--fontWeightRegular);
   line-height: 120%;
