@@ -5,6 +5,7 @@ const { getRootURL } = require('../api-util/rootURL.js');
 const sdkUtils = require('../api-util/sdk.js');
 
 const dev = process.env.REACT_APP_ENV === 'development';
+const isProd = process.env.APP_ENV === 'production';
 
 // Emulate feature that's part of sitemap dependency
 const streamToPromise = stream => {
@@ -56,6 +57,12 @@ const createCacheProxy = ttl => {
 };
 
 const cache = createCacheProxy(ttl);
+
+// Block all crawlers for non-production environments
+const blockAllRobotsTxt = `
+User-agent: *
+Disallow: /
+`;
 
 // Fallback data if something failes with streams
 const fallbackRobotsTxt = `
@@ -123,6 +130,12 @@ module.exports = (req, res) => {
     'Content-Type': 'text/plain',
     'Cache-Control': `public, max-age=${ttl}`,
   });
+
+  // Block all crawlers in non-production environments
+  if (!isProd) {
+    res.send(blockAllRobotsTxt);
+    return;
+  }
 
   // If we have a cached content send it
   const { data, timestamp } = cache.robotsTxt;
