@@ -6,6 +6,7 @@ const sdkUtils = require('../api-util/sdk.js');
 
 const isSitemapDisabled = process.env.SITEMAP_DISABLED === 'true';
 const dev = process.env.REACT_APP_ENV === 'development';
+const isProd = process.env.APP_ENV === 'production';
 
 ///////////////////////////////////////////////////////////////////////////////
 // This file generates sitemaps.                                             //
@@ -354,6 +355,18 @@ module.exports = (req, res, next) => {
   if (isSitemapDisabled) {
     res.status(503).end();
     console.log('Sitemap functionality is disabled.');
+    return;
+  }
+
+  // Return empty sitemap for non-production environments
+  if (!isProd) {
+    res.set({
+      'Content-Type': 'application/xml',
+      'Cache-Control': `public, max-age=${ttl}`,
+    });
+    res.send(
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"></urlset>'
+    );
     return;
   }
 
