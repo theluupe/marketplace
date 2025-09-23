@@ -88,7 +88,7 @@ const SortBy = props => {
           },
         ];
   }, []);
-  const defaultValue = creativeSearch ? '-createdAt' : 'createdAt';
+  const defaultValue = creativeSearch ? '-createdAt' : 'relevance';
   const isRelevanceSortActive = isRelevanceOptionActive && !sort;
   const relevanceValue =
     isRelevanceSortActive && selectedFilters[relevanceFilter]?.length > 0 ? relevanceKey : null;

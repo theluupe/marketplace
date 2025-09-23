@@ -338,6 +338,10 @@
 .pronounsLabel {
   font-size: 13px;
   font-weight: 400;
+
+  @media (--viewportMedium) {
+    margin-left: 8px;
+  }
 }
 
 .creativeSpecialtyLabel {
