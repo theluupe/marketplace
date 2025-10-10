@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { Button, message, Space, Tooltip, Upload } from 'antd';
 import Papa from 'papaparse';
 import { DownloadOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
+import _ from 'lodash';
+
 import {
   CSV_UPLOAD_ERROR,
   CSV_UPLOAD_REQUEST,
@@ -11,17 +13,29 @@ import {
   getListings,
 } from '../../BatchEditListingPage.duck';
 import {
+  KeywordsMergeModal,
+  KEYWORDS_MERGE_OPTIONS,
+  DEFAULT_KEYWORDS_MERGE_OPTION,
+} from '../Modals';
+
+import {
   getCsvFieldValue,
   normalizeBoolean,
   normalizeCategory,
   normalizeUsage,
 } from './CsvParsingHelpers';
+
 import css from './CsvUpload.module.css';
 
 export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
   const listings = useSelector(getListings);
   const dispatch = useDispatch();
   const intl = useIntl();
+
+  const [showModal, setShowModal] = useState(false);
+  const [keywordsMergeOption, setKeywordsMergeOption] = useState(DEFAULT_KEYWORDS_MERGE_OPTION);
+  const [pendingCsvData, setPendingCsvData] = useState(null);
+
   const csvUploadTooltip = intl.formatMessage({
     id: 'CsvUpload.tooltip',
   });
@@ -42,7 +56,8 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
       header: true,
       skipEmptyLines: true,
       complete: result => {
-        processCsvData(result.data, result.meta.fields);
+        setPendingCsvData({ data: result.data, headers: result.meta.fields });
+        setShowModal(true);
         dispatch({ type: CSV_UPLOAD_SUCCESS });
       },
       error: error => {
@@ -53,7 +68,26 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
     return false;
   };
 
-  const processCsvData = (data, headers) => {
+  const handleModalOk = () => {
+    if (pendingCsvData) {
+      const { data, headers } = pendingCsvData;
+      processCsvData(data, headers, keywordsMergeOption);
+      setShowModal(false);
+      setPendingCsvData(null);
+    }
+  };
+
+  const handleModalCancel = () => {
+    setShowModal(false);
+    setPendingCsvData(null);
+    setKeywordsMergeOption(DEFAULT_KEYWORDS_MERGE_OPTION);
+  };
+
+  const handleOptionChange = e => {
+    setKeywordsMergeOption(e.target.value);
+  };
+
+  const processCsvData = (data, headers, mergeOption = DEFAULT_KEYWORDS_MERGE_OPTION) => {
     if (!data.length) {
       message.warning('CSV file is empty or invalid.');
       return;
@@ -71,6 +105,17 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
       if (fileName) {
         const listing = listingsMap.get(fileName.trim());
         if (listing) {
+          const csvKeywordsRaw = getCsvFieldValue(row, headers, 'keywords', fallbackRow);
+          let keywords = listing.keywords;
+          if (csvKeywordsRaw) {
+            const csvKeywords = csvKeywordsRaw.split(',').map(keyword => keyword.trim());
+            if (mergeOption === KEYWORDS_MERGE_OPTIONS.MERGE) {
+              keywords = _.uniq([...listing.keywords, ...csvKeywords]);
+            } else {
+              keywords = csvKeywords;
+            }
+          }
+
           updatedListings.push({
             ...listing,
             title: getCsvFieldValue(row, headers, 'title', fallbackRow) || listing.title,
@@ -92,11 +137,7 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
               getCsvFieldValue(row, headers, 'released', fallbackRow),
               listing.releases === 'yes'
             ),
-            keywords: getCsvFieldValue(row, headers, 'keywords', fallbackRow)
-              ? getCsvFieldValue(row, headers, 'keywords', fallbackRow)
-                  .split(',')
-                  .map(keyword => keyword.trim())
-              : listing.keywords,
+            keywords,
             price: getCsvFieldValue(row, headers, 'price', fallbackRow)
               ? parseFloat(getCsvFieldValue(row, headers, 'price', fallbackRow))
               : listing.price,
@@ -111,28 +152,38 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
   };
 
   return (
-    <div className={css.root}>
-      <Button
-        type="link"
-        target="_blank"
-        href="https://docs.google.com/spreadsheets/d/1dTP5t2BMBMeHL3J4ipuCZeSYafAPSXysGPu6OHpDSyI/edit?usp=drive_link"
-        className={css.downloadLink}
-      >
-        <DownloadOutlined /> Use Template
-      </Button>
+    <>
+      <div className={css.root}>
+        <Button
+          type="link"
+          target="_blank"
+          href="https://docs.google.com/spreadsheets/d/1dTP5t2BMBMeHL3J4ipuCZeSYafAPSXysGPu6OHpDSyI/edit?usp=drive_link"
+          className={css.downloadLink}
+        >
+          <DownloadOutlined /> Use Template
+        </Button>
 
-      <Upload
-        accept=".csv"
-        beforeUpload={beforeUpload}
-        customRequest={request => handleCsvFile(request)} // Custom handling
-        maxCount={1}
-        showUploadList={false}
-      >
-        <Button icon={<UploadOutlined />}>Upload CSV</Button>
-      </Upload>
-      <Tooltip title={csvUploadTooltip} className={css.tooltip}>
-        <InfoCircleOutlined />
-      </Tooltip>
-    </div>
+        <Upload
+          accept=".csv"
+          beforeUpload={beforeUpload}
+          customRequest={request => handleCsvFile(request)} // Custom handling
+          maxCount={1}
+          showUploadList={false}
+        >
+          <Button icon={<UploadOutlined />}>Upload CSV</Button>
+        </Upload>
+        <Tooltip title={csvUploadTooltip} className={css.tooltip}>
+          <InfoCircleOutlined />
+        </Tooltip>
+      </div>
+
+      <KeywordsMergeModal
+        open={showModal}
+        onOk={handleModalOk}
+        onCancel={handleModalCancel}
+        selectedOption={keywordsMergeOption}
+        onOptionChange={handleOptionChange}
+      />
+    </>
   );
 };

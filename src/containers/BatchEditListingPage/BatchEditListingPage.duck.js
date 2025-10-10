@@ -1,4 +1,5 @@
 import { fetchCurrentUser } from '../../ducks/user.duck';
+import { generateImageKeywords } from '../../util/api';
 import { readFileMetadataAsync } from '../../util/file-metadata';
 import _ from 'lodash';
 import { createUppyInstance } from '../../util/uppy';
@@ -26,12 +27,14 @@ import {
   PAGE_MODE_NEW,
   USAGE_EDITORIAL,
   YES_RELEASES,
+  WIZARD_TABS,
 } from './constants';
 import { getImageSize } from './imageHelpers';
 import { stringToArray } from '../../util/string';
 
 const { UUID, Money } = sdkTypes;
 const BILLIARD = 1000000000000000;
+const { TAGGING, PRODUCT_DETAILS } = WIZARD_TABS;
 
 function getListingFieldOptions(config, listingFieldKey) {
   const { listing } = config;
@@ -85,17 +88,12 @@ function uppyFileToListing(file) {
     key: id,
     id,
     name,
-    /**
-     * [TODO:]
-     *    - Change default value used for the "title". Probably "Caption"
-     */
-    // title: name,
     description: null,
     keywords: keywordsOptions.slice(0, MAX_KEYWORDS),
     size,
     preview,
     category: [],
-    usage: USAGE_EDITORIAL,
+    usage: null,
     releases: false,
     price: DEFAULT_PRODUCT_LISTING_PRICE,
     dimensions: dimensions,
@@ -106,13 +104,20 @@ function uppyFileToListing(file) {
   };
 }
 
-function validateListingProperties(listing) {
-  const requiredProperties = ['category', 'title', 'description', 'price'];
-  const missingProperties = requiredProperties.filter(
-    property =>
-      !listing[property] || (Array.isArray(listing[property]) && !listing[property].length)
-  );
-  return missingProperties.length ? { listing, missingProperties } : null;
+function validateListingPropertiesHandler(tab = PRODUCT_DETAILS) {
+  const requiredProperties = [
+    'title',
+    'description',
+    'keywords',
+    ...(tab === PRODUCT_DETAILS ? ['category', 'usage', 'price'] : []),
+  ];
+  return listing => {
+    const missingProperties = requiredProperties.filter(
+      property =>
+        !listing[property] || (Array.isArray(listing[property]) && !listing[property].length)
+    );
+    return missingProperties.length ? { listing, missingProperties } : null;
+  };
 }
 
 function getListingCategory(listing) {
@@ -134,10 +139,12 @@ export const SET_USER_ID = 'app/BatchEditListingPage/SET_USER_ID';
 
 export const ADD_FILE = 'app/BatchEditListingPage/ADD_FILE';
 export const REMOVE_FILE = 'app/BatchEditListingPage/REMOVE_FILE';
+export const REMOVE_MANY_FILES = 'app/BatchEditListingPage/REMOVE_MANY_FILES';
 export const RESET_FILES = 'app/BatchEditListingPage/RESET_FILES';
 export const UPDATE_LISTING = 'app/BatchEditListingPage/UPDATE_LISTING';
 
 export const PREVIEW_GENERATED = 'app/BatchEditListingPage/PREVIEW_GENERATED';
+export const KEYWORDS_GENERATED = 'app/BatchEditListingPage/KEYWORDS_GENERATED';
 export const FETCH_LISTING_OPTIONS = 'app/BatchEditListingPage/FETCH_LISTING_OPTIONS';
 export const SET_INVALID_LISTINGS = 'app/BatchEditListingPage/SET_INVALID_LISTINGS';
 export const SET_AI_TERMS_ACCEPTED = 'app/BatchEditListingPage/SET_AI_TERMS_ACCEPTED';
@@ -201,6 +208,7 @@ const initialState = {
   setStockInProgress: false,
   setStockError: null,
   allThumbnailsReady: false,
+  allKeywordsReady: false,
 };
 
 export default function reducer(state = initialState, action = {}) {
@@ -208,6 +216,10 @@ export default function reducer(state = initialState, action = {}) {
 
   function areAllThumbnailsReady(listings) {
     return listings.length > 0 && listings.every(l => !!l.preview);
+  }
+
+  function areAllKeywordsReady(listings) {
+    return listings.length > 0 && listings.every(l => !!l.tagsReady);
   }
 
   switch (type) {
@@ -221,6 +233,7 @@ export default function reducer(state = initialState, action = {}) {
         uppy: payload.uppy,
         listings: payload.files,
         allThumbnailsReady: areAllThumbnailsReady(payload.files),
+        allKeywordsReady: areAllKeywordsReady(payload.files),
       };
     case ADD_FILE: {
       const newListings = [...state.listings, payload];
@@ -229,6 +242,7 @@ export default function reducer(state = initialState, action = {}) {
         listings: newListings,
         selectedRowsKeys: _.uniq([...state.selectedRowsKeys, payload.id]),
         allThumbnailsReady: areAllThumbnailsReady(newListings),
+        allKeywordsReady: areAllKeywordsReady(newListings),
       };
     }
     case REMOVE_FILE: {
@@ -238,10 +252,26 @@ export default function reducer(state = initialState, action = {}) {
         listings: newListings,
         selectedRowsKeys: state.selectedRowsKeys.filter(key => key !== payload.id),
         allThumbnailsReady: areAllThumbnailsReady(newListings),
+        allKeywordsReady: areAllKeywordsReady(newListings),
+      };
+    }
+    case REMOVE_MANY_FILES: {
+      const newListings = payload;
+      return {
+        ...state,
+        listings: newListings,
+        allThumbnailsReady: areAllThumbnailsReady(newListings),
+        allKeywordsReady: areAllKeywordsReady(newListings),
       };
     }
     case RESET_FILES:
-      return { ...state, listings: [], selectedRowsKeys: [], allThumbnailsReady: false };
+      return {
+        ...state,
+        listings: [],
+        selectedRowsKeys: [],
+        allThumbnailsReady: false,
+        allKeywordsReady: false,
+      };
     case PREVIEW_GENERATED: {
       const { id, preview } = payload;
       const newListings = state.listings.map(listing =>
@@ -256,6 +286,27 @@ export default function reducer(state = initialState, action = {}) {
         ...state,
         listings: newListings,
         allThumbnailsReady: areAllThumbnailsReady(newListings),
+        allKeywordsReady: areAllKeywordsReady(newListings),
+      };
+    }
+    case KEYWORDS_GENERATED: {
+      const { id, keywords, title, description } = payload;
+      const newListings = state.listings.map(listing =>
+        listing.id === id
+          ? {
+              ...listing,
+              tagsReady: true,
+              title,
+              description,
+              keywords,
+            }
+          : listing
+      );
+      return {
+        ...state,
+        listings: newListings,
+        allThumbnailsReady: areAllThumbnailsReady(newListings),
+        allKeywordsReady: areAllKeywordsReady(newListings),
       };
     }
     case FETCH_LISTING_OPTIONS: {
@@ -387,6 +438,7 @@ export const getSaveListingData = state => {
 export const getListingsDefaults = state => state.BatchEditListingPage.listingDefaults;
 export const getIsQueryInProgress = state => state.BatchEditListingPage.queryInProgress;
 export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThumbnailsReady;
+export const getAllKeywordsReady = state => state.BatchEditListingPage.allKeywordsReady;
 
 function updateAiTermsStatus(getState, dispatch) {
   if (getAiTermsAccepted(getState())) {
@@ -444,7 +496,6 @@ export function initializeUppy(meta) {
       uppyInstance.on('file-added', file => {
         const { id } = file;
         const uppy = getUppyInstance(getState());
-
         readFileMetadataAsync(file).then(metadata => {
           if (metadata.thumbnail) {
             // Avoid adding the thumbnail as metadata for the file, as it will be included in
@@ -457,7 +508,6 @@ export function initializeUppy(meta) {
           } else {
             uppy.setFileMeta(id, metadata);
           }
-
           const newFile = uppy.getFile(id);
           const listing = uppyFileToListing(newFile);
           dispatch({ type: ADD_FILE, payload: listing });
@@ -470,9 +520,45 @@ export function initializeUppy(meta) {
       });
 
       uppyInstance.on('thumbnail:generated', (file, preview) => {
-        const { id } = file;
+        const { id, name, type } = file;
         const listing = getSingleListing(getState(), id);
         if (!listing.preview) {
+          new Promise(async resolve => {
+            let keywords = [];
+            let title = '';
+            let description = '';
+            try {
+              const previewFile = await fetch(preview);
+              const blob = await previewFile.blob();
+              const arrayBuffer = await blob.arrayBuffer();
+              const base64 = btoa(
+                new Uint8Array(arrayBuffer).reduce(
+                  (data, byte) => data + String.fromCharCode(byte),
+                  ''
+                )
+              );
+              const generatedTags = await generateImageKeywords({
+                file: {
+                  data: base64,
+                  filename: name || 'image.jpg',
+                  contentType: type || 'image/jpeg',
+                },
+              });
+              const originalKeywords = listing?.keywords || [];
+              const generatedKeywords = generatedTags?.keywords || [];
+              keywords = _.uniq([...originalKeywords, ...generatedKeywords]);
+              title = generatedTags?.title || '';
+              description = generatedTags?.description || '';
+            } catch (error) {
+              console.error('Keyword generation failed for listing: ', id, error);
+            } finally {
+              dispatch({
+                type: KEYWORDS_GENERATED,
+                payload: { id: id, keywords, title, description },
+              });
+              resolve();
+            }
+          });
           dispatch({ type: PREVIEW_GENERATED, payload: { id, preview } });
         }
       });
@@ -512,7 +598,7 @@ export function initializeUppy(meta) {
                   imageryCategory: listing.category,
                   usage: listing.usage,
                   releases: listing.releases ? YES_RELEASES : NO_RELEASES,
-                  keywords: listing.keywords.join(' '),
+                  keywords: (listing.keywords || []).join(' '),
                   dimensions: listing.dimensions,
                   imageSize: listing.imageSize,
                   fileType: listing.type,
@@ -568,6 +654,28 @@ export const requestUpdateListing = payload => dispatch => {
   dispatch({ type: UPDATE_LISTING, payload });
 };
 
+export function requestSaveTags(onSuccess) {
+  return (dispatch, getState) => {
+    const selectedListingsIds = getSelectedRowsKeys(getState());
+    const originalListings = getListings(getState());
+    const listings = originalListings.filter(listing => selectedListingsIds.includes(listing.id));
+    // Validate required fields for tagging step
+    const validateListingProperties = validateListingPropertiesHandler(TAGGING);
+    const invalidListings = listings
+      .map(validateListingProperties)
+      .filter(result => result !== null);
+    if (invalidListings.length > 0) {
+      // Dispatch action to store invalid file names in state and trigger modal
+      dispatch({ type: SET_INVALID_LISTINGS, payload: invalidListings.map(f => f.listing.name) });
+      return; // Abort saving if there are invalid listings
+    }
+    dispatch({ type: REMOVE_MANY_FILES, payload: listings });
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+}
+
 export function requestSaveBatchListings(pageMode = PAGE_MODE_NEW) {
   return (dispatch, getState, sdk) => {
     dispatch({ type: SAVE_LISTINGS_REQUEST });
@@ -578,6 +686,7 @@ export function requestSaveBatchListings(pageMode = PAGE_MODE_NEW) {
     );
 
     // Validate required fields for all listings
+    const validateListingProperties = validateListingPropertiesHandler();
     const invalidListings = listings
       .map(validateListingProperties)
       .filter(result => result !== null);

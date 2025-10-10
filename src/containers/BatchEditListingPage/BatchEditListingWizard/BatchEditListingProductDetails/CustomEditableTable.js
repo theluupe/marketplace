@@ -1,18 +1,17 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Flex, Image, Pagination } from 'antd';
+import { Image, Pagination } from 'antd';
 import imagePlaceholder from '../../../../assets/image-placeholder.jpg';
 import { IconCaretDown, IconCaretUp, NamedLink } from '../../../../components';
 import { EditableCell } from './EditableCellComponents';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getImageSizeLabel } from '../../imageHelpers';
-import { CsvUpload } from '../CsvUpload/CsvUpload';
 import { TableHeaderTitle } from './TableHeaderTitle';
 import { MAX_CATEGORIES, MAX_KEYWORDS } from '../../constants';
 
 import css from './EditListingBatchProductDetails.module.css';
 import customTableCss from './CustomEditableTable.module.css';
 
-const stringSorter = (a, b) => {
+export const stringSorter = (a, b) => {
   const strA = a || '';
   const strB = b || '';
   return strA.toString().localeCompare(strB.toString(), 'en', { sensitivity: 'base' });
@@ -37,7 +36,7 @@ export const getLicensingGuideLink = () => (
 );
 
 // Simple table header component
-const TableHeader = memo(
+export const TableHeader = memo(
   ({ columns, sortConfig, onSort, onSelectAll, allSelected, partialSelected }) => {
     return (
       <table className={customTableCss.headerTable}>
@@ -94,7 +93,7 @@ const TableHeader = memo(
 
 TableHeader.displayName = 'TableHeader';
 
-const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => {
+export const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => {
   return (
     <tr className={`${isSelected ? customTableCss.selectedRow : ''}`}>
       <td className={customTableCss.checkboxCell}>
@@ -102,7 +101,7 @@ const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => 
       </td>
       {columns.map(column => {
         const value = record[column.dataIndex];
-
+        const isEmpty = value === '—';
         if (column.editable) {
           return (
             <EditableCell
@@ -125,14 +124,21 @@ const TableRow = memo(({ record, columns, onSave, isSelected, onRowSelect }) => 
             </EditableCell>
           );
         }
-
         return (
           <td
             key={`${record.id}-${column.dataIndex}`}
             className={customTableCss.tableCell}
             style={{ width: column.width }}
           >
-            {column.render ? column.render(value, record) : value || '—'}
+            {column.render ? (
+              column.render(value, record)
+            ) : (
+              <span
+                className={`${css.cellContent} ${css.textarea} ${isEmpty ? css.emptyValue : ''}`}
+              >
+                {value || '—'}
+              </span>
+            )}
           </td>
         );
       })}
@@ -152,9 +158,11 @@ export const CustomEditableTable = memo(props => {
     pageSize = 25,
     editMode = false,
   } = props;
-
+  const {
+    categories: imageryCategoryOptions = [],
+    usages: usageOptions = [],
+  } = listingFieldsOptions;
   const intl = useIntl();
-  const { categories: imageryCategoryOptions, usages: usageOptions } = listingFieldsOptions;
 
   const [sortConfig, setSortConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -163,12 +171,7 @@ export const CustomEditableTable = memo(props => {
   const headerScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
 
-  const handleSave = useCallback(
-    updatedData => {
-      onSave(updatedData);
-    },
-    [onSave]
-  );
+  const handleSave = useCallback(onSave, [onSave]);
 
   const handleSort = useCallback((key, sorter) => {
     setSortConfig(prevConfig => {
@@ -184,53 +187,33 @@ export const CustomEditableTable = memo(props => {
   }, []);
 
   const handleRowSelect = useCallback(
-    id => {
-      const newSelectedKeys = selectedRowKeys.includes(id)
-        ? selectedRowKeys.filter(key => key !== id)
-        : [...selectedRowKeys, id];
+    recordId => {
+      const newSelectedKeys = selectedRowKeys.includes(recordId)
+        ? selectedRowKeys.filter(key => key !== recordId)
+        : [...selectedRowKeys, recordId];
       onSelectChange(newSelectedKeys);
     },
     [selectedRowKeys, onSelectChange]
   );
 
-  const handlePageChange = useCallback((page, size) => {
+  const handlePageChange = useCallback(page => {
     setCurrentPage(page);
   }, []);
 
-  // Synchronized scrolling
-  const handleHeaderScroll = useCallback(e => {
-    if (bodyScrollRef.current) {
-      bodyScrollRef.current.scrollLeft = e.target.scrollLeft;
-    }
-  }, []);
-
-  const handleBodyScroll = useCallback(e => {
-    if (headerScrollRef.current) {
-      headerScrollRef.current.scrollLeft = e.target.scrollLeft;
-    }
-  }, []);
-
-  // Set up scroll synchronization
+  // Sync scroll between header and body
   useEffect(() => {
     const headerElement = headerScrollRef.current;
     const bodyElement = bodyScrollRef.current;
 
-    if (headerElement) {
-      headerElement.addEventListener('scroll', handleHeaderScroll);
-    }
-    if (bodyElement) {
-      bodyElement.addEventListener('scroll', handleBodyScroll);
-    }
+    if (!headerElement || !bodyElement) return;
 
-    return () => {
-      if (headerElement) {
-        headerElement.removeEventListener('scroll', handleHeaderScroll);
-      }
-      if (bodyElement) {
-        bodyElement.removeEventListener('scroll', handleBodyScroll);
-      }
+    const handleScroll = () => {
+      headerElement.scrollLeft = bodyElement.scrollLeft;
     };
-  }, [handleHeaderScroll, handleBodyScroll]);
+
+    bodyElement.addEventListener('scroll', handleScroll);
+    return () => bodyElement.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Full columns configuration with editable functionality
   const columns = useMemo(() => {
@@ -285,38 +268,63 @@ export const CustomEditableTable = memo(props => {
         width: 300,
         sorter: stringSorter,
       },
-      {
-        title: (
-          <TableHeaderTitle helperText={titleHelperText}>
-            <FormattedMessage id="EditableListingsTable.title" defaultMessage="Title" />
-          </TableHeaderTitle>
-        ),
-        width: 400,
-        dataIndex: 'title',
-        editable: true,
-        editControlType: 'text',
-        sorter: stringSorter,
-        placeholder: intl.formatMessage({
-          id: 'EditableListingsTable.title.placeholder',
-          defaultMessage: 'The listing title',
-        }),
-      },
-      {
-        title: (
-          <TableHeaderTitle helperText={descriptionHelperText}>
-            <FormattedMessage id="EditableListingsTable.description" defaultMessage="Description" />
-          </TableHeaderTitle>
-        ),
-        dataIndex: 'description',
-        width: 300,
-        editable: true,
-        editControlType: 'textarea',
-        sorter: stringSorter,
-        placeholder: intl.formatMessage({
-          id: 'EditableListingsTable.description.placeholder',
-          defaultMessage: 'The listing description',
-        }),
-      },
+
+      ...(editMode
+        ? [
+            {
+              title: (
+                <TableHeaderTitle helperText={titleHelperText}>
+                  <FormattedMessage id="EditableListingsTable.title" defaultMessage="Title" />
+                </TableHeaderTitle>
+              ),
+              width: 400,
+              dataIndex: 'title',
+              editable: true,
+              editControlType: 'text',
+              sorter: stringSorter,
+              placeholder: intl.formatMessage({
+                id: 'EditableListingsTable.title.placeholder',
+                defaultMessage: 'The listing title',
+              }),
+            },
+            {
+              title: (
+                <TableHeaderTitle helperText={descriptionHelperText}>
+                  <FormattedMessage
+                    id="EditableListingsTable.description"
+                    defaultMessage="Description"
+                  />
+                </TableHeaderTitle>
+              ),
+              dataIndex: 'description',
+              width: 400,
+              editable: true,
+              editControlType: 'textarea',
+              sorter: stringSorter,
+              placeholder: intl.formatMessage({
+                id: 'EditableListingsTable.description.placeholder',
+                defaultMessage: 'The listing description',
+              }),
+            },
+            {
+              title: (
+                <TableHeaderTitle helperText={keywordsHelperText}>
+                  <FormattedMessage id="EditableListingsTable.keywords" defaultMessage="Keywords" />
+                </TableHeaderTitle>
+              ),
+              width: 500,
+              dataIndex: 'keywords',
+              editable: true,
+              editControlType: 'tags',
+              maxSelection: MAX_KEYWORDS,
+              placeholder: intl.formatMessage({
+                id: 'EditableListingsTable.keywords.placeholder',
+                defaultMessage: 'Up to 30 keywords',
+              }),
+            },
+          ]
+        : []),
+
       {
         title: (
           <TableHeaderTitle helperText={isIllustrationHelperText}>
@@ -327,7 +335,7 @@ export const CustomEditableTable = memo(props => {
           </TableHeaderTitle>
         ),
         dataIndex: 'isIllustration',
-        width: 240,
+        width: 180,
         editable: true,
         editControlType: 'switch',
         disabled: record => record.isAi,
@@ -355,7 +363,7 @@ export const CustomEditableTable = memo(props => {
             <FormattedMessage id="EditableListingsTable.usage" defaultMessage="Usage" />
           </TableHeaderTitle>
         ),
-        width: 200,
+        width: 210,
         dataIndex: 'usage',
         editable: true,
         editControlType: 'select',
@@ -381,29 +389,13 @@ export const CustomEditableTable = memo(props => {
       },
       {
         title: (
-          <TableHeaderTitle helperText={keywordsHelperText}>
-            <FormattedMessage id="EditableListingsTable.keywords" defaultMessage="Keywords" />
-          </TableHeaderTitle>
-        ),
-        width: 400,
-        dataIndex: 'keywords',
-        editable: true,
-        editControlType: 'tags',
-        maxSelection: MAX_KEYWORDS,
-        placeholder: intl.formatMessage({
-          id: 'EditableListingsTable.keywords.placeholder',
-          defaultMessage: 'Up to 30 keywords',
-        }),
-      },
-      {
-        title: (
           <TableHeaderTitle>
             <FormattedMessage id="EditableListingsTable.imageSize" defaultMessage="Image Size" />
           </TableHeaderTitle>
         ),
         dataIndex: 'imageSize',
-        width: 260,
-        render: getImageSizeLabel,
+        width: 240,
+        render: value => <span className={css.cellContent}>{getImageSizeLabel(value)}</span>,
         sorter: stringSorter,
       },
       {
@@ -422,7 +414,7 @@ export const CustomEditableTable = memo(props => {
           </TableHeaderTitle>
         ),
         dataIndex: 'price',
-        width: 200,
+        width: 160,
         editable: true,
         editControlType: 'money',
         placeholder: intl.formatMessage({
@@ -436,11 +428,9 @@ export const CustomEditableTable = memo(props => {
 
   const sortedListings = useMemo(() => {
     if (!sortConfig) return listings;
-
     return [...listings].sort((a, b) => {
       const aVal = a[sortConfig.key];
       const bVal = b[sortConfig.key];
-
       const result = sortConfig.sorter(aVal, bVal);
       return sortConfig.direction === 'desc' ? -result : result;
     });
@@ -477,14 +467,6 @@ export const CustomEditableTable = memo(props => {
 
   return (
     <div>
-      <Flex className={css.csvUploadWrapper}>
-        <CsvUpload
-          categories={imageryCategoryOptions}
-          usageOptions={usageOptions}
-          onSaveListing={onSave}
-        />
-      </Flex>
-
       <div className={customTableCss.topPaginationContainer}>
         {!editMode && (
           <>
@@ -510,7 +492,7 @@ export const CustomEditableTable = memo(props => {
         )}
       </div>
 
-      <div className={customTableCss.stickyHeader}>
+      <div className={`${customTableCss.stickyHeader} ${editMode ? customTableCss.editMode : ''}`}>
         <div className={customTableCss.tableHeaderInner} ref={headerScrollRef}>
           <TableHeader
             columns={columns}

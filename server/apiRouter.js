@@ -23,6 +23,7 @@ const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
 const validateLicenseDeal = require('./api/validate-license-deal');
 const validateVoucher = require('./api/validate-voucher');
+const phototagKeywords = require('./api/phototag-keywords');
 
 const router = express.Router();
 
@@ -63,6 +64,7 @@ router.get('/initiate-login-as', initiateLoginAs);
 router.get('/login-as', loginAs);
 router.post('/transaction-line-items', transactionLineItems);
 router.post('/initiate-privileged', initiatePrivileged);
+router.post('/phototag-keywords', phototagKeywords);
 router.post('/referral-program/opt-in', referralProgramOptIn);
 router.post('/transaction/product-download', generateDownloadUrls);
 router.post('/transition-privileged', transitionPrivileged);
