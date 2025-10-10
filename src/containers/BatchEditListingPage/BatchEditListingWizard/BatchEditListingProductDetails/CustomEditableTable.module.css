@@ -12,6 +12,14 @@
   @media (--viewportMedium) {
     top: 113px;
   }
+
+  &.editMode {
+    top: 153px;
+
+    @media (--viewportMedium) {
+      top: 89px;
+    }
+  }
 }
 
 .tableContainer {

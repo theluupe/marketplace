@@ -134,6 +134,17 @@ export const handleContactUser = parameters => () => {
   }
 };
 
+export const handleCompDownload = parameters => () => {
+  const { history, currentUser, location, routes, onCompDownload } = parameters;
+  if (!currentUser) {
+    const state = { from: `${location.pathname}${location.search}${location.hash}` };
+    // signup and return back to listingPage.
+    history.push(createResourceLocatorString('SignupPage', routes, {}, {}), state);
+  } else {
+    onCompDownload();
+  }
+};
+
 /**
  * Handle order submit from OrderPanel.
  *

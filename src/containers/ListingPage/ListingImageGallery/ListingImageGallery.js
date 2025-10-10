@@ -3,9 +3,14 @@ import { message } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import ReactImageGallery from 'react-image-gallery';
+import { useHistory, useLocation } from 'react-router-dom';
 
+// Contexts
+import { useRouteConfiguration } from '../../../context/routeConfigurationContext';
+// Utils
 import { propTypes } from '../../../util/types';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
+
 import {
   AspectRatioWrapper,
   Button,
@@ -14,6 +19,7 @@ import {
   ResponsiveImage,
   IconExpand,
 } from '../../../components';
+import { handleCompDownload } from '../ListingPage.shared';
 
 // Copied directly from
 // `node_modules/react-image-gallery/styles/css/image-gallery.css`. The
@@ -71,8 +77,21 @@ const ListingImageGallery = props => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const downloadButtonRef = useRef(null);
+
+  const routeConfiguration = useRouteConfiguration();
   const intl = useIntl();
-  const { rootClassName, className, images, imageVariants, thumbnailVariants, listingId } = props;
+  const history = useHistory();
+  const location = useLocation();
+
+  const {
+    rootClassName,
+    className,
+    images,
+    imageVariants,
+    thumbnailVariants,
+    listingId,
+    currentUser,
+  } = props;
   const thumbVariants = thumbnailVariants || imageVariants;
   // imageVariants are scaled variants.
   const { aspectWidth, aspectHeight } = getFirstImageAspectRatio(images?.[0], imageVariants[0]);
@@ -152,7 +171,7 @@ const ListingImageGallery = props => {
     );
   };
 
-  const handleDownload = async () => {
+  const onCompDownload = async () => {
     const errorMsg = intl.formatMessage({ id: 'ListingImageGallery.downloadCompError' });
     const successMsg = intl.formatMessage({ id: 'ListingImageGallery.downloadCompSuccess' });
     if (!items[0] || !listingId) {
@@ -187,6 +206,14 @@ const ListingImageGallery = props => {
       }
     }
   };
+
+  const handleDownload = handleCompDownload({
+    history,
+    routes: routeConfiguration,
+    currentUser,
+    location,
+    onCompDownload,
+  });
 
   const renderFullscreenButton = (onClick, isFullscreen) => {
     if (isFullscreen) {

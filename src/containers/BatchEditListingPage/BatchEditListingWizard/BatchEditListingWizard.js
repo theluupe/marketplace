@@ -5,8 +5,9 @@ import { LISTING_PAGE_PARAM_TYPE_NEW } from '../../../util/urlHelpers';
 import { withViewport } from '../../../util/uiHelpers';
 
 import { NamedRedirect, Tabs } from '../../../components';
+import { WIZARD_TABS, WIZARD_TABS_LIST } from '../constants';
 
-import BatchEditListingWizardTab, { PRODUCT_DETAILS, UPLOAD } from './BatchEditListingWizardTab';
+import BatchEditListingWizardTab from './BatchEditListingWizardTab';
 import css from './BatchEditListingWizard.module.css';
 import {
   getCreateListingsSuccess,
@@ -18,9 +19,12 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { BatchEditListingResult } from './BatchEditListingResult/BatchEditListingResult';
 
+const { UPLOAD, TAGGING, PRODUCT_DETAILS } = WIZARD_TABS;
+
 function getTabsStatus(fileCount) {
   return {
     [UPLOAD]: true,
+    [TAGGING]: fileCount > 0,
     [PRODUCT_DETAILS]: fileCount > 0,
   };
 }
@@ -40,7 +44,6 @@ const BatchEditListingWizard = props => {
   const hasFiles = listings.length;
 
   const selectedTab = params.tab;
-  const tabs = [UPLOAD, PRODUCT_DETAILS];
   const tabsStatus = useMemo(() => getTabsStatus(hasFiles), [hasFiles]);
   const publishListingsSuccess = useSelector(getCreateListingsSuccess);
   const failedListings = useSelector(getFailedListings);
@@ -59,9 +62,8 @@ const BatchEditListingWizard = props => {
   // If selectedTab is not active for listing with valid listing type,
   // redirect to the beginning of wizard
   if (!tabsStatus[selectedTab]) {
-    const currentTabIndex = tabs.indexOf(selectedTab);
-    const nearestActiveTab = tabs
-      .slice(0, currentTabIndex)
+    const currentTabIndex = WIZARD_TABS_LIST.indexOf(selectedTab);
+    const nearestActiveTab = WIZARD_TABS_LIST.slice(0, currentTabIndex)
       .reverse()
       .find(t => tabsStatus[t]);
 
@@ -84,10 +86,12 @@ const BatchEditListingWizard = props => {
   return (
     <div className={css.root}>
       <Tabs rootClassName={css.tabsContainer} navRootClassName={css.nav} tabRootClassName={css.tab}>
-        {tabs.map(tab => {
+        {WIZARD_TABS_LIST.map(tab => {
           const tabLabelId =
             tab === UPLOAD
               ? 'BatchEditListingWizard.tabLabelUpload'
+              : tab === TAGGING
+              ? 'BatchEditListingWizard.tabLabelTagging'
               : 'BatchEditListingWizard.tabLabelDetails';
           const tabLabel = intl.formatMessage({ id: tabLabelId });
 

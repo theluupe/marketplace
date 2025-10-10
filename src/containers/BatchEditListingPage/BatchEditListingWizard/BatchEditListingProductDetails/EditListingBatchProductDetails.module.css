@@ -78,16 +78,6 @@
   transition: all ease-in-out 100ms;
 }
 
-.modalContent {
-  padding: var(--modalPadding);
-  margin: 1rem;
-  padding-bottom: 24px;
-}
-
-.modalContent .modalBottom {
-  margin-top: 48px;
-}
-
 .csvUploadWrapper {
   justify-content: center;
 
@@ -165,6 +155,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
+  font-size: 0.875rem; /* 14px */
 }
 
 .cellContent.textarea {
@@ -173,8 +165,6 @@
   max-width: 300px;
   max-height: 120px;
   overflow-y: auto;
-  line-height: 1.4;
-  font-size: 0.875rem; /* 14px */
 }
 
 .emptyValue {

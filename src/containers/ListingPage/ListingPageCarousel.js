@@ -345,6 +345,7 @@ export const ListingPageComponent = props => {
             <SectionGallery
               listing={currentListing}
               variantPrefix={config.layout.listingImage.variantPrefix}
+              currentUser={currentUser}
             />
 
             <div className={css.mobileHeading}>

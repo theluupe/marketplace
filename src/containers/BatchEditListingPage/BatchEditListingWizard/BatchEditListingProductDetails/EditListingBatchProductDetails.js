@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import css from './EditListingBatchProductDetails.module.css';
+import { useDispatch, useSelector } from 'react-redux';
+import { Flex, Typography } from 'antd';
+import { useParams } from 'react-router-dom';
+
 import { Button, H3 } from '../../../../components';
-import { FormattedMessage } from '../../../../util/reactIntl';
-import { Checkbox, Flex, List, Modal, Progress, Space, Typography } from 'antd';
+import { FormattedMessage, useIntl } from '../../../../util/reactIntl';
 import {
   getAiTermsRequired,
   getInvalidListings,
@@ -17,70 +19,27 @@ import {
   SET_AI_TERMS_ACCEPTED,
   SET_SELECTED_ROWS,
 } from '../../BatchEditListingPage.duck';
-import { useDispatch, useSelector } from 'react-redux';
-import { CustomEditableTable, getLicensingGuideLink } from './CustomEditableTable';
 import useStickyHeader from '../useStickyHeader';
-import {
-  ExclamationCircleOutlined,
-  FileExclamationOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
-import { useParams } from 'react-router-dom';
 import { PAGE_MODE_NEW } from '../../constants';
 
-const { Text, Paragraph } = Typography;
+import { ListingValidationModal, AiTermsModal, ListingBatchProgressModal } from '../Modals';
+import { CustomEditableTable, getLicensingGuideLink } from './CustomEditableTable';
 
-function ListingValidationModalContent({ invalidListings }) {
-  return (
-    <div className={css.modalContent}>
-      <Paragraph>
-        <FormattedMessage id="BatchEditListingProductDetails.validationModal.header"></FormattedMessage>
-      </Paragraph>
-      <Paragraph>
-        <List
-          dataSource={invalidListings}
-          renderItem={item => (
-            <List.Item>
-              <Space size="middle">
-                <FileExclamationOutlined /> {item}
-              </Space>
-            </List.Item>
-          )}
-        />
-      </Paragraph>
-      <Paragraph className={css.modalBottom}>
-        <FormattedMessage id="BatchEditListingProductDetails.validationModal.content"></FormattedMessage>
-      </Paragraph>
-    </div>
-  );
-}
+import css from './EditListingBatchProductDetails.module.css';
 
-function AiTermsModalContent({ onTermsCheckboxChange }) {
-  return (
-    <div className={css.modalContent}>
-      <Paragraph>
-        <FormattedMessage id="BatchEditListingProductDetails.aiContentModal.content"></FormattedMessage>
-      </Paragraph>
-      <Paragraph className={css.modalBottom}>
-        <Checkbox onChange={onTermsCheckboxChange}>
-          <FormattedMessage id="BatchEditListingProductDetails.aiContentModal.optIn"></FormattedMessage>
-        </Checkbox>
-      </Paragraph>
-    </div>
-  );
-}
+const { Paragraph } = Typography;
 
 export const EditListingBatchProductDetails = props => {
-  const { cssRoot = css.root, loading = false, editMode = false } = props;
+  const { cssRoot = css.root, editMode = false } = props;
+  const intl = useIntl();
   const dispatch = useDispatch();
   const listings = useSelector(getListings);
-
   const licensingGuideLink = getLicensingGuideLink();
   const listingFieldsOptions = useSelector(getListingFieldsOptions);
   const listingsCreationInProgress = useSelector(getListingCreationInProgress);
+  const selectedRowKeys = useSelector(getSelectedRowsKeys);
   const invalidListings = useSelector(getInvalidListings);
   const aiTermsRequired = useSelector(getAiTermsRequired);
-  const selectedRowKeys = useSelector(getSelectedRowsKeys);
   const { failedListings, successfulListings, selectedRowsKeys } = useSelector(getSaveListingData);
 
   const [termsAcceptedCheckbox, setTermsAcceptedCheckbox] = useState(false); // Use state to track checkbox value
@@ -157,6 +116,13 @@ export const EditListingBatchProductDetails = props => {
     ? 'BatchEditListingProductDetails.progressModal.submitButtonTextEditMode'
     : 'BatchEditListingProductDetails.progressModal.submitButtonText';
 
+  const ListingValidationModalHeaderText = intl.formatMessage({
+    id: 'BatchEditListingProductDetails.validationModal.header',
+  });
+  const ListingValidationModalContentText = intl.formatMessage({
+    id: 'BatchEditListingProductDetails.validationModal.content',
+  });
+
   return (
     <div className={cssRoot}>
       <Flex className={css.stickyHeader}>
@@ -164,7 +130,6 @@ export const EditListingBatchProductDetails = props => {
           <H3 as="h1">
             <FormattedMessage id="BatchEditListingProductDetails.title" />
           </H3>
-
           <Flex className={css.subTitle} vertical>
             <Paragraph>
               <FormattedMessage
@@ -177,6 +142,7 @@ export const EditListingBatchProductDetails = props => {
             </Paragraph>
           </Flex>
         </Flex>
+
         <Flex className={css.buttonWrapper}>
           <Button
             className={css.submitButton}
@@ -200,66 +166,29 @@ export const EditListingBatchProductDetails = props => {
         ></CustomEditableTable>
       </div>
 
-      <Modal
-        title={
-          <Space size="large">
-            <Text type="danger">
-              <ExclamationCircleOutlined />
-            </Text>
-            <FormattedMessage id="BatchEditListingProductDetails.validationModal.title"></FormattedMessage>
-          </Space>
-        }
+      <ListingValidationModal
+        invalidListings={invalidListings}
+        titleText={ListingValidationModalHeaderText}
+        contentText={ListingValidationModalContentText}
         open={showValidationModal}
         onOk={handleCancelValidationModal}
         onCancel={handleCancelValidationModal}
-        cancelButtonProps={{ hidden: true }}
-        width={800}
-      >
-        <ListingValidationModalContent invalidListings={invalidListings} />
-      </Modal>
+      />
 
-      <Modal
-        title={
-          <Space size="large">
-            <Text type="warning">
-              <WarningOutlined />
-            </Text>
-            <FormattedMessage id="BatchEditListingProductDetails.aiContentModal.title"></FormattedMessage>
-          </Space>
-        }
+      <AiTermsModal
+        onTermsCheckboxChange={onTermsCheckboxChange}
         open={showAiTermsModal}
         onOk={handleOkAiTermsModal}
         onCancel={handleCancelAiTermsModal}
-        okButtonProps={{ disabled: !termsAcceptedCheckbox }}
-        width={800}
-      >
-        <AiTermsModalContent onTermsCheckboxChange={onTermsCheckboxChange} />
-      </Modal>
+        disabled={!termsAcceptedCheckbox}
+      />
 
-      <Modal
-        title={
-          <FormattedMessage id="BatchEditListingProductDetails.progressModal.title"></FormattedMessage>
-        }
+      <ListingBatchProgressModal
+        percent={(successfulListings.length / selectedRowsKeys.length) * 100}
         open={showProgressModal}
-        footer={null}
-        keyboard={false}
-        closeIcon={null}
       >
-        <H3>
-          <FormattedMessage id="BatchEditListingProductDetails.progressModal.content.title"></FormattedMessage>
-        </H3>
-        <Paragraph>
-          <FormattedMessage id="BatchEditListingProductDetails.progressModal.content.description"></FormattedMessage>
-        </Paragraph>
-        <Paragraph>
-          <Progress
-            percent={(successfulListings.length / selectedRowsKeys.length) * 100}
-            type="line"
-            showInfo={false}
-          />
-        </Paragraph>
         {failedListings?.length > 0 && <Paragraph>{failedListings.length} files failed</Paragraph>}
-      </Modal>
+      </ListingBatchProgressModal>
     </div>
   );
 };

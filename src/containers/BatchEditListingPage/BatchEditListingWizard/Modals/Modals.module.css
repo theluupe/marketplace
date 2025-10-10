@@ -1,0 +1,11 @@
+@import '../../../../styles/customMediaQueries.css';
+
+.modalContent {
+  padding: var(--modalPadding);
+  margin: 1rem;
+  padding-bottom: 24px;
+}
+
+.modalContent .modalBottom {
+  margin-top: 48px;
+}
