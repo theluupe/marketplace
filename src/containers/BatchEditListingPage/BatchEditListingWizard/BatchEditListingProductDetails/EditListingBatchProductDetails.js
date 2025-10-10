@@ -116,6 +116,10 @@ export const EditListingBatchProductDetails = props => {
     ? 'BatchEditListingProductDetails.progressModal.submitButtonTextEditMode'
     : 'BatchEditListingProductDetails.progressModal.submitButtonText';
 
+  const subtitleId = editMode
+    ? 'BatchEditListingProductDetails.subtitleEditMode'
+    : 'BatchEditListingProductDetails.subtitle';
+
   const ListingValidationModalHeaderText = intl.formatMessage({
     id: 'BatchEditListingProductDetails.validationModal.header',
   });
@@ -132,10 +136,7 @@ export const EditListingBatchProductDetails = props => {
           </H3>
           <Flex className={css.subTitle} vertical>
             <Paragraph>
-              <FormattedMessage
-                id="BatchEditListingProductDetails.subtitle"
-                values={{ learnMore: licensingGuideLink }}
-              />
+              <FormattedMessage id={subtitleId} values={{ learnMore: licensingGuideLink }} />
             </Paragraph>
             <Paragraph>
               <FormattedMessage id="BatchEditListingProductDetails.warningRefresh" />
