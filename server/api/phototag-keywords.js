@@ -15,6 +15,7 @@ module.exports = async (req, res) => {
     const currentUserId = currentUser?.id?.uuid;
     const { displayName } = currentUser?.attributes?.profile || {};
     const excludedKeywords = displayName.split(' ').join(',');
+    const { file } = req.body || {};
 
     if (!currentUserId) {
       return res.status(401).json({
@@ -22,7 +23,6 @@ module.exports = async (req, res) => {
       });
     }
 
-    const { file } = req.body || {};
     if (!file) {
       return res.status(400).json({ error: 'missingFile' });
     }
