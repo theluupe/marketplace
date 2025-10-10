@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
       form.append('maxKeywords', 40);
       form.append('file', buffer, {
         filename: filename || 'image.jpg',
-        contentType: contentType || 'image/jpeg'
+        contentType: contentType || 'image/jpeg',
       });
       const url = process.env.PHOTOTAG_API_URL || 'https://server.phototag.ai/api/keywords';
       const headers = {
