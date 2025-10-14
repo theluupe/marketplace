@@ -69,7 +69,7 @@ export const EditListingBatchTagging = props => {
   return (
     <div className={css.root}>
       <Flex className={css.stickyHeader}>
-        <Flex vertical>
+        <Flex vertical className={css.heading}>
           <H3 as="h1">
             <FormattedMessage id="BatchEditListingTaggingPanel.title" />
           </H3>

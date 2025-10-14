@@ -10,6 +10,10 @@
   background-color: var(--colorWhite);
 }
 
+.heading {
+  max-width: 800px;
+}
+
 .submitButton {
   flex-shrink: 0;
   margin-top: auto;
@@ -27,4 +31,9 @@
   height: 16px;
   margin-right: 8px;
   stroke: currentColor;
+}
+
+.bulkUploadTemplateLink {
+  padding: 0;
+  margin: 0;
 }

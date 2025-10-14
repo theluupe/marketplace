@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { Button, message, Space, Tooltip, Upload } from 'antd';
+import { Button, message, Tooltip, Upload } from 'antd';
 import Papa from 'papaparse';
 import { DownloadOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,6 +12,7 @@ import {
   CSV_UPLOAD_SUCCESS,
   getListings,
 } from '../../BatchEditListingPage.duck';
+import { BULK_UPLOAD_TEMPLATE_LINK } from '../../constants';
 import {
   KeywordsMergeModal,
   KEYWORDS_MERGE_OPTIONS,
@@ -157,7 +158,7 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
         <Button
           type="link"
           target="_blank"
-          href="https://docs.google.com/spreadsheets/d/1dTP5t2BMBMeHL3J4ipuCZeSYafAPSXysGPu6OHpDSyI/edit?usp=drive_link"
+          href={BULK_UPLOAD_TEMPLATE_LINK}
           className={css.downloadLink}
         >
           <DownloadOutlined /> Use Template

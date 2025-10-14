@@ -42,8 +42,8 @@
   }
 }
 
-.stickyTitle {
-  margin: 0;
+.heading {
+  max-width: 800px;
 }
 
 .stickyHeader .subTitle {

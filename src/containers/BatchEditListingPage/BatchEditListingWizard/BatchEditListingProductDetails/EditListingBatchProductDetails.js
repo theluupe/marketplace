@@ -130,7 +130,7 @@ export const EditListingBatchProductDetails = props => {
   return (
     <div className={cssRoot}>
       <Flex className={css.stickyHeader}>
-        <Flex vertical>
+        <Flex vertical className={css.heading}>
           <H3 as="h1">
             <FormattedMessage id="BatchEditListingProductDetails.title" />
           </H3>
