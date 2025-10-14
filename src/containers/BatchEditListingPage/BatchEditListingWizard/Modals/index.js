@@ -120,17 +120,7 @@ export function ListingBatchProgressModal({ percent, open, children }) {
 
 export function AiProgressModal({ open }) {
   return (
-    <Modal
-      title={
-        <div style={{ textAlign: 'center' }}>
-          <FormattedMessage id="BatchEditListingTaggingPanel.generatingModal.title"></FormattedMessage>
-        </div>
-      }
-      open={open}
-      footer={null}
-      keyboard={false}
-      closable={false}
-    >
+    <Modal open={open} footer={null} keyboard={false} closable={false}>
       <div style={{ textAlign: 'center' }}>
         <H3>
           <FormattedMessage id="BatchEditListingTaggingPanel.generatingModal.content.title"></FormattedMessage>

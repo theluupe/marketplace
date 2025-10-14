@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
     const useDevApiServer = process.env.NODE_ENV === 'development';
     let data = {};
     if (useDevApiServer) {
-      await timeout(3000);
+      await timeout(1000);
       data = {
         keywords: ['keyword1', 'keyword2', 'keyword3'],
         title: 'title NICE',

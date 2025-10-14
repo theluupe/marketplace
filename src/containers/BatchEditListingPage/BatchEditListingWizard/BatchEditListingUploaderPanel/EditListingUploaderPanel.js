@@ -1,12 +1,15 @@
 import React from 'react';
-import { FormattedMessage } from '../../../../util/reactIntl';
-import { Button, H3, IconSpinner } from '../../../../components';
-import css from './EditListingUploaderPanel.module.css';
 import { Dashboard } from '@uppy/react';
-import { Skeleton, Space } from 'antd';
+import { Skeleton, Space, Button as AntdButton } from 'antd';
 import { useSelector } from 'react-redux';
-import { getAllThumbnailsReady } from '../../BatchEditListingPage.duck';
+
+import { FormattedMessage } from '../../../../util/reactIntl';
 import { MAX_NUMBER_OF_FILES } from '../../../../util/uppy';
+import { Button, H3, IconSpinner } from '../../../../components';
+import { getAllThumbnailsReady } from '../../BatchEditListingPage.duck';
+import { BULK_UPLOAD_TEMPLATE_LINK } from '../../constants';
+
+import css from './EditListingUploaderPanel.module.css';
 
 const EditListingUploaderPanel = props => {
   const { onSubmit, submitReady, uppy } = props;
@@ -14,14 +17,28 @@ const EditListingUploaderPanel = props => {
   const allThumbnailsReady = useSelector(getAllThumbnailsReady);
   const isProcessingThumbnails = hasFiles && !allThumbnailsReady;
 
+  const bulkUploadTemplateLink = (
+    <AntdButton
+      type="link"
+      target="_blank"
+      href={BULK_UPLOAD_TEMPLATE_LINK}
+      className={css.bulkUploadTemplateLink}
+    >
+      bulk upload template
+    </AntdButton>
+  );
+
   return (
     <div className={css.root}>
-      <H3 as="h1">
+      <H3 as="h1" className={css.heading}>
         <FormattedMessage id="BatchEditListingUploaderPanel.title" />
         <p>
           <FormattedMessage
             id="BatchEditListingUploaderPanel.subtitle"
-            values={{ maxNumberOfFiles: MAX_NUMBER_OF_FILES }}
+            values={{
+              maxNumberOfFiles: MAX_NUMBER_OF_FILES,
+              bulkUploadTemplate: bulkUploadTemplateLink,
+            }}
           />
         </p>
       </H3>

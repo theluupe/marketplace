@@ -31,7 +31,7 @@ const getPricingGuideLink = () => (
 
 export const getLicensingGuideLink = () => (
   <NamedLink name="CMSPage" params={{ pageId: 'licensing-guide' }}>
-    Learn More.
+    Learn More
   </NamedLink>
 );
 

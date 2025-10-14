@@ -21,3 +21,6 @@ const TAGGING = 'tagging';
 const PRODUCT_DETAILS = 'product-details';
 export const WIZARD_TABS = { UPLOAD, TAGGING, PRODUCT_DETAILS };
 export const WIZARD_TABS_LIST = [UPLOAD, TAGGING, PRODUCT_DETAILS];
+
+export const BULK_UPLOAD_TEMPLATE_LINK =
+  'https://docs.google.com/spreadsheets/d/1dTP5t2BMBMeHL3J4ipuCZeSYafAPSXysGPu6OHpDSyI/edit?usp=drive_link';
