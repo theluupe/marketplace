@@ -496,6 +496,10 @@ export function initializeUppy(meta) {
       uppyInstance.on('file-added', file => {
         const { id } = file;
         const uppy = getUppyInstance(getState());
+        const newFile = uppy.getFile(id);
+        const listing = uppyFileToListing(newFile);
+        dispatch({ type: ADD_FILE, payload: listing });
+        updateAiTermsStatus(getState, dispatch);
         readFileMetadataAsync(file).then(metadata => {
           if (metadata.thumbnail) {
             // Avoid adding the thumbnail as metadata for the file, as it will be included in
@@ -508,10 +512,9 @@ export function initializeUppy(meta) {
           } else {
             uppy.setFileMeta(id, metadata);
           }
-          const newFile = uppy.getFile(id);
-          const listing = uppyFileToListing(newFile);
-          dispatch({ type: ADD_FILE, payload: listing });
-          updateAiTermsStatus(getState, dispatch);
+          const newFileWithMetadata = uppy.getFile(id);
+          const listingWithMetadata = uppyFileToListing(newFileWithMetadata);
+          dispatch({ type: UPDATE_LISTING, payload: listingWithMetadata });
         });
       });
 

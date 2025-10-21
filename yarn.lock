@@ -3490,268 +3490,304 @@
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.3.0.tgz#d06bbb384ebcf6c505fde1c3d0ed4ddffe0aaff8"
   integrity sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==
 
-"@uppy/box@^3.2.2":
-  version "3.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/box/-/box-3.2.2.tgz#9f0f12456cdf480865689c3e36a849e199967c74"
-  integrity sha512-BX7Ay80WUTS9/YHyC//OTpAiU3r3ErOaFZukXnM1oyPTbkj1XiWqm4m56qwJkCXp1r3ajLtMVuwFfgw2Uz+lVw==
+"@uppy/audio@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@uppy/audio/-/audio-2.2.2.tgz#a62e28becc70782a309b61b1338041820b3d707c"
+  integrity sha512-63pwCo+JbJyxB1V/YK59cMSMFi8+g9Mfew6awfJFeu4tAK0HHfZtUk5+fUdZJRdCf4eIwBAiwixBL8Q4BOes+Q==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/companion-client@^4.4.1":
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-4.4.1.tgz#ad7ae903b45f51fa60cf792dbf6e7e5e1cf0c453"
-  integrity sha512-ardMacShsfzaIbqHEH48YlpzWZkBj1qhAj0Dvn3r31p9d0HA5xFUvAdLYrZ6ezKvZ0RcDbf0SB5qCrQMkjscXQ==
+"@uppy/box@^3.3.2":
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/box/-/box-3.3.2.tgz#a7a79e61fdce905ce9c1175b1856047c0ddea1ee"
+  integrity sha512-4hRXPWy48Gpgyegd7lBPMYQTplfFEq1uaHe9ZltHu53LBeXasuGeZuprMbhIQ/7Sl/7UQwiAU0te9uv/ypoXGg==
   dependencies:
-    "@uppy/utils" "^6.1.1"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/companion-client@^4.5.2":
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-4.5.2.tgz#f29d00e426a7eb500070d699d4ced67d169504e7"
+  integrity sha512-hfUsReHM5COhn+5d7CdZgZaG8BtDvtwj7vjXzg8qmgKI901mYUm/Zh420iOKT7eHiofKVTNoa7oijeGrqUEnyg==
+  dependencies:
+    "@uppy/utils" "^6.2.2"
     namespace-emitter "^2.0.1"
     p-retry "^6.1.0"
 
-"@uppy/core@^4.1.0":
-  version "4.4.4"
-  resolved "https://registry.yarnpkg.com/@uppy/core/-/core-4.4.4.tgz#89e7d1933b4dd27f6c3c49479f1672f569411e28"
-  integrity sha512-etaG6uSrShnS8x/CGI9ME/XP23jw8FTkujzKbaag4lDTtdlvcs6PxcObtH3I5MxxJXUEWwcfVGTdAUvd/tGCaA==
+"@uppy/components@^0.3.2":
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/components/-/components-0.3.2.tgz#4c1524a2f89e76dbacfc3f34c7011b4b580acdfa"
+  integrity sha512-RHEV2Ru/SU1J8EoLabUX8GXQ59Q5+/FhSL5vIpicaVj++Neei58WYKj4iNWsigE4xE45jtHfYTV9IlXc+fJXaQ==
+  dependencies:
+    "@uppy/audio" "^2.2.2"
+    "@uppy/core" "^4.5.2"
+    "@uppy/image-editor" "^3.4.2"
+    "@uppy/remote-sources" "^2.4.2"
+    "@uppy/screen-capture" "^4.4.2"
+    "@uppy/webcam" "^4.3.2"
+    clsx "^2.1.1"
+    dequal "^2.0.3"
+    preact "^10.5.13"
+    pretty-bytes "^6.1.1"
+
+"@uppy/core@^4.5.2", "@uppy/core@^4.5.3":
+  version "4.5.3"
+  resolved "https://registry.yarnpkg.com/@uppy/core/-/core-4.5.3.tgz#31789fdbbf28183235d9749d1bd09af1c2c7aa09"
+  integrity sha512-52VLeBUY/j904h48lpPGykuWikkOOS4Lz/qkmalDiBQfNALb6iB1MOZs079IM3o/uMLYxzZRL80C3sKpkBUYcw==
   dependencies:
     "@transloadit/prettier-bytes" "^0.3.4"
-    "@uppy/store-default" "^4.2.0"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/store-default" "^4.3.2"
+    "@uppy/utils" "^6.2.2"
     lodash "^4.17.21"
     mime-match "^1.0.2"
     namespace-emitter "^2.0.1"
     nanoid "^5.0.9"
     preact "^10.5.13"
 
-"@uppy/dashboard@^4.0.2", "@uppy/dashboard@^4.3.3":
-  version "4.3.3"
-  resolved "https://registry.yarnpkg.com/@uppy/dashboard/-/dashboard-4.3.3.tgz#98a121bca32a7c47954b4f18a6c27b0bd29cf124"
-  integrity sha512-bZzzyzWzyoCsXxLUKsjT+X6AWNlFjRU1Ui+28Hp0C7A43zm8y0pb8BbwECl8a3NJH10tKNOHwT8IiVwbiGwXPQ==
+"@uppy/dashboard@^4.4.2", "@uppy/dashboard@^4.4.3":
+  version "4.4.3"
+  resolved "https://registry.yarnpkg.com/@uppy/dashboard/-/dashboard-4.4.3.tgz#0271ab514c9cc1d3b9a0ffbb80de086741e7fac9"
+  integrity sha512-IwgDDTbk9p4OoAJvvvx6sQSemKTIJq9IDSryNVgbbC6NiR9HSyRcu0+WdOZLiR9DOhDg2oYcoNgv7DMlrktI6g==
   dependencies:
     "@transloadit/prettier-bytes" "^0.3.4"
-    "@uppy/informer" "^4.2.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/status-bar" "^4.1.3"
-    "@uppy/thumbnail-generator" "^4.1.1"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/informer" "^4.3.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/status-bar" "^4.2.3"
+    "@uppy/thumbnail-generator" "^4.2.2"
+    "@uppy/utils" "^6.2.2"
     classnames "^2.2.6"
     lodash "^4.17.21"
-    memoize-one "^6.0.0"
     nanoid "^5.0.9"
     preact "^10.5.13"
     shallow-equal "^3.0.0"
 
-"@uppy/drag-drop@^4.0.1":
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/@uppy/drag-drop/-/drag-drop-4.1.2.tgz#26adf48bcdca6814777c15ad101cd8fb16e9b229"
-  integrity sha512-vD/T2NmS+2zHcdYSVzv4zmCBOm3Bcr2efPDu5A5U8351t84MFT6v5Lk2Il6EBzgDZ9OHpVGSrn2aMno2PhzaGQ==
-  dependencies:
-    "@uppy/utils" "^6.1.3"
-    preact "^10.5.13"
-
-"@uppy/dropbox@^4.0.0", "@uppy/dropbox@^4.2.2":
+"@uppy/drag-drop@^4.2.2":
   version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/dropbox/-/dropbox-4.2.2.tgz#04e444d5e42bc8a4a7155caeaab91b159f9e08ec"
-  integrity sha512-ssMa/QPeDwGFJcYW8cnipqSDLOcOTGE5nTQG50hPWAQEs7rd3lzxv4YlPwsZFTNJcp0z2L0+ss5w5Dx84vDjMg==
+  resolved "https://registry.yarnpkg.com/@uppy/drag-drop/-/drag-drop-4.2.2.tgz#3982ec5da3995ec993ac25101196c4096e137b1b"
+  integrity sha512-SlVl+lHC8TvCKW4B9L4pdb0n8mEVgACHjKXGWcy7EUsTrRphv3ugmkbIFL57XpmFR+AFMuPblOsKq/9nkPkHOQ==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/facebook@^4.2.2":
-  version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/facebook/-/facebook-4.2.2.tgz#8b488c8cbbfd07f7c1a21288f78766e90d3ac4ae"
-  integrity sha512-PKJkQqPFTAwvKPEP84s5zmUZLdIZmyl6O4ItR7Kuo7A4/nx90AGek0lZ3uORUO9JZ5PClCTXl+Wtw4E0aD1bAQ==
-  dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
-    preact "^10.5.13"
-
-"@uppy/file-input@^4.0.0":
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/@uppy/file-input/-/file-input-4.1.2.tgz#6742cf5047e6e556ec2e7e4904e7a4c23ae7a24c"
-  integrity sha512-tpxT41/00wI3WzqzbRaBPf9bphWYT8XMPxDhPhUqG7Y+k29PLhCu0rL57m/pvOfOWundug4E1CAejo9V01FNRg==
-  dependencies:
-    "@uppy/utils" "^6.1.3"
-    preact "^10.5.13"
-
-"@uppy/golden-retriever@^4.0.0":
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/@uppy/golden-retriever/-/golden-retriever-4.1.1.tgz#174da0da9f42db3b40fed3e9222d45d544e0bd21"
-  integrity sha512-ZzgG2p0iS/4xAOVQjckIOO29otZpxJEaZr6aDvNvc67eW0VhRMqWQhq/1X4bULmKg2TVIW06vaECd71DucUsQw==
-  dependencies:
-    "@uppy/utils" "^6.1.1"
-    lodash "^4.17.21"
-
-"@uppy/google-drive@^4.0.0", "@uppy/google-drive@^4.3.2":
+"@uppy/dropbox@^4.3.2":
   version "4.3.2"
-  resolved "https://registry.yarnpkg.com/@uppy/google-drive/-/google-drive-4.3.2.tgz#75a6373cf2d7b53495bea757cd4ae908eccea4a0"
-  integrity sha512-h4AhEyllqM6Kun8g7vVIHtchqPD7l5L/lzfVBulD9dgwlOihyrI2vsAO9CnunzDXHDme37hgrOraCavJ7sRJ0Q==
+  resolved "https://registry.yarnpkg.com/@uppy/dropbox/-/dropbox-4.3.2.tgz#16b787577deab93d228710ccb88491f8ab3a3cbd"
+  integrity sha512-Kj/QX8KFomlbf5mUpoCwxZ8dGH9XiN3RMKqT6zJgUk2bW7JfV2eMV6F9XvrVhz1TCtHZNl81Cv5rhu9io3UQ0w==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/informer@^4.2.1":
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/@uppy/informer/-/informer-4.2.1.tgz#35c6d8750f1a388fea51307821d54106fdec7193"
-  integrity sha512-0en8Py47pl6RMDrgUfqFoF807W5kK5AKVJNT1SkTsLiGg5anmTIMuvmNG3k6LN4cn9P/rKyEHSdGcoBBUj9u7Q==
+"@uppy/facebook@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/facebook/-/facebook-4.3.2.tgz#a641239f4f3d559f24dfbc4b3cf1824145bc1e26"
+  integrity sha512-fHwFN8ZlRuNyxmuL7zwMLIegU+ARxegIlM3yJdY7RbRWgod/lUi5ouzTHjFgvLaFbuDtYWWRbZgF3GxCsXbmhA==
   dependencies:
-    "@uppy/utils" "^6.1.1"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/instagram@^4.2.2":
+"@uppy/file-input@^4.2.2":
   version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/instagram/-/instagram-4.2.2.tgz#7d2a68349cfae8010deb009020b98f3419b3aa4c"
-  integrity sha512-54pB3sjE1O/5o4rAjAkpwu639DOR8Z/MLeQkdMHNXPNBCfDBkjJ7f3Uk/2zTJrSP/wYFdsQhtIuu8rpcCRHXjA==
+  resolved "https://registry.yarnpkg.com/@uppy/file-input/-/file-input-4.2.2.tgz#4660c395127e7c3b2383bca565e1a678f2b25b58"
+  integrity sha512-tQklK5C1slZWQlMQYQPBJuhfs0e5w1sRb0VwYMt8P297rB1BUcyOjkVH79DAYHkkgXo9aQKUiZSuVoN89tlLjQ==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/onedrive@^4.2.3":
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/@uppy/onedrive/-/onedrive-4.2.3.tgz#49021cde63144af914b9c838496272c317459cb8"
-  integrity sha512-24IgzA5WfDkbHXqkliNrOc7gUdIOGyL0sdFHiikL02frBEFbYUQKL4OjIgVvlj91oPNwE2W1r4sUl93xbT+MVA==
+"@uppy/google-drive@^4.4.2":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@uppy/google-drive/-/google-drive-4.4.2.tgz#5498bfc1c901a37bb0a7688d4bb80170f40451f1"
+  integrity sha512-hIxnWZ7WMW1jrRecL+VnMVt9TwY+V3uEpy7KmNxASraQFwS2oYgYUfO5R8MVcmL654wymQgEsRY7Kzp9NQvZGw==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/progress-bar@^4.0.0":
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/@uppy/progress-bar/-/progress-bar-4.2.1.tgz#258f0665dc0c8c8ffda8a9fc58bed565fe40f741"
-  integrity sha512-5TrUYYt1e/Qy4L4GS7pHeH9I9/zYpp7SiJzC5BtYlku5J6yxZbdxpMPW1mBhQqW+ou/IByaVIGFIR6iSq6yo0w==
+"@uppy/image-editor@^3.4.2":
+  version "3.4.2"
+  resolved "https://registry.yarnpkg.com/@uppy/image-editor/-/image-editor-3.4.2.tgz#07d5540d8c86fea163c08c248759f3bc1672eeeb"
+  integrity sha512-cQD/oDa/0xCuZAtdi4P2uLIxgrG/YR24KgKAxQYPzQHQtNB8KzCdl3TPV5ZWF9kjT4mSlUsoB4RfPQl34GbFhA==
   dependencies:
-    "@uppy/utils" "^6.1.1"
+    "@uppy/utils" "^6.2.2"
+    cropperjs "^1.6.2"
     preact "^10.5.13"
 
-"@uppy/provider-views@^4.4.2":
-  version "4.4.3"
-  resolved "https://registry.yarnpkg.com/@uppy/provider-views/-/provider-views-4.4.3.tgz#6ae255a403de9c68c58725d48e1fb815d1788027"
-  integrity sha512-5Ymeuqin+OwIGiiJnEiWguHwLImHmKURf/xDl8bPY5mh5KNXPuFXqQZJvirxwj+sU700usrPSXEmCZYfP7RMpw==
+"@uppy/informer@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/informer/-/informer-4.3.2.tgz#d604511b7bc0daa3ae1e0fb8098eb99dd6d51503"
+  integrity sha512-7A9X8BfxR/GPtG0MGbQlmj1+G1o9fqeF3qtRh37ZvmZpapnEGtbstQ6Ao2vFm0uxYxOolLOMzFs/xCD27NKAvg==
   dependencies:
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/instagram@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/instagram/-/instagram-4.3.2.tgz#c375237c2a566c4c9b1515b7c07012a3607cafce"
+  integrity sha512-LHGroKn8uRcRs94v6DM8SPXIMWubZb/aZr5B4FP7TvTzf3vnGaKE63oOen1yAoCEYbsJfSdo2p974qHbSdPEbw==
+  dependencies:
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/onedrive@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/onedrive/-/onedrive-4.3.2.tgz#ae36a16f32babca6d312e3cc9da4c92c46a43425"
+  integrity sha512-dfJAl9qsoQsL1LdIrDPKEKmAj82VNA63BInsJ80nF8bx3tf67AvlMz4O1I9fDW2zctfgOiFlGz47kamz01eSPQ==
+  dependencies:
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/progress-bar@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/progress-bar/-/progress-bar-4.3.2.tgz#52696d0990b33cd572f0f52b95e1f494a84eb9b1"
+  integrity sha512-5BOhq49xPpBTlEVsEIRLkV+Hgb0qTuey8XKyrmrSetcgtolKLwtlDjrOWmUcxGYI3bkMbdeJulF9aiR8sSqQ6A==
+  dependencies:
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/provider-views@^4.5.2":
+  version "4.5.3"
+  resolved "https://registry.yarnpkg.com/@uppy/provider-views/-/provider-views-4.5.3.tgz#ca634ccadfc1c0e4bb8ed8466a24adc0f8bec4c6"
+  integrity sha512-zExJSlkqRPl65KKG+SMTdP0OCawYMpo/FaKE8xjqHhx/rkACe6QNExCahpEGGjLo7Rr2j7FooAuA3UWmYiyWCg==
+  dependencies:
+    "@uppy/utils" "^6.2.2"
     classnames "^2.2.6"
     nanoid "^5.0.9"
     p-queue "^8.0.0"
     preact "^10.5.13"
 
-"@uppy/react@^4.0.1":
+"@uppy/react@^4.5.2":
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/@uppy/react/-/react-4.5.2.tgz#819964451836089b7a20dedb648e4785eb42f9ec"
+  integrity sha512-M2RTC8APz0pbzvAwyBIQEw9pwxlR9gFXII4dU7yUJ/Jb0iLkGuvYrltb9ai4GyPsxOGfdWiFX8e5s8f6Z+Ao1g==
+  dependencies:
+    "@uppy/components" "^0.3.2"
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+    use-sync-external-store "^1.2.2"
+
+"@uppy/remote-sources@^2.4.2":
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/@uppy/remote-sources/-/remote-sources-2.4.2.tgz#ba80f38f93bc60671890e127cf7f91fd82a21f16"
+  integrity sha512-b8VVlriQWi/xU/LBuoLaQ3y2yMMLqXXJQpkG43tzBQG2R/sYz2qOm593BX9R4HjPQ891Vt4INjzfDTFziaA/4w==
+  dependencies:
+    "@uppy/box" "^3.3.2"
+    "@uppy/dashboard" "^4.4.2"
+    "@uppy/dropbox" "^4.3.2"
+    "@uppy/facebook" "^4.3.2"
+    "@uppy/google-drive" "^4.4.2"
+    "@uppy/instagram" "^4.3.2"
+    "@uppy/onedrive" "^4.3.2"
+    "@uppy/unsplash" "^4.4.2"
+    "@uppy/url" "^4.3.2"
+    "@uppy/zoom" "^3.3.2"
+
+"@uppy/screen-capture@^4.4.2":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@uppy/screen-capture/-/screen-capture-4.4.2.tgz#3265e88790271bbc177430df689bbb5eb903a8d3"
+  integrity sha512-z2+Y34V8hs1lCeMB+culySW9WMBIL/19Z8OEkc0u6aHj3i6iCu0lwelPEaiUMdKHOXMyQTgn6Ubv+C3/OZlOpw==
+  dependencies:
+    "@uppy/utils" "^6.2.2"
+    preact "^10.5.13"
+
+"@uppy/status-bar@^4.2.3":
   version "4.2.3"
-  resolved "https://registry.yarnpkg.com/@uppy/react/-/react-4.2.3.tgz#88c313f7e3ca35b18d17a95e18695600727c425e"
-  integrity sha512-zIG2LzjB+gsiduHsgzfi+wSywTE+DSFPg+FAIlyWP24XF0HEv0ekai0fngewxjBUItZ6HGddWFkvMiRMD6+63g==
-  dependencies:
-    "@uppy/utils" "^6.1.3"
-    use-sync-external-store "^1.2.0"
-
-"@uppy/remote-sources@^2.1.0":
-  version "2.3.2"
-  resolved "https://registry.yarnpkg.com/@uppy/remote-sources/-/remote-sources-2.3.2.tgz#db410e6f61c96d35aa7f313e6a7776992ba861fb"
-  integrity sha512-ZL8Flf4Lqav7/pDWM1xhsrOBOlcnnJEv+o8Lt121U/hxCPJsIWHGoK+NwzVTFAuk9BEhl85xIJCHO+UhrBxUVA==
-  dependencies:
-    "@uppy/box" "^3.2.2"
-    "@uppy/dashboard" "^4.3.3"
-    "@uppy/dropbox" "^4.2.2"
-    "@uppy/facebook" "^4.2.2"
-    "@uppy/google-drive" "^4.3.2"
-    "@uppy/instagram" "^4.2.2"
-    "@uppy/onedrive" "^4.2.3"
-    "@uppy/unsplash" "^4.3.3"
-    "@uppy/url" "^4.2.3"
-    "@uppy/zoom" "^3.2.2"
-
-"@uppy/status-bar@^4.1.3":
-  version "4.1.3"
-  resolved "https://registry.yarnpkg.com/@uppy/status-bar/-/status-bar-4.1.3.tgz#770cfd3d14085047627ccd3e9655477cd2e6a3a1"
-  integrity sha512-1YlbsoA9lTNL2b7nhehDri15XslVzGLG+J7HFAsxbE2cMHnOusuLCkm03oE9c72pOU9nG2qZV6yqdWBTwdxbNA==
+  resolved "https://registry.yarnpkg.com/@uppy/status-bar/-/status-bar-4.2.3.tgz#afd937e0c21a3551d6b101c186ffa9375ffd1dc4"
+  integrity sha512-0AtKdvNm3HHobuE4N0V8SrC3uWB9MQnjqMEL/gachW/1mi7iZ22V4veHd6Wub/tCBQAQbEklvz7d0hxcz/Fh9g==
   dependencies:
     "@transloadit/prettier-bytes" "^0.3.4"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
     classnames "^2.2.6"
     preact "^10.5.13"
 
-"@uppy/store-default@^4.2.0":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@uppy/store-default/-/store-default-4.2.0.tgz#fb91a8e76639baf0639bfd31c604838bbf2529f3"
-  integrity sha512-PieFVa8yTvRHIqsNKfpO/yaJw5Ae/hT7uT58ryw7gvCBY5bHrNWxH5N0XFe8PFHMpLpLn8v3UXGx9ib9QkB6+Q==
+"@uppy/store-default@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/store-default/-/store-default-4.3.2.tgz#dd200b21e7c564729be5a1d688882f54709835cf"
+  integrity sha512-dnY9R2o8fwmO1bF89D0b5jijD7DGED2qVST5hI/j18JreLWzLKH7u6HuNmOvzok8msrQ/qWzQd5Gx4LDQKhBbw==
 
-"@uppy/store-redux@^4.0.0":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@uppy/store-redux/-/store-redux-4.0.2.tgz#959d526fc141138c9f13940477e594e8ff0df783"
-  integrity sha512-ideTWfNE1XxXHzvhiWlh/ZdRVew0uxE1AswpEYJMQEaZ9Hab7EmGS6UOryjtEfeuqsMgqQ5vReBWWGEGccBbww==
+"@uppy/thumbnail-generator@^4.2.2":
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/@uppy/thumbnail-generator/-/thumbnail-generator-4.2.3.tgz#81dd5830fcdc0b14f4bd15a0a1354ec36a1939f4"
+  integrity sha512-qOfJzlHhaD8DmOH/50DMLNN5/E2qCYCJnikFgTZZbuPx6sUOtPGRrHBE8q/ELxVMB5gD3zGi/Fh2SwKGrGoxGA==
   dependencies:
-    nanoid "^5.0.9"
-
-"@uppy/thumbnail-generator@^4.0.0", "@uppy/thumbnail-generator@^4.1.1":
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/@uppy/thumbnail-generator/-/thumbnail-generator-4.1.1.tgz#a6b902a22421d01f14313bd72fa71e634548b906"
-  integrity sha512-65znkGNgVTbVte51IKOhgxOpHGSwYj9Qik2jF2ZBocMbhBY4gPkWFwqMrKQBfddA9KbUa4jVe1psxhAQTzYgiA==
-  dependencies:
-    "@uppy/utils" "^6.1.1"
+    "@uppy/utils" "^6.2.2"
     exifr "^7.0.0"
 
-"@uppy/transloadit@^4.0.1":
-  version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/transloadit/-/transloadit-4.2.2.tgz#a5a03fb8de9d0c4d54e983f0713a2397a108d8fd"
-  integrity sha512-R7iKDi3gbbcZydUulSLIwCAI5krPTZBUfWIBkdc4XpcL5oGQHHjLmVbSIyLgsTBrBowrtaQP2Nj6ZkWtF6LF+Q==
+"@uppy/transloadit@^4.3.3":
+  version "4.3.3"
+  resolved "https://registry.yarnpkg.com/@uppy/transloadit/-/transloadit-4.3.3.tgz#642aa82922569a2212f93d396d1226a6592888f3"
+  integrity sha512-ydaMCEEsUuMbGysJBwyvHF8I0SDXcHqnIxx3eGFBTMh5MXN63OUSC6tmChcAORiSUrsWR0E2guDwWBpTCjn78A==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/tus" "^4.2.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/tus" "^4.3.2"
+    "@uppy/utils" "^6.2.2"
     component-emitter "^2.0.0"
 
-"@uppy/tus@^4.2.2":
-  version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/tus/-/tus-4.2.2.tgz#62bdc261ba05db1d26f227387ac12f6f8818a1dc"
-  integrity sha512-fauUHqoLDtyRXwoaIyWM8ctuJ+SAXdjuM2eyoPYcGtpVaEGa+AS7IQkJkWz2RrWSdLCHL9O+fk6jKr+0PIDEpQ==
+"@uppy/tus@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/tus/-/tus-4.3.2.tgz#cb1b440c16f76dc93e6f5c60ac71a3e3181e12b4"
+  integrity sha512-W9pXC/Xew6mM+XKbGafJI9flO3oQTFHxpd281SIy+hDFVTniAqW4VoNhcT15rDqlofQB+PufCXG1EJlX9pCIAw==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/utils" "^6.1.1"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     tus-js-client "^4.2.3"
 
-"@uppy/unsplash@^4.3.3":
-  version "4.3.3"
-  resolved "https://registry.yarnpkg.com/@uppy/unsplash/-/unsplash-4.3.3.tgz#3bd496c95f2f51f6a363d0500dfacacacec5b276"
-  integrity sha512-KsaUz1/1A5F9fNnLuE9EGZjSm8DHPwSzKRsEHAaefjZ286sDcNGnQy/WqH3iIA+8tZ8dAfvyVFfCSUsnTf5HsA==
+"@uppy/unsplash@^4.4.2":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@uppy/unsplash/-/unsplash-4.4.2.tgz#1e3c2fe1498a57c5d653278592a857c8b1486781"
+  integrity sha512-1hO7ND/ROrRgZ8urCX38Q/o5rYs2uFGS7djxlNj/cz9xvRdkBagAzj3qp5FUsnPnJzJrRpifXcelvn3tICQjZg==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
-"@uppy/url@^4.2.3":
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/@uppy/url/-/url-4.2.3.tgz#ae23284c2ade83d8666a3aca7433771685bd3c98"
-  integrity sha512-lN9mKdpGeh7R98A0uo3zsc6Di+m1JaTNNydyNpMhsixwXrsuK7KWE/iwg4xZaY+I1ESqNgnIc9fFEQJO46O1Qg==
+"@uppy/url@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/url/-/url-4.3.2.tgz#bc941e25b757848d1b1ef507f098bf2381fadec1"
+  integrity sha512-SREfvV9IJxOg2MuzSVQBr2e9LTle8N0dsyUpsHddaSbbPku9KhkoilOiKuDMhPmvw9pnkYWBZhbw9+4UWnrQtQ==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     nanoid "^5.0.9"
     preact "^10.5.13"
 
-"@uppy/utils@^6.1.1", "@uppy/utils@^6.1.3":
-  version "6.1.3"
-  resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-6.1.3.tgz#34e18bfa9fbcad76ab3ab066eaeac3ec25c3add1"
-  integrity sha512-7WuTtMf0k1g962sE76mKy8aDV/kLeDrF8Wv1oTxaXQzUpmHBAoKd3FXLrQXu7TgM0XNHHRZXAckBttbVOWkKCw==
+"@uppy/utils@^6.2.2":
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-6.2.2.tgz#78bf41a38b6a64e8823063a34a8150412e386df4"
+  integrity sha512-9mYJtbcngv2HOJIECkyfmdXTI5dW/ObCyvWP1Iti3E5bKtsa4sMmbx5Yh/tGCj8k/lBNhfvWyZuYnvnjmzNLSQ==
   dependencies:
     lodash "^4.17.21"
     preact "^10.5.13"
 
-"@uppy/zoom@^3.2.2":
-  version "3.2.2"
-  resolved "https://registry.yarnpkg.com/@uppy/zoom/-/zoom-3.2.2.tgz#53d919d4766a4b4847663d6f0766ecfb1c22ce66"
-  integrity sha512-jsfrGfmedln6dRGlLzkXlGC19KxDE8zilJ5MB8nqAcWL1kd9mTjBg8zKvfLjDiAV8El+5tZZRjCAr5NdEYz45g==
+"@uppy/webcam@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/webcam/-/webcam-4.3.2.tgz#fe8ef3742768589c7ddf93b912a10ec313c0da2e"
+  integrity sha512-x0qhTWb7AjkfS9Q12J2xhnTdccZ6sMuBh14LpXtXjaFe4Q1Uf191YmFwT7SCKn7lcasZYw3Tug0G5yQkqvg9uQ==
   dependencies:
-    "@uppy/companion-client" "^4.4.1"
-    "@uppy/provider-views" "^4.4.2"
-    "@uppy/utils" "^6.1.3"
+    "@uppy/utils" "^6.2.2"
+    is-mobile "^4.0.0"
+    preact "^10.5.13"
+
+"@uppy/zoom@^3.3.2":
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/@uppy/zoom/-/zoom-3.3.2.tgz#b95ff7568a2b63796da5856992c0c0620d98b8b3"
+  integrity sha512-e/yP3itmWh2U/A8SBLymVngDSIzmbq08eX0QzBrI5wIA1r38lD5tGlO2V9D70ujY8hNX7HQUqF+nK4OEgdUxJA==
+  dependencies:
+    "@uppy/companion-client" "^4.5.2"
+    "@uppy/provider-views" "^4.5.2"
+    "@uppy/utils" "^6.2.2"
     preact "^10.5.13"
 
 "@voucherify/sdk@^2.9.2":
@@ -5037,6 +5073,11 @@ clone@^2.1.2:
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.2.tgz#1b7f4b9f591f1e8f83670401600345a02887435f"
   integrity sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==
 
+clsx@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/clsx/-/clsx-2.1.1.tgz#eed397c9fd8bd882bfb18deab7102049a2f32999"
+  integrity sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==
+
 co@^4.6.0:
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/co/-/co-4.6.0.tgz#6ea6bdf3d853ae54ccb8e47bfa0bf3f9031fb184"
@@ -5308,6 +5349,11 @@ cosmiconfig@^7.0.0:
     parse-json "^5.0.0"
     path-type "^4.0.0"
     yaml "^1.10.0"
+
+cropperjs@^1.6.2:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/cropperjs/-/cropperjs-1.6.2.tgz#d1a5d627d880581cca41b7901f06923500e4201b"
+  integrity sha512-nhymn9GdnV3CqiEHJVai54TULFAE3VshJTXSqSJKa8yXAKyBKDWdhHarnlIPrshJ0WMFTGuFvG02YjLXfPiuOA==
 
 cross-env@^7.0.3:
   version "7.0.3"
@@ -7899,6 +7945,11 @@ is-map@^2.0.3:
   resolved "https://registry.yarnpkg.com/is-map/-/is-map-2.0.3.tgz#ede96b7fe1e270b3c4465e3a465658764926d62e"
   integrity sha512-1Qed0/Hr2m+YqxnM09CjA2d/i6YZNfF6R2oRAOj36eUdS6qIV/huPJNSEpKbupewFs+ZsJlxsjjPbc0/afW6Lw==
 
+is-mobile@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/is-mobile/-/is-mobile-4.0.0.tgz#bba396eb9656e2739afde3053d7191da310fc758"
+  integrity sha512-mlcHZA84t1qLSuWkt2v0I2l61PYdyQDt4aG1mLIXF5FDMm4+haBCxCPYSr/uwqQNRk1MiTizn0ypEuRAOLRAew==
+
 is-module@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/is-module/-/is-module-1.0.0.tgz#3258fb69f78c14d5b815d664336b4cffb6441591"
@@ -9380,11 +9431,6 @@ memfs@^3.1.2, memfs@^3.4.3:
   integrity sha512-EGowvkkgbMcIChjMTMkESFDbZeSh8xZ7kNSF0hAiAN4Jh6jgHCRS0Ga/+C8y6Au+oqpezRHCfPsmJ2+DwAgiwQ==
   dependencies:
     fs-monkey "^1.0.4"
-
-memoize-one@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/memoize-one/-/memoize-one-6.0.0.tgz#b2591b871ed82948aee4727dc6abceeeac8c1045"
-  integrity sha512-rkpe71W0N0c0Xz6QD0eJETuWAJGnJ9afsl1srmwPrI+yBCkge5EycXXbYRyvL29zZVUWQCY7InPRCv3GDXuZNw==
 
 meow@^9.0.0:
   version "9.0.0"
@@ -10951,6 +10997,11 @@ pretty-bytes@^5.3.0, pretty-bytes@^5.4.1:
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/pretty-bytes/-/pretty-bytes-5.6.0.tgz#356256f643804773c82f64723fe78c92c62beaeb"
   integrity sha512-FFw039TmrBqFK8ma/7OL3sDz/VytdtJr044/QUJtH0wK9lb9jLq9tJyIxUwtQJHwar2BqtiA4iCWSwo9JLkzFg==
+
+pretty-bytes@^6.1.1:
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/pretty-bytes/-/pretty-bytes-6.1.1.tgz#38cd6bb46f47afbf667c202cfc754bffd2016a3b"
+  integrity sha512-mQUvGU6aUFQ+rNvTIAcZuWGRT9a6f6Yrg9bHs4ImKF+HZCEK+plBvnAZYSIQztknZF2qnzNtr6F8s0+IuptdlQ==
 
 pretty-error@^4.0.0:
   version "4.0.0"
@@ -13700,10 +13751,15 @@ url@^0.11.0:
     punycode "^1.4.1"
     qs "^6.12.3"
 
-use-sync-external-store@^1.0.0, use-sync-external-store@^1.2.0:
+use-sync-external-store@^1.0.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.5.0.tgz#55122e2a3edd2a6c106174c27485e0fd59bcfca0"
   integrity sha512-Rb46I4cGGVBmjamjphe8L/UnvJD+uPPtTkNvX5mZgqdbavhI4EbgIWJiIHXJ8bc/i9EQGPRh4DwEURJ552Do0A==
+
+use-sync-external-store@^1.2.2:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.6.0.tgz#b174bfa65cb2b526732d9f2ac0a408027876f32d"
+  integrity sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==
 
 util-deprecate@^1.0.1, util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"

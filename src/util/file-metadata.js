@@ -28,16 +28,6 @@ function getImageResolution(fileOrUrl, extraParams = {}) {
   });
 }
 
-function blobToDataURL(blob) {
-  return new Promise(resolve => {
-    const fileReader = new FileReader();
-    fileReader.onload = function(e) {
-      resolve(e.target.result);
-    };
-    fileReader.readAsDataURL(blob);
-  });
-}
-
 function readMetadata(metadata, originalFile) {
   return new Promise(resolve => {
     if (!metadata) {
@@ -70,30 +60,8 @@ function getTagValue(metadata, possibleTags, defaultValue) {
 }
 
 export const readFileMetadataAsync = uppyFile => {
-  const { data, isRemote, source, type } = uppyFile;
-
+  const { data, type } = uppyFile;
   return new Promise(resolve => {
-    if (isRemote) {
-      switch (source) {
-        case 'GoogleDrive': {
-          const { imageWidth, imageHeight } = data.custom || {};
-          return resolve({
-            width: imageWidth || 0,
-            height: imageHeight || 0,
-          });
-        }
-        case 'Url': {
-          const fileUrl = uppyFile.remote.body.url;
-          return getImageResolution(fileUrl).then(({ width, height }) => {
-            console.log(width, height);
-            resolve({ width, height });
-          });
-        }
-        default:
-          return resolve({ width: 0, height: 0, keywords: '' });
-      }
-    }
-
     switch (true) {
       case type.startsWith('video'): {
         // noinspection JSCheckFunctionSignatures
@@ -105,11 +73,9 @@ export const readFileMetadataAsync = uppyFile => {
             quality: 0.6,
           }),
         ]);
-
         videoInfo.then(([metadata, thumbnails]) => {
           const { width, height } = metadata;
           const thumbnailBlob = thumbnails[0].blob;
-
           // Add play icon to the thumbnail
           addPlayIconToThumbnail(thumbnailBlob)
             .then(dataUrl => {
@@ -119,7 +85,6 @@ export const readFileMetadataAsync = uppyFile => {
               resolve({ width, height, thumbnail: null });
             });
         });
-
         break;
       }
 
@@ -159,10 +124,8 @@ function addPlayIconToThumbnail(thumbnailBlob) {
       const context = canvas.getContext('2d');
       canvas.width = img.width;
       canvas.height = img.height;
-
       // Draw the thumbnail image on the canvas
       context.drawImage(img, 0, 0);
-
       // Add the play icon overlay
       const iconSize = canvas.width * 0.2; // Adjust size as needed
       context.font = `${iconSize}px sans-serif`;
@@ -170,11 +133,9 @@ function addPlayIconToThumbnail(thumbnailBlob) {
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText('▶', canvas.width / 2, canvas.height / 2);
-
       // Convert the canvas to a data URL
       const dataUrl = canvas.toDataURL('image/png');
       resolve(dataUrl);
-
       URL.revokeObjectURL(img.src); // Clean up
     };
 
