@@ -11,6 +11,7 @@ import {
   getSelectedRowsKeys,
   getInvalidListings,
   getAllKeywordsReady,
+  getKeywordsGenerationProgress,
   getListingFieldsOptions,
   SET_SELECTED_ROWS,
 } from '../../BatchEditListingPage.duck';
@@ -32,6 +33,7 @@ export const EditListingBatchTagging = props => {
   const selectedRowKeys = useSelector(getSelectedRowsKeys);
   const invalidListings = useSelector(getInvalidListings);
   const allKeywordsReady = useSelector(getAllKeywordsReady);
+  const keywordsProgress = useSelector(getKeywordsGenerationProgress);
 
   const [showValidationModal, setShowValidationModal] = useState(false);
 
@@ -114,7 +116,12 @@ export const EditListingBatchTagging = props => {
         onCancel={handleCancelValidationModal}
       />
 
-      <AiProgressModal open={!allKeywordsReady} />
+      <AiProgressModal
+        open={!allKeywordsReady}
+        total={keywordsProgress.total}
+        completed={keywordsProgress.completed}
+        percent={keywordsProgress.percent}
+      />
     </div>
   );
 };

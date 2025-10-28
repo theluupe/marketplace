@@ -1,7 +1,9 @@
+import _ from 'lodash';
+import { createSelector } from 'reselect';
+
 import { fetchCurrentUser } from '../../ducks/user.duck';
 import { generateImageKeywords } from '../../util/api';
 import { readFileMetadataAsync } from '../../util/file-metadata';
-import _ from 'lodash';
 import { createUppyInstance } from '../../util/uppy';
 import {
   convertMoneyToNumber,
@@ -25,7 +27,6 @@ import {
   MAX_KEYWORDS,
   NO_RELEASES,
   PAGE_MODE_NEW,
-  USAGE_EDITORIAL,
   YES_RELEASES,
   WIZARD_TABS,
 } from './constants';
@@ -175,6 +176,11 @@ export const SET_STOCK_REQUEST = 'app/BatchEditListingPage/SET_STOCK_REQUEST';
 export const SET_STOCK_SUCCESS = 'app/BatchEditListingPage/SET_STOCK_SUCCESS';
 export const SET_STOCK_ERROR = 'app/BatchEditListingPage/SET_STOCK_ERROR';
 
+export const SET_PROCESSING_TAGS_QUEUE_START =
+  'app/BatchEditListingPage/SET_PROCESSING_TAGS_QUEUE_START';
+export const SET_PROCESSING_TAGS_QUEUE_END =
+  'app/BatchEditListingPage/SET_PROCESSING_TAGS_QUEUE_END';
+
 // ================ Reducer ================ //
 const initialState = {
   listings: [],
@@ -209,6 +215,7 @@ const initialState = {
   setStockError: null,
   allThumbnailsReady: false,
   allKeywordsReady: false,
+  isProcessingTags: false,
 };
 
 export default function reducer(state = initialState, action = {}) {
@@ -398,6 +405,11 @@ export default function reducer(state = initialState, action = {}) {
     case SET_STOCK_ERROR:
       return { ...state, setStockInProgress: false, setStockError: payload };
 
+    case SET_PROCESSING_TAGS_QUEUE_START:
+      return { ...state, isProcessingTags: true };
+    case SET_PROCESSING_TAGS_QUEUE_END:
+      return { ...state, isProcessingTags: false };
+
     default:
       return state;
   }
@@ -439,6 +451,14 @@ export const getListingsDefaults = state => state.BatchEditListingPage.listingDe
 export const getIsQueryInProgress = state => state.BatchEditListingPage.queryInProgress;
 export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThumbnailsReady;
 export const getAllKeywordsReady = state => state.BatchEditListingPage.allKeywordsReady;
+export const getIsProcessingTags = state => state.BatchEditListingPage.isProcessingTags;
+export const getListingsDetails = state => state.BatchEditListingPage.listings;
+export const getKeywordsGenerationProgress = createSelector(getListingsDetails, listings => {
+  const total = listings.length;
+  const completed = listings.filter(l => l.tagsReady).length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, percent };
+});
 
 function updateAiTermsStatus(getState, dispatch) {
   if (getAiTermsAccepted(getState())) {
@@ -464,6 +484,47 @@ function getOnBeforeUpload(getState) {
 }
 
 // ================ Thunk ================ //
+
+// Keyword Generation Queue
+// Rate limit: 1 request per second for PhotoTag.ai API
+const PHOTOTAG_RATE_LIMIT_DELAY_MS = 1000;
+const PHOTOTAG_ERROR_DELAY_MS = 750;
+const MAX_RETRIES = 5;
+let PROCESSING_TAGS_QUEUE = [];
+
+async function processKeywordQueue(dispatch, getState) {
+  const isProcessingTags = getIsProcessingTags(getState());
+  const allThumbnailsReady = getAllThumbnailsReady(getState());
+  if (!allThumbnailsReady || isProcessingTags || PROCESSING_TAGS_QUEUE.length === 0) {
+    return;
+  }
+  dispatch({ type: SET_PROCESSING_TAGS_QUEUE_START });
+  const inFlightPromises = [];
+  while (PROCESSING_TAGS_QUEUE.length > 0) {
+    const job = PROCESSING_TAGS_QUEUE.shift();
+    const promise = job.execute();
+    inFlightPromises.push(promise);
+    if (PROCESSING_TAGS_QUEUE.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, PHOTOTAG_RATE_LIMIT_DELAY_MS));
+    }
+  }
+  await Promise.allSettled(inFlightPromises);
+  dispatch({ type: SET_PROCESSING_TAGS_QUEUE_END });
+}
+
+function addToKeywordQueue(job, dispatch, getState) {
+  PROCESSING_TAGS_QUEUE.push(job);
+  const isProcessingTags = getIsProcessingTags(getState());
+  if (!isProcessingTags) {
+    processKeywordQueue(dispatch, getState);
+  }
+}
+
+function clearKeywordQueue(dispatch) {
+  PROCESSING_TAGS_QUEUE = [];
+  dispatch({ type: SET_PROCESSING_TAGS_QUEUE_END });
+}
+
 function compareAndSetStock(listingId) {
   return (dispatch, getState, sdk) => {
     dispatch({ type: SET_STOCK_REQUEST });
@@ -519,6 +580,7 @@ export function initializeUppy(meta) {
       });
 
       uppyInstance.on('cancel-all', () => {
+        clearKeywordQueue(dispatch);
         dispatch({ type: RESET_FILES });
       });
 
@@ -526,43 +588,74 @@ export function initializeUppy(meta) {
         const { id, name, type } = file;
         const listing = getSingleListing(getState(), id);
         if (!listing.preview) {
-          new Promise(async resolve => {
-            let keywords = [];
-            let title = '';
-            let description = '';
-            try {
-              const previewFile = await fetch(preview);
-              const blob = await previewFile.blob();
-              const arrayBuffer = await blob.arrayBuffer();
-              const base64 = btoa(
-                new Uint8Array(arrayBuffer).reduce(
-                  (data, byte) => data + String.fromCharCode(byte),
-                  ''
-                )
-              );
-              const generatedTags = await generateImageKeywords({
-                file: {
-                  data: base64,
-                  filename: name || 'image.jpg',
-                  contentType: type || 'image/jpeg',
-                },
-              });
-              const originalKeywords = listing?.keywords || [];
-              const generatedKeywords = generatedTags?.keywords || [];
-              keywords = _.uniq([...originalKeywords, ...generatedKeywords]);
-              title = generatedTags?.title || '';
-              description = generatedTags?.description || '';
-            } catch (error) {
-              console.error('Keyword generation failed for listing: ', id, error);
-            } finally {
-              dispatch({
-                type: KEYWORDS_GENERATED,
-                payload: { id: id, keywords, title, description },
-              });
-              resolve();
-            }
-          });
           dispatch({ type: PREVIEW_GENERATED, payload: { id, preview } });
+          addToKeywordQueue(
+            {
+              listingId: id,
+              execute: async () => {
+                let keywords = [];
+                let title = '';
+                let description = '';
+                try {
+                  const previewFile = await fetch(preview);
+                  const blob = await previewFile.blob();
+                  const arrayBuffer = await blob.arrayBuffer();
+                  const base64 = btoa(
+                    new Uint8Array(arrayBuffer).reduce(
+                      (data, byte) => data + String.fromCharCode(byte),
+                      ''
+                    )
+                  );
+                  let retries = 0;
+                  let fileProceced = false;
+                  while (!fileProceced && retries < MAX_RETRIES) {
+                    try {
+                      const generatedTags = await generateImageKeywords({
+                        file: {
+                          data: base64,
+                          filename: name || 'image.jpg',
+                          contentType: type || 'image/jpeg',
+                        },
+                      });
+                      const originalKeywords = listing?.keywords || [];
+                      const generatedKeywords = generatedTags?.keywords || [];
+                      keywords = _.uniq([...originalKeywords, ...generatedKeywords]);
+                      title = generatedTags?.title || '';
+                      description = generatedTags?.description || '';
+                      fileProceced = true;
+                    } catch (error) {
+                      const errMessage = error?.message || '';
+                      const errStatus = error?.response?.status || '';
+                      const errStatusText = error?.response?.statusText || '';
+                      const isRateLimitError =
+                        errStatus === 429 ||
+                        errStatusText.toLowerCase().includes('too many requests') ||
+                        errMessage.toLowerCase().includes('too many requests');
+                      if (isRateLimitError && retries < MAX_RETRIES - 1) {
+                        retries++;
+                        console.warn(
+                          `PhotoTag | Rate limit hit for listing ${id}. Retrying (${retries}/${MAX_RETRIES})...`
+                        );
+                        await new Promise(resolve => setTimeout(resolve, PHOTOTAG_ERROR_DELAY_MS));
+                      } else {
+                        fileProceced = true;
+                        throw error;
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error('Keyword generation failed for listing: ', id, error);
+                } finally {
+                  dispatch({
+                    type: KEYWORDS_GENERATED,
+                    payload: { id, keywords, title, description },
+                  });
+                }
+              },
+            },
+            dispatch,
+            getState
+          );
         }
       });
 
