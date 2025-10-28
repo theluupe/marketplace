@@ -70,12 +70,15 @@ const request = (path, options = {}) => {
   return window.fetch(url, fetchOptions).then(res => {
     const contentTypeHeader = res.headers.get('Content-Type');
     const contentType = contentTypeHeader ? contentTypeHeader.split(';')[0] : null;
-
     if (res.status >= 400) {
       return res.json().then(data => {
+        if (typeof data === 'string') {
+          let e = new Error(data);
+          e = Object.assign(e, { response: res, message: data });
+          throw e;
+        }
         let e = new Error();
-        e = Object.assign(e, data);
-
+        e = Object.assign(e, { response: res, ...data });
         throw e;
       });
     }

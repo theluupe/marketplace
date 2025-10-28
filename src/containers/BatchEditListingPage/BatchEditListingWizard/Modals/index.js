@@ -118,7 +118,7 @@ export function ListingBatchProgressModal({ percent, open, children }) {
   );
 }
 
-export function AiProgressModal({ open }) {
+export function AiProgressModal({ open, total = 0, completed = 0, percent = 0 }) {
   return (
     <Modal open={open} footer={null} keyboard={false} closable={false}>
       <div style={{ textAlign: 'center' }}>
@@ -129,7 +129,12 @@ export function AiProgressModal({ open }) {
           <FormattedMessage id="BatchEditListingTaggingPanel.generatingModal.content.description"></FormattedMessage>
         </Paragraph>
         <Paragraph>
-          <Spin size="large" />
+          <Progress percent={percent} type="line" showInfo={false} />
+        </Paragraph>
+        <Paragraph>
+          <Text type="secondary">
+            {completed} / {total} images processed
+          </Text>
         </Paragraph>
       </div>
     </Modal>
