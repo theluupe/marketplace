@@ -65,7 +65,7 @@
   "BatchEditListingResult.result.error.title": "Some listings failed to publish",
   "BatchEditListingResult.result.success.description": "Thanks for submitting your listings! It may take up to 7 days for your listing to be reviewed and approved.",
   "BatchEditListingResult.result.success.title": "All set! Your listings have been submitted for review.",
-  "BatchEditListingTaggingPanel.generatingModal.content.description": "We’re creating smart title, description, and keyword suggestions to help your images get discovered. This will only take a moment and you’ll be able to review and edit before publishing.",
+  "BatchEditListingTaggingPanel.generatingModal.content.description": "We're creating smart title, description, and keyword suggestions to help your images get discovered. {lineBreak}{lineBreak}This will only take a moment and you'll be able to review and edit before publishing.",
   "BatchEditListingTaggingPanel.generatingModal.content.title": "Generating listing details...",
   "BatchEditListingTaggingPanel.saveTags": "Next",
   "BatchEditListingTaggingPanel.subtitle": "Take a moment to look over your auto-generated titles, descriptions, and keywords. Make sure they feel right and include any extra details that help buyers discover your work — like location, mood, or context. Using our bulk upload template? Click the “Upload CSV” button to update or add to the details below.",

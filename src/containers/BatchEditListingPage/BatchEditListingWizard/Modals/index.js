@@ -126,7 +126,10 @@ export function AiProgressModal({ open, total = 0, completed = 0, percent = 0 })
           <FormattedMessage id="BatchEditListingTaggingPanel.generatingModal.content.title"></FormattedMessage>
         </H3>
         <Paragraph>
-          <FormattedMessage id="BatchEditListingTaggingPanel.generatingModal.content.description"></FormattedMessage>
+          <FormattedMessage
+            id="BatchEditListingTaggingPanel.generatingModal.content.description"
+            values={{ lineBreak: <br /> }}
+          ></FormattedMessage>
         </Paragraph>
         <Paragraph>
           <Progress percent={percent} type="line" showInfo={false} />
