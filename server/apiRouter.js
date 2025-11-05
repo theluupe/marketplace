@@ -18,7 +18,11 @@ const initiatePrivileged = require('./api/initiate-privileged');
 const { verifySlackRequestMiddleware, slackInteractivity } = require('./api/slack');
 const { generateDownloadUrls } = require('./api/digital-product-download');
 const { referralProgramOptIn } = require('./api/referral-manager');
-const { retryProductListingCreatedScript, retryUserCreatedScript } = require('./api/scripts-retry');
+const {
+  retryProductListingCreatedScript,
+  retryUserCreatedScript,
+  retryBrandUserAssignmentScript,
+} = require('./api/scripts-retry');
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
 const validateLicenseDeal = require('./api/validate-license-deal');
@@ -75,6 +79,10 @@ router.post('/validate-voucher', validateVoucher);
 // Scripts Retries:
 router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);
 router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
+router.get(
+  '/scrips-retry/brandUserAssignment/:brandStudioId/:userId',
+  retryBrandUserAssignmentScript
+);
 
 // Create user with identity provider (e.g. Facebook or Google)
 // This endpoint is called to create a new user after user has confirmed
