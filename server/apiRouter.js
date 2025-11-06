@@ -31,6 +31,18 @@ const phototagKeywords = require('./api/phototag-keywords');
 
 const router = express.Router();
 
+// ================ API router authentication middleware: ================ //
+const API_KEY_HEADER = 'x-api-key';
+
+function authenticateApiKey(req, res, next) {
+  const API_KEY = process.env.MARKETPLACE_MANAGER_API_KEY || '';
+  const apiKey = req.header(API_KEY_HEADER);
+  if (!apiKey || API_KEY !== apiKey) {
+    return res.status(401).send('Unauthorized');
+  }
+  next();
+}
+
 // ================ API router Slack integration manager: ================ //
 router.post(
   '/slack/interactivity',
@@ -81,6 +93,7 @@ router.get('/scrips-retry/productListingCreated/:listingId', retryProductListing
 router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
 router.get(
   '/scrips-retry/brandUserAssignment/:brandStudioId/:userId',
+  authenticateApiKey,
   retryBrandUserAssignmentScript
 );
 
