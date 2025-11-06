@@ -7,8 +7,6 @@ const {
 } = require('../../scripts/events/notifyUserCreated');
 
 const QUERY_PARAMS = { expand: true };
-const ERROR_STATUS = 404;
-const ERROR_STATUS_TEXT = 'Not Found';
 
 const filterEvents = async userId => {
   try {
@@ -26,12 +24,7 @@ const filterEvents = async userId => {
     };
     return event;
   } catch (error) {
-    const errorStatus = error?.status;
-    const errorStatusText = error?.statusText;
-    if (errorStatus === ERROR_STATUS && errorStatusText === ERROR_STATUS_TEXT) {
-      return null;
-    }
-    throw error;
+    return null;
   }
 };
 
