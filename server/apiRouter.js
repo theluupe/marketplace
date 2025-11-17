@@ -22,6 +22,7 @@ const {
   retryProductListingCreatedScript,
   retryUserCreatedScript,
   retryBrandUserAssignmentScript,
+  upgradePhototagKeywordsScript,
 } = require('./api/scripts-retry');
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
@@ -89,13 +90,18 @@ router.post('/validate-license-deal', validateLicenseDeal);
 router.post('/validate-voucher', validateVoucher);
 
 // Scripts Retries:
-router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);
-router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
 router.get(
   '/scrips-retry/brandUserAssignment/:brandStudioId/:userId',
   authenticateApiKey,
   retryBrandUserAssignmentScript
 );
+// DEV ONLY
+const useDevApiServer = process.env.NODE_ENV === 'development';
+if (useDevApiServer) {
+  router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);
+  router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
+  router.get('/scrips-retry/upgrade-phototag-keywords/:listingId?', upgradePhototagKeywordsScript);
+}
 
 // Create user with identity provider (e.g. Facebook or Google)
 // This endpoint is called to create a new user after user has confirmed

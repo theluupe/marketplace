@@ -487,8 +487,8 @@ function getOnBeforeUpload(getState) {
 
 // Keyword Generation Queue
 // Rate limit: 1 request per second for PhotoTag.ai API
-const PHOTOTAG_RATE_LIMIT_DELAY_MS = 1000;
-const PHOTOTAG_ERROR_DELAY_MS = 750;
+const PHOTOTAG_RATE_LIMIT_DELAY_MS = 1200;
+const PHOTOTAG_ERROR_DELAY_MS = 1000;
 const MAX_RETRIES = 5;
 let PROCESSING_TAGS_QUEUE = [];
 
