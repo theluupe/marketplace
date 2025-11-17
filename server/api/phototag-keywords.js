@@ -3,8 +3,64 @@ const FormData = require('form-data');
 
 const { getSdk } = require('../api-util/sdk');
 
+const DEFAULT_FILENAME = 'listing-image.jpg';
+const PHOTOTAG_MAX_KEYWORDS = 40;
+
 function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function extractExcludedWords(profile = {}) {
+  const { displayName, firstName, lastName } = profile;
+  const nameCandidates = [displayName, firstName, lastName];
+  const words = nameCandidates
+    .filter(Boolean)
+    .map(name => name.split(/\s+/))
+    .flat()
+    .map(word => word.trim())
+    .filter(Boolean);
+  const unique = [];
+  const seen = new Set();
+  words.forEach(word => {
+    const normalized = word.toLowerCase();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(word);
+    }
+  });
+  return unique;
+}
+
+function sanitizeFilename(originalFilename, excludedWords = []) {
+  const trimmed = (originalFilename || '').trim();
+  const hasFilename = !!trimmed;
+  const fallbackFilename = hasFilename ? trimmed : DEFAULT_FILENAME;
+  const lastDotIndex = fallbackFilename.lastIndexOf('.');
+  let base = fallbackFilename;
+  let extension = '';
+  if (lastDotIndex !== -1) {
+    base = fallbackFilename.slice(0, lastDotIndex);
+    extension = fallbackFilename.slice(lastDotIndex);
+  }
+  let sanitizedBase = base;
+  if (excludedWords.length) {
+    const excludedSet = new Set(excludedWords.map(word => word.toLowerCase()));
+    const tokens = base.split(/([A-Za-z0-9]+)/);
+    sanitizedBase = tokens
+      .map(token => {
+        if (/^[A-Za-z0-9]+$/.test(token) && excludedSet.has(token.toLowerCase())) {
+          return '';
+        }
+        return token;
+      })
+      .join('');
+  }
+  sanitizedBase = sanitizedBase.replace(/[^A-Za-z0-9._-]+/g, '_');
+  sanitizedBase = sanitizedBase.replace(/_+/g, '_');
+  const sanitizedExtension = extension.replace(/[^A-Za-z0-9._-]+/g, '_');
+  const result = `${sanitizedBase}${sanitizedExtension}`.replace(/_\./g, '.');
+  const trimmedResult = result.trim();
+  return trimmedResult || DEFAULT_FILENAME;
 }
 
 module.exports = async (req, res) => {
@@ -13,8 +69,6 @@ module.exports = async (req, res) => {
     const currentUserResponse = await sdk.currentUser.show();
     const currentUser = currentUserResponse.data.data;
     const currentUserId = currentUser?.id?.uuid;
-    const { displayName } = currentUser?.attributes?.profile || {};
-    const excludedKeywords = displayName.split(' ').join(',');
     const { file } = req.body || {};
 
     if (!currentUserId) {
@@ -37,6 +91,10 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'missingPhototagApiKey' });
     }
 
+    const profile = currentUser?.attributes?.profile || {};
+    const excludedWords = extractExcludedWords(profile);
+    const excludedKeywords = excludedWords.join(',');
+    const sanitizedFilename = sanitizeFilename(filename || DEFAULT_FILENAME, excludedWords);
     const useDevApiServer = process.env.NODE_ENV === 'development';
     let data = {};
     if (useDevApiServer) {
@@ -53,9 +111,9 @@ module.exports = async (req, res) => {
       form.append('useFileNameForContext', 'true');
       form.append('excludedKeywords', excludedKeywords);
       form.append('singleWordKeywordsOnly', 'true');
-      form.append('maxKeywords', 40);
+      form.append('maxKeywords', PHOTOTAG_MAX_KEYWORDS);
       form.append('file', buffer, {
-        filename: filename || 'image.jpg',
+        filename: sanitizedFilename,
         contentType: contentType || 'image/jpeg',
       });
       const url = process.env.PHOTOTAG_API_URL || 'https://server.phototag.ai/api/keywords';
@@ -74,3 +132,9 @@ module.exports = async (req, res) => {
     return res.status(status).json(message);
   }
 };
+
+module.exports.DEFAULT_FILENAME = DEFAULT_FILENAME;
+module.exports.PHOTOTAG_MAX_KEYWORDS = PHOTOTAG_MAX_KEYWORDS;
+module.exports.sanitizeFilename = sanitizeFilename;
+module.exports.extractExcludedWords = extractExcludedWords;
+module.exports.timeout = timeout;
