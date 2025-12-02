@@ -217,6 +217,7 @@ const upgradePhototagKeywordsScript = (req, res) => {
   res.status(200).json({
     accepted: true,
     listingId: listingId || null,
+    message: 'Upgrade PhotoTag keywords script started',
   });
   runUpgrade({ listingId }).catch(() => {
     console.error('[upgradePhototagKeywords] Unexpected error during processing');

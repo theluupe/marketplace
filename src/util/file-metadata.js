@@ -1,5 +1,6 @@
 import exifr from 'exifr';
 import { getMetadata, getThumbnails } from 'video-metadata-thumbnails';
+import { deduplicateKeywords } from './string';
 
 const WIDTH_TAGS = ['ExifImageWidth', 'Width', 'ImageWidth'];
 const HEIGHT_TAGS = ['ExifImageHeight', 'Height', 'ImageHeight'];
@@ -36,8 +37,8 @@ function readMetadata(metadata, originalFile) {
 
     const width = getTagValue(metadata, WIDTH_TAGS, 0);
     const height = getTagValue(metadata, HEIGHT_TAGS, 0);
-    const keywords = getTagValue(metadata, KEYWORDS_TAGS, '');
-
+    const keywordsRaw = getTagValue(metadata, KEYWORDS_TAGS, '');
+    const keywords = keywordsRaw ? deduplicateKeywords(keywordsRaw).join(',') : '';
     if (!width || !height) {
       return getImageResolution(originalFile, { keywords }).then(resolve);
     }

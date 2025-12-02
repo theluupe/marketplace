@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Select } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
+import { deduplicateKeywords } from '../../../../util/string';
 import css from './EditListingBatchProductDetails.module.css';
 
 const TagsInput = ({
@@ -37,13 +38,11 @@ const TagsInput = ({
   };
 
   const handleChange = newValue => {
-    // Filter out empty strings and whitespace-only strings
-    const filteredValue = Array.isArray(newValue)
-      ? newValue.filter(tag => tag && tag.trim().length > 0)
-      : newValue;
+    // Deduplicate keywords (case-insensitive) and filter out empty strings
+    const deduplicatedValue = Array.isArray(newValue) ? deduplicateKeywords(newValue) : newValue;
 
     if (onChange) {
-      onChange(filteredValue);
+      onChange(deduplicatedValue);
     }
   };
 
@@ -51,19 +50,13 @@ const TagsInput = ({
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text');
     if (pastedText) {
-      // Split by comma and clean up each tag
-      const newTags = pastedText
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0);
-
-      // Merge with existing tags, avoiding duplicates
-      const existingTags = Array.isArray(value) ? value : [];
-      const mergedTags = [...new Set([...existingTags, ...newTags])];
-
+      // Parse pasted keywords
+      const newTags = deduplicateKeywords(pastedText);
+      // Merge with existing tags, avoiding duplicates (case-insensitive)
+      const existingTags = Array.isArray(value) ? deduplicateKeywords(value) : [];
+      const mergedTags = deduplicateKeywords([...existingTags, ...newTags]);
       // Apply maxSelection limit if specified
       const finalTags = maxSelection ? mergedTags.slice(0, maxSelection) : mergedTags;
-
       if (onChange) {
         onChange(finalTags);
       }
