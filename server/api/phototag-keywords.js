@@ -100,7 +100,15 @@ module.exports = async (req, res) => {
     if (useDevApiServer) {
       await timeout(1000);
       data = {
-        keywords: ['keyword1', 'keyword2', 'keyword3'],
+        keywords: [
+          'keyword1',
+          'keyword2',
+          'keyword3',
+          'keyword1',
+          'keyword2',
+          'keyword3',
+          'keyword4',
+        ],
         title: 'title NICE',
         description: 'description AWESOME',
       };

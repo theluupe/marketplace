@@ -31,7 +31,7 @@ import {
   WIZARD_TABS,
 } from './constants';
 import { getImageSize } from './imageHelpers';
-import { stringToArray } from '../../util/string';
+import { stringToArray, deduplicateKeywords } from '../../util/string';
 
 const { UUID, Money } = sdkTypes;
 const BILLIARD = 1000000000000000;
@@ -52,7 +52,8 @@ function listingsFromSdkResponse(sdkResponse, listingDefaults) {
     const image =
       images.data.length > 0 ? included.find(img => img.id.uuid === images.data[0].id.uuid) : null;
     const preview = image?.attributes?.variants?.default?.url;
-    const keywords = stringToArray(ownListing.attributes.publicData.keywords, ' ');
+    const keywordsRaw = stringToArray(ownListing.attributes.publicData.keywords, ' ');
+    const keywords = deduplicateKeywords(keywordsRaw);
     const category = stringToArray(ownListing.attributes.publicData.imageryCategory);
     const price = convertMoneyToNumber(ownListing.attributes.price || new Money(0, currency));
     const releases = ownListing.attributes.publicData.releases;
@@ -81,16 +82,13 @@ function uppyFileToListing(file) {
   const { keywords, height, width } = meta;
   const dimensions = `${width}px × ${height}px`;
   const imageSize = getImageSize(width, height);
-  let keywordsOptions = [];
-  if (keywords) {
-    keywordsOptions = Array.isArray(keywords) ? keywords : keywords.split(',');
-  }
+  const keywordsOptions = deduplicateKeywords(keywords || []).slice(0, MAX_KEYWORDS);
   return {
     key: id,
     id,
     name,
     description: null,
-    keywords: keywordsOptions.slice(0, MAX_KEYWORDS),
+    keywords: keywordsOptions,
     size,
     preview,
     category: [],
@@ -617,9 +615,9 @@ export function initializeUppy(meta) {
                           contentType: type || 'image/jpeg',
                         },
                       });
-                      const originalKeywords = listing?.keywords || [];
-                      const generatedKeywords = generatedTags?.keywords || [];
-                      keywords = _.uniq([...originalKeywords, ...generatedKeywords]);
+                      const originalKeywords = deduplicateKeywords(listing?.keywords || []);
+                      const generatedKeywords = deduplicateKeywords(generatedTags?.keywords || []);
+                      keywords = deduplicateKeywords([...originalKeywords, ...generatedKeywords]);
                       title = generatedTags?.title || '';
                       description = generatedTags?.description || '';
                       fileProceced = true;

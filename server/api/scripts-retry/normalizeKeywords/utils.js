@@ -1,25 +1,3 @@
-// Convert kebab-case to camelCase: my-page-asset > myPageAsset
-export const camelize = s => s.replace(/-(.)/g, l => l[1].toUpperCase());
-
-export const extractYouTubeID = url => {
-  const regExp = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
-  const match = url ? url.match(regExp) : null;
-
-  return match ? match[1] : null;
-};
-
-export function stringToArray(value, separator = ',') {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    return value.split(separator);
-  }
-
-  return [];
-}
-
 /**
  * Deduplicates keywords array, case-insensitive comparison.
  * Converts all keywords to lowercase and trims whitespace.
@@ -28,7 +6,7 @@ export function stringToArray(value, separator = ',') {
  * @param {string[]|string} keywords - Keywords as array or comma-separated string
  * @returns {string[]} - Deduplicated keywords array in lowercase
  */
-export function deduplicateKeywords(keywords) {
+function deduplicateKeywords(keywords) {
   if (!keywords) {
     return [];
   }
@@ -57,3 +35,23 @@ export function deduplicateKeywords(keywords) {
   });
   return result;
 }
+
+/**
+ * Parses keywords from a string (space-separated or comma-separated)
+ * @param {string} keywordsString - Keywords as string
+ * @returns {string[]} - Array of keywords
+ */
+function parseKeywords(keywordsString) {
+  if (!keywordsString || typeof keywordsString !== 'string') {
+    return [];
+  }
+  return keywordsString
+    .split(/\s+|,/)
+    .map(k => k.trim())
+    .filter(k => k.length > 0);
+}
+
+module.exports = {
+  deduplicateKeywords,
+  parseKeywords,
+};

@@ -4,7 +4,6 @@ import { Button, message, Tooltip, Upload } from 'antd';
 import Papa from 'papaparse';
 import { DownloadOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import _ from 'lodash';
 
 import {
   CSV_UPLOAD_ERROR,
@@ -25,6 +24,7 @@ import {
   normalizeCategory,
   normalizeUsage,
 } from './CsvParsingHelpers';
+import { deduplicateKeywords } from '../../../../util/string';
 
 import css from './CsvUpload.module.css';
 
@@ -107,11 +107,11 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
         const listing = listingsMap.get(fileName.trim());
         if (listing) {
           const csvKeywordsRaw = getCsvFieldValue(row, headers, 'keywords', fallbackRow);
-          let keywords = listing.keywords;
+          let keywords = deduplicateKeywords(listing.keywords || []);
           if (csvKeywordsRaw) {
-            const csvKeywords = csvKeywordsRaw.split(',').map(keyword => keyword.trim());
+            const csvKeywords = deduplicateKeywords(csvKeywordsRaw);
             if (mergeOption === KEYWORDS_MERGE_OPTIONS.MERGE) {
-              keywords = _.uniq([...listing.keywords, ...csvKeywords]);
+              keywords = deduplicateKeywords([...keywords, ...csvKeywords]);
             } else {
               keywords = csvKeywords;
             }
