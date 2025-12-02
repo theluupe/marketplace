@@ -4,10 +4,11 @@ const { deduplicateKeywords, parseKeywords } = require('./utils');
 const ALLOWED_STATES = ['published', 'pendingApproval'];
 const LISTING_TYPE = 'product-listing';
 const QUERY_PARAMS = { expand: true };
-const LISTINGS_PER_PAGE = 50;
+const LISTINGS_PER_PAGE = 100;
 
 // [NOTE:] Change the 'MAX_CREATED_AT' in case we have more than 100 pages of listings. Work around the pagination limit.
-const MAX_CREATED_AT = new Date('2025-12-31T23:59:59.999Z');
+const MAX_CREATED_AT = new Date('2025-12-03T23:59:59.999Z');
+// const MAX_CREATED_AT = new Date('2025-02-26T14:43:54.958Z');
 const MAX_CREATED_AT_ISO = MAX_CREATED_AT.toISOString();
 
 const BASE_QUERY_PARAMS = {
