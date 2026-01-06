@@ -99,7 +99,7 @@ module.exports = async (req, res) => {
     const sanitizedFilename = sanitizeFilename(filename || DEFAULT_FILENAME, excludedWords);
     const useDevApiServer = process.env.NODE_ENV === 'development';
     let data = {};
-    if (!useDevApiServer) {
+    if (useDevApiServer) {
       await timeout(1000);
       data = {
         keywords: [
