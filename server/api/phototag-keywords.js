@@ -3,6 +3,7 @@ const FormData = require('form-data');
 
 const { getSdk } = require('../api-util/sdk');
 
+const DEFAULT_EXCLUDED_WORDS = ['luupe'];
 const DEFAULT_FILENAME = 'listing-image.jpg';
 const PHOTOTAG_MAX_KEYWORDS = 40;
 
@@ -21,7 +22,8 @@ function extractExcludedWords(profile = {}) {
     .filter(Boolean);
   const unique = [];
   const seen = new Set();
-  words.forEach(word => {
+  const excludedWords = [...DEFAULT_EXCLUDED_WORDS, ...words];
+  excludedWords.forEach(word => {
     const normalized = word.toLowerCase();
     if (!seen.has(normalized)) {
       seen.add(normalized);

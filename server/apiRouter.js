@@ -24,6 +24,7 @@ const {
   retryBrandUserAssignmentScript,
   upgradePhototagKeywordsScript,
   normalizeKeywordsScript,
+  sanitizeListingDataScript,
 } = require('./api/scripts-retry');
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
@@ -103,6 +104,7 @@ if (useDevApiServer) {
   router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
   router.get('/scrips-retry/upgrade-phototag-keywords/:listingId?', upgradePhototagKeywordsScript);
   router.get('/scrips-retry/normalize-keywords/:listingId?', normalizeKeywordsScript);
+  router.get('/scrips-retry/sanitize-listing-data/:listingId?', sanitizeListingDataScript);
 }
 
 // Create user with identity provider (e.g. Facebook or Google)
