@@ -18,7 +18,7 @@ export default function DigitalProductDownload({
   protectedData,
 }) {
   const config = useConfiguration();
-  const { marketplaceRootURL } = config;
+  const { marketplaceRootURL } = config || {};
 
   // Extract licenseDeal from protectedData
   const licenseDeal = protectedData?.licenseDeal;
