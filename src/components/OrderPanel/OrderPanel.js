@@ -388,6 +388,7 @@ const OrderPanel = props => {
     fetchLineItemsError,
     payoutDetailsWarning,
     location,
+    transactionProcessAlias,
   };
 
   const showClosedListingHelpText = listing.id && isClosed;

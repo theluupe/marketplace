@@ -1,5 +1,6 @@
 import * as log from '../util/log';
 import * as purchaseProcess from './transactionProcessPurchase';
+import * as purchaseNoStripeProcess from './transactionProcessPurchaseNoStripe';
 import * as bookingProcess from './transactionProcessBooking';
 import * as inquiryProcess from './transactionProcessInquiry';
 
@@ -15,6 +16,7 @@ export const INQUIRY = 'inquiry';
 
 // Then names of supported processes
 export const PURCHASE_PROCESS_NAME = 'default-purchase';
+export const PURCHASE_NO_STRIPE_PROCESS_NAME = 'default-purchase-no-stripe';
 export const BOOKING_PROCESS_NAME = 'default-booking';
 export const INQUIRY_PROCESS_NAME = 'default-inquiry';
 
@@ -36,6 +38,12 @@ const PROCESSES = [
     name: PURCHASE_PROCESS_NAME,
     alias: `${PURCHASE_PROCESS_NAME}/release-1`,
     process: purchaseProcess,
+    unitTypes: [ITEM],
+  },
+  {
+    name: PURCHASE_NO_STRIPE_PROCESS_NAME,
+    alias: `${PURCHASE_NO_STRIPE_PROCESS_NAME}/release-1`,
+    process: purchaseNoStripeProcess,
     unitTypes: [ITEM],
   },
   {
@@ -210,6 +218,8 @@ export const resolveLatestProcessName = processName => {
     case 'default-buying-products':
     case PURCHASE_PROCESS_NAME:
       return PURCHASE_PROCESS_NAME;
+    case PURCHASE_NO_STRIPE_PROCESS_NAME:
+      return PURCHASE_NO_STRIPE_PROCESS_NAME;
     case 'flex-default-process':
     case 'flex-hourly-default-process':
     case 'flex-booking-default-process':
@@ -270,17 +280,38 @@ export const getAllTransitionsForEveryProcess = () => {
 export const isPurchaseProcess = processName => {
   const latestProcessName = resolveLatestProcessName(processName);
   const processInfo = PROCESSES.find(process => process.name === latestProcessName);
-  return [PURCHASE_PROCESS_NAME].includes(processInfo?.name);
+  return [PURCHASE_PROCESS_NAME, PURCHASE_NO_STRIPE_PROCESS_NAME].includes(processInfo?.name);
 };
 
 /**
- * Check if the process/alias points to a booking process
+ * Check if the process/alias points to a purchase process
  *
  * @param {String} processAlias
  */
 export const isPurchaseProcessAlias = processAlias => {
   const processName = processAlias ? processAlias.split('/')[0] : null;
   return processAlias ? isPurchaseProcess(processName) : false;
+};
+
+/**
+ * Check if the process is purchase process without Stripe
+ *
+ * @param {String} processName
+ */
+export const isPurchaseNoStripeProcess = processName => {
+  const latestProcessName = resolveLatestProcessName(processName);
+  const processInfo = PROCESSES.find(process => process.name === latestProcessName);
+  return [PURCHASE_NO_STRIPE_PROCESS_NAME].includes(processInfo?.name);
+};
+
+/**
+ * Check if the process/alias points to a purchase process without Stripe
+ *
+ * @param {String} processAlias
+ */
+export const isPurchaseNoStripeProcessAlias = processAlias => {
+  const processName = processAlias ? processAlias.split('/')[0] : null;
+  return processAlias ? isPurchaseNoStripeProcess(processName) : false;
 };
 
 /**
@@ -313,6 +344,29 @@ export const isBookingProcessAlias = processAlias => {
  */
 export const isFullDay = unitType => {
   return [DAY, NIGHT].includes(unitType);
+};
+
+/**
+ * Determine the correct transaction process alias based on user metadata.
+ * For users with isLuupeAdmin: true, use default-purchase-no-stripe/release-1
+ * instead of default-purchase/release-1.
+ *
+ * @param {String} processAlias - The process alias from the listing (e.g., 'default-purchase/release-1')
+ * @param {Object} currentUser - The current user object with attributes.profile.metadata
+ * @returns {String} The process alias to use for transaction initiation
+ */
+export const getTransactionProcessAlias = (processAlias, currentUser) => {
+  if (!processAlias) {
+    return processAlias;
+  }
+  const isDefaultPurchase = processAlias === 'default-purchase/release-1';
+  if (isDefaultPurchase) {
+    const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
+    if (isLuupeAdmin) {
+      return 'default-purchase-no-stripe/release-1';
+    }
+  }
+  return processAlias;
 };
 
 /**
