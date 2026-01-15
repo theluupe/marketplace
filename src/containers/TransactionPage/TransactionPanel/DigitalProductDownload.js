@@ -19,7 +19,11 @@ export default function DigitalProductDownload({
 }) {
   const config = useConfiguration();
   const { marketplaceRootURL } = config || {};
-
+  const isCustomer = transactionRole === 'customer';
+  const showLicenseInfo =
+    processState === processStates.PURCHASED ||
+    processState === processStates.COMPLETED ||
+    processState === processStates.REVIEWED;
   // Extract licenseDeal from protectedData
   const licenseDeal = protectedData?.licenseDeal;
   const customTerms = licenseDeal?.customTerms;
@@ -39,50 +43,44 @@ export default function DigitalProductDownload({
     document.body.removeChild(link);
   }
 
-  const isCustomer = transactionRole === 'customer';
-  if (!isCustomer) {
+  if (!showLicenseInfo) {
     return null;
   }
 
-  switch (processState) {
-    case processStates.PURCHASED:
-    case processStates.COMPLETED:
-    case processStates.REVIEWED:
-      return (
-        <div>
-          <div className={css.licenseContainer}>
-            <Heading as="h3" rootClassName={css.sectionHeading}>
-              <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseTitle" />
-            </Heading>
-            <div className={css.feedContent}>
-              {customTerms && (
-                <div className={css.customTermsContainer}>
-                  <p className={css.customTermsText}>{customTerms}</p>
-                </div>
-              )}
-              <Button
-                type="link"
-                target="_blank"
-                href={`${marketplaceRootURL}/p/standard-royalty-free-license`}
-                className={css.licenseLink}
-              >
-                <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseLink" />
-              </Button>
+  return (
+    <div>
+      <div className={css.licenseContainer}>
+        <Heading as="h3" rootClassName={css.sectionHeading}>
+          <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseTitle" />
+        </Heading>
+        <div className={css.feedContent}>
+          {customTerms && (
+            <div className={css.customTermsContainer}>
+              <p className={css.customTermsText}>{customTerms}</p>
             </div>
-          </div>
-          <div className={css.downloadButtonWrapper}>
-            <Button
-              type="primary"
-              icon={<CloudDownloadOutlined />}
-              className={css.downloadButton}
-              onClick={downloadHanlder}
-            >
-              <FormattedMessage id="TransactionPanel.downloadDigitalProduct.downloadButton" />
-            </Button>
-          </div>
+          )}
+          <Button
+            type="link"
+            target="_blank"
+            href={`${marketplaceRootURL}/p/standard-royalty-free-license`}
+            className={css.licenseLink}
+          >
+            <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseLink" />
+          </Button>
         </div>
-      );
-    default:
-      return null;
-  }
+      </div>
+      {isCustomer && (
+        <div className={css.downloadButtonWrapper}>
+          <Button
+            type="primary"
+            icon={<CloudDownloadOutlined />}
+            className={css.downloadButton}
+            onClick={downloadHanlder}
+          >
+            <FormattedMessage id="TransactionPanel.downloadDigitalProduct.downloadButton" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }

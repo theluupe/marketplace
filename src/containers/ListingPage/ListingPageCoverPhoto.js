@@ -21,6 +21,7 @@ import {
   createSlug,
   NO_ACCESS_PAGE_USER_PENDING_APPROVAL,
   NO_ACCESS_PAGE_VIEW_LISTINGS,
+  NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE,
 } from '../../util/urlHelpers';
 import {
   isErrorNoViewingPermission,
@@ -158,6 +159,7 @@ export const ListingPageComponent = props => {
   const { listingType } = publicData;
   const isPortfolioListing = listingType === LISTING_TYPES.PORTFOLIO;
   const isProfileListing = listingType === LISTING_TYPES.PROFILE;
+  const isHiddenProductListing = listingType === LISTING_TYPES.HIDDEN_PRODUCT;
 
   const authorId = currentListing?.author?.id?.uuid;
   if (isPortfolioListing) {
@@ -197,6 +199,20 @@ export const ListingPageComponent = props => {
   const userAndListingAuthorAvailable = !!(currentUser && authorAvailable);
   const isOwnListing =
     userAndListingAuthorAvailable && currentListing.author.id.uuid === currentUser.id.uuid;
+
+  // Check access for hidden-product-listing: only admins and owners can view
+  if (isHiddenProductListing) {
+    const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
+    const hasAccess = isOwnListing || isLuupeAdmin;
+    if (!hasAccess) {
+      return (
+        <NamedRedirect
+          name="NoAccessPage"
+          params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
+        />
+      );
+    }
+  }
 
   const { transactionProcessAlias, unitType } = publicData;
   if (!(listingType && transactionProcessAlias && unitType)) {

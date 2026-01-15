@@ -27,3 +27,8 @@
 .expiryInfo small {
   font-size: 12px;
 }
+
+.licenseLink {
+  padding-left: 0;
+  padding-right: 0;
+}

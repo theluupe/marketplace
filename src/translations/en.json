@@ -944,7 +944,7 @@
   "ReviewForm.reviewSubmit": "Publish review",
   "ReviewForm.reviewSubmitAlreadySent": "Review already sent. Please refresh the page.",
   "ReviewForm.reviewSubmitFailed": "Failed to send a review. Please try again.",
-  "ReviewModal.description": "Did you find the perfect asset for your creative project? Let Amanda know. Leaving a review helps them grow, connect with more opportunities, and continue doing what they do best.",
+  "ReviewModal.description": "Did you find the perfect asset for your creative project? Let them know. Leaving a review helps them grow, connect with more opportunities, and continue doing what they do best.",
   "ReviewModal.later": "Later",
   "ReviewModal.title": "Leave a review for {revieweeName}",
   "SavedCardDetails.cancel": "Cancel",

@@ -30,7 +30,9 @@ import { userDisplayNameAsString } from '../../util/data';
 import {
   INQUIRY_PROCESS_NAME,
   getSupportedProcessesInfo,
+  getTransactionProcessAlias,
   isBookingProcess,
+  isPurchaseNoStripeProcess,
   isPurchaseProcess,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
@@ -301,12 +303,14 @@ const OrderPanel = props => {
   const publicData = listing?.attributes?.publicData || {};
   const { listingType, unitType, transactionProcessAlias = '', priceVariants, startTimeInterval } =
     publicData || {};
-  const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
+  const processAlias = getTransactionProcessAlias(transactionProcessAlias, currentUser);
+  const processName = processAlias ? resolveLatestProcessName(processAlias.split('/')[0]) : null;
   const lineItemUnitType = lineItemUnitTypeMaybe || `line-item/${unitType}`;
   const price = listing?.attributes?.price;
   const isPaymentProcess = processName !== INQUIRY_PROCESS_NAME;
   const showPriceMissing = isPaymentProcess && !price;
   const showInvalidCurrency = isPaymentProcess && price?.currency !== marketplaceCurrency;
+  const hidePriceForAdmin = isPurchaseNoStripeProcess(processName);
 
   const timeZone = listing?.attributes?.availabilityPlan?.timezone;
   const isClosed = listing?.attributes?.state === LISTING_STATE_CLOSED;
@@ -440,13 +444,15 @@ const OrderPanel = props => {
           </div>
           {favoriteButton}
         </div>
-        <PriceMaybe
-          price={price}
-          publicData={publicData}
-          validListingTypes={validListingTypes}
-          intl={intl}
-          marketplaceCurrency={marketplaceCurrency}
-        />
+        {!hidePriceForAdmin ? (
+          <PriceMaybe
+            price={price}
+            publicData={publicData}
+            validListingTypes={validListingTypes}
+            intl={intl}
+            marketplaceCurrency={marketplaceCurrency}
+          />
+        ) : null}
         <div className={css.author}>
           <AvatarSmall user={author} className={css.providerAvatar} />
           <span className={css.providerNameLinked}>
@@ -525,14 +531,16 @@ const OrderPanel = props => {
         ) : null}
       </ModalInMobile>
       <div className={css.openOrderForm}>
-        <PriceMaybe
-          price={price}
-          publicData={publicData}
-          validListingTypes={validListingTypes}
-          intl={intl}
-          marketplaceCurrency={marketplaceCurrency}
-          showCurrencyMismatch
-        />
+        {!hidePriceForAdmin ? (
+          <PriceMaybe
+            price={price}
+            publicData={publicData}
+            validListingTypes={validListingTypes}
+            intl={intl}
+            marketplaceCurrency={marketplaceCurrency}
+            showCurrencyMismatch
+          />
+        ) : null}
         {isClosed ? (
           <div className={css.closedListingButton}>
             <FormattedMessage id="OrderPanel.closedListingButtonText" />
