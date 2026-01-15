@@ -139,6 +139,7 @@ const EnhancedCheckoutPage = props => {
   const { listingType } = publicData;
   const isPortfolioListing = listingType === LISTING_TYPES.PORTFOLIO;
   const isProfileListing = listingType === LISTING_TYPES.PROFILE;
+  const isHiddenProductListing = listingType === LISTING_TYPES.HIDDEN_PRODUCT;
   const isOwnListing = currentUser?.id && listing?.author?.id?.uuid === currentUser?.id?.uuid;
   const hasRequiredData = !!(listing?.id && listing?.author?.id && processName);
   const shouldRedirect = isDataLoaded && !(hasRequiredData && !isOwnListing);
@@ -159,6 +160,20 @@ const EnhancedCheckoutPage = props => {
         params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
       />
     );
+  }
+
+  // Check access for hidden-product-listing: only admins and owners can checkout
+  if (isHiddenProductListing && isDataLoaded) {
+    const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
+    const hasAccess = isOwnListing || isLuupeAdmin;
+    if (!hasAccess) {
+      return (
+        <NamedRedirect
+          name="NoAccessPage"
+          params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
+        />
+      );
+    }
   }
 
   // Redirect back to ListingPage if data is missing.

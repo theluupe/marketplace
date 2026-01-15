@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useParams, useLocation } from 'react-router-dom';
-import { Alert } from 'antd';
+import { Alert, Button } from 'antd';
 import { NamedLink } from '../../components';
+import { useConfiguration } from '../../context/configurationContext';
 import { validateLicenseDeal } from '../../util/api';
 import { parse } from '../../util/urlHelpers';
 import { formatMoney } from '../../util/currency';
@@ -20,6 +21,8 @@ const LicenseDealValidator = props => {
   const location = useLocation();
   const params = useParams();
   const intl = useIntl();
+  const config = useConfiguration();
+  const { marketplaceRootURL } = config || {};
 
   const loadingLicenseDealMessage = intl.formatMessage({
     id: 'LicenseDealValidator.loading',
@@ -138,7 +141,27 @@ const LicenseDealValidator = props => {
         showIcon
       />
     </div>
-  ) : null;
+  ) : (
+    <div className={css.container}>
+      <Alert
+        message={<FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseTitle" />}
+        description={
+          <div>
+            <Button
+              type="link"
+              target="_blank"
+              href={`${marketplaceRootURL}/p/standard-royalty-free-license`}
+              className={css.licenseLink}
+            >
+              <FormattedMessage id="TransactionPanel.downloadDigitalProduct.licenseLink" />
+            </Button>
+          </div>
+        }
+        type="info"
+        showIcon
+      />
+    </div>
+  );
 };
 
 export default LicenseDealValidator;

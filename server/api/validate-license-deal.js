@@ -35,7 +35,9 @@ module.exports = async (req, res) => {
     const expiresAt = new Date(matchingLicenseDeal?.expiresAt);
     const isExpired = now > expiresAt;
     const isPublished = listing.attributes.state === 'published';
-    const isProductListing = publicData.listingType === 'product-listing';
+    const isProductListing =
+      publicData.listingType === 'product-listing' ||
+      publicData.listingType === 'hidden-product-listing';
 
     if (!isPublished) {
       return res.status(400).json({

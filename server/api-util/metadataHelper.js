@@ -28,6 +28,7 @@ const SELLER_MEMBERSHIP_TYPES = {
 
 const LISTING_TYPES = {
   PRODUCT: 'product-listing',
+  HIDDEN_PRODUCT: 'hidden-product-listing',
   SERVICE: 'service-listing',
   PORTFOLIO: 'portfolio-showcase',
   PROFILE: 'profile-listing',

@@ -319,7 +319,9 @@ exports.hasLicenseDeal = async (listingId, licenseDealId, currentUserId) => {
     const expiresAt = new Date(matchingLicenseDeal?.expiresAt);
     const isExpired = now > expiresAt;
     const isPublished = listing.attributes.state === 'published';
-    const isProductListing = publicData.listingType === 'product-listing';
+    const isProductListing =
+      publicData.listingType === 'product-listing' ||
+      publicData.listingType === 'hidden-product-listing';
     if (!isPublished || !isProductListing || !matchingLicenseDeal || isExpired) {
       return;
     }
