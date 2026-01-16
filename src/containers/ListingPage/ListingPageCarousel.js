@@ -208,20 +208,11 @@ export const ListingPageComponent = props => {
   const isOwnListing =
     userAndListingAuthorAvailable && currentListing.author.id.uuid === currentUser.id.uuid;
 
-  console.log('\n\n\n*******************************');
-  console.log('\n[ListingPageCarousel] - isHiddenProductListing:', isHiddenProductListing);
   // Check access for hidden-product-listing: only admins and owners can view
   if (mounted && isHiddenProductListing) {
     const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
     const hasAccess = isOwnListing || isLuupeAdmin;
-
-    console.log('\n[ListingPageCarousel] - currentUser:', currentUser);
-    console.log('\n[ListingPageCarousel] - isOwnListing:', isOwnListing);
-    console.log('\n[ListingPageCarousel] - isLuupeAdmin:', isLuupeAdmin);
-    console.log('\n[ListingPageCarousel] - hasAccess:', hasAccess);
-
     if (!hasAccess) {
-      console.log('\n*******************************\n\n\n');
       return (
         <NamedRedirect
           name="NoAccessPage"
@@ -230,7 +221,6 @@ export const ListingPageComponent = props => {
       );
     }
   }
-  console.log('\n*******************************\n\n\n');
 
   const { transactionProcessAlias, unitType } = publicData;
   if (!(listingType && transactionProcessAlias && unitType)) {
