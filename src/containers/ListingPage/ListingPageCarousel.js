@@ -212,6 +212,27 @@ export const ListingPageComponent = props => {
   if (isHiddenProductListing) {
     const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
     const hasAccess = isOwnListing || isLuupeAdmin;
+
+
+
+
+
+
+    console.log('\n\n\n*******************************');
+    console.log('\n[ListingPageCarousel] - currentUser:', currentUser);
+    console.log('\n[ListingPageCarousel] - isOwnListing:', isOwnListing);
+    console.log('\n[ListingPageCarousel] - isLuupeAdmin:', isLuupeAdmin);
+    console.log('\n[ListingPageCarousel] - hasAccess:', hasAccess);
+    console.log('\n*******************************\n\n\n');
+
+
+
+
+
+
+
+
+
     if (!hasAccess) {
       return (
         <NamedRedirect
