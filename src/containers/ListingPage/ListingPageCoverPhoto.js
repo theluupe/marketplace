@@ -91,6 +91,11 @@ const { UUID } = sdkTypes;
 
 export const ListingPageComponent = props => {
   const [imageCarouselOpen, setImageCarouselOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     currentUser,
@@ -201,7 +206,7 @@ export const ListingPageComponent = props => {
     userAndListingAuthorAvailable && currentListing.author.id.uuid === currentUser.id.uuid;
 
   // Check access for hidden-product-listing: only admins and owners can view
-  if (isHiddenProductListing) {
+  if (mounted && isHiddenProductListing) {
     const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
     const hasAccess = isOwnListing || isLuupeAdmin;
     if (!hasAccess) {

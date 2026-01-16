@@ -211,7 +211,7 @@ export const ListingPageComponent = props => {
   console.log('\n\n\n*******************************');
   console.log('\n[ListingPageCarousel] - isHiddenProductListing:', isHiddenProductListing);
   // Check access for hidden-product-listing: only admins and owners can view
-  if (isHiddenProductListing) {
+  if (mounted && isHiddenProductListing) {
     const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
     const hasAccess = isOwnListing || isLuupeAdmin;
 
@@ -220,15 +220,15 @@ export const ListingPageComponent = props => {
     console.log('\n[ListingPageCarousel] - isLuupeAdmin:', isLuupeAdmin);
     console.log('\n[ListingPageCarousel] - hasAccess:', hasAccess);
 
-    // if (!hasAccess) {
-    //   console.log('\n*******************************\n\n\n');
-    //   return (
-    //     <NamedRedirect
-    //       name="NoAccessPage"
-    //       params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
-    //     />
-    //   );
-    // }
+    if (!hasAccess) {
+      console.log('\n*******************************\n\n\n');
+      return (
+        <NamedRedirect
+          name="NoAccessPage"
+          params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
+        />
+      );
+    }
   }
   console.log('\n*******************************\n\n\n');
 
