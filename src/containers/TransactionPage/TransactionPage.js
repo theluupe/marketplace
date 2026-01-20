@@ -19,6 +19,7 @@ import {
   getProcess,
   isBookingProcess,
   isPurchaseProcess,
+  isPurchaseNoStripeProcess,
 } from '../../transactions/transaction';
 
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
@@ -461,7 +462,8 @@ export const TransactionPageComponent = props => {
   const hasViewingRights = currentUser && hasPermissionToViewData(currentUser);
 
   const txBookingMaybe = booking?.id ? { booking, timeZone } : {};
-  const orderBreakdownMaybe = hasLineItems
+  const shouldShowOrderBreakdown = hasLineItems && !isPurchaseNoStripeProcess(processName);
+  const orderBreakdownMaybe = shouldShowOrderBreakdown
     ? {
         orderBreakdown: (
           <OrderBreakdown

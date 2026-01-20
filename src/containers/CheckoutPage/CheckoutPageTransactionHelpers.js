@@ -3,6 +3,7 @@ import { findRouteByRouteName } from '../../util/routes';
 import { ensureStripeCustomer, ensureTransaction } from '../../util/data';
 import { minutesBetween } from '../../util/dates';
 import { formatMoney } from '../../util/currency';
+import { getTransactionProcessAlias } from '../../transactions/transaction';
 import { storeData } from './CheckoutPageSessionHelpers';
 
 /**
@@ -343,6 +344,73 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
   );
 
   return handlePaymentIntentCreation(orderParams);
+};
+
+/**
+ * Create call sequence for checkout without payment.
+ *
+ * @param {Object} orderParams contains params for the initial order itself
+ * @param {Object} extraParams contains extra params needed by one of the following calls in the checkout sequence
+ * @returns Promise that goes through each step in the checkout sequence.
+ */
+export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
+  const {
+    message,
+    onInitiateOrder,
+    onSendMessage,
+    pageData,
+    process,
+    setPageData,
+    sessionStorageKey,
+    currentUser,
+  } = extraParams;
+
+  const storedTx = ensureTransaction(pageData.transaction);
+
+  const listingProcessAlias = pageData?.listing?.attributes?.publicData?.transactionProcessAlias;
+  const processAlias = getTransactionProcessAlias(listingProcessAlias, currentUser);
+
+  ////////////////////////////////////////////////
+  // Step 1: initiate order                     //
+  // by requesting booking from Marketplace API //
+  ////////////////////////////////////////////////
+  const fnRequest = fnParams => {
+    // fnParams should be { listingId, deliveryMethod?, quantity?, bookingDates?, protectedData }
+
+    const requestTransition =
+      storedTx?.attributes?.lastTransition === process.transitions.INQUIRE
+        ? process.transitions.REQUEST_PAYMENT_AFTER_INQUIRY
+        : process.transitions.REQUEST_PAYMENT;
+    const isPrivileged = process.isPrivileged(requestTransition);
+
+    const orderPromise = onInitiateOrder(
+      fnParams,
+      processAlias,
+      storedTx.id,
+      requestTransition,
+      isPrivileged
+    );
+
+    orderPromise.then(order => {
+      // Store the returned transaction (order)
+      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
+    });
+
+    return orderPromise;
+  };
+
+  //////////////////////////////////
+  // Step 2: send initial message //
+  //////////////////////////////////
+  const fnSendMessage = fnParams => {
+    const orderId = fnParams?.id;
+    return onSendMessage({ id: orderId, message });
+  };
+
+  /////////////////////////////////
+  // Call each step in sequence //
+  ////////////////////////////////
+  return fnRequest(orderParams).then(res => fnSendMessage({ ...res }));
 };
 
 /**

@@ -752,6 +752,7 @@ export const SELLER_MEMBERSHIP_TYPES = {
 
 export const LISTING_TYPES = {
   PRODUCT: 'product-listing',
+  HIDDEN_PRODUCT: 'hidden-product-listing',
   SERVICE: 'service-listing',
   PORTFOLIO: 'portfolio-showcase',
   PROFILE: 'profile-listing',

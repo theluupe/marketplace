@@ -5,7 +5,12 @@ import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { propTypes } from '../../../util/types';
 import { parse } from '../../../util/urlHelpers';
 import { numberAtLeast, required } from '../../../util/validators';
-import { PURCHASE_PROCESS_NAME } from '../../../transactions/transaction';
+import {
+  PURCHASE_PROCESS_NAME,
+  getTransactionProcessAlias,
+  isPurchaseNoStripeProcess,
+  resolveLatestProcessName,
+} from '../../../transactions/transaction';
 
 import {
   Form,
@@ -224,8 +229,18 @@ const renderForm = formRenderProps => {
   };
 
   const breakdownData = {};
+  // Check if we should hide breakdown for no-stripe purchase process
+  const transactionProcessAlias = formRenderProps.transactionProcessAlias || '';
+  const actualProcessAlias = getTransactionProcessAlias(transactionProcessAlias, currentUser);
+  const actualProcessName = resolveLatestProcessName(actualProcessAlias.split('/')[0]);
+  const withNoPaymentPurchase = isPurchaseNoStripeProcess(actualProcessName);
+
   const showBreakdown =
-    breakdownData && lineItems && !fetchLineItemsInProgress && !fetchLineItemsError;
+    !withNoPaymentPurchase &&
+    breakdownData &&
+    lineItems &&
+    !fetchLineItemsInProgress &&
+    !fetchLineItemsError;
 
   const showContactUser = typeof onContactUser === 'function';
 
@@ -319,13 +334,14 @@ const renderForm = formRenderProps => {
           />
         </div>
       ) : null}
-
-      <FieldVoucherInput
-        form={formApi}
-        formId={formId}
-        listingId={listingId.uuid}
-        isLoggedIn={isLoggedIn}
-      />
+      {!withNoPaymentPurchase && (
+        <FieldVoucherInput
+          form={formApi}
+          formId={formId}
+          listingId={listingId.uuid}
+          isLoggedIn={isLoggedIn}
+        />
+      )}
 
       <div className={css.licenseOptions}>
         <div>

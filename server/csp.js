@@ -65,6 +65,10 @@ const defaultDirectives = {
     'sentry.io',
     '*.sentry.io',
     '*.stripe.com',
+
+    // Imgix - needed for fetch() calls to download images
+    '*.imgix.net',
+    'sharetribe.imgix.net', // Safari 9.1 didn't recognize asterisk rule.
   ],
   fontSrc: [self, data, 'assets-sharetribecom.sharetribe.com', 'fonts.gstatic.com'],
   formAction: [self],

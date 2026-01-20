@@ -117,7 +117,9 @@ export const searchListings = (searchParams, config) => (dispatch, getState, sdk
   // https://www.sharetribe.com/docs/how-to/manage-search-schemas-with-flex-cli/#adding-listing-search-schemas
   const searchValidListingTypes = (listingTypes, listingTypePathParam, isListingTypeVariant) => {
     const validListingTypes = listingTypes.filter(
-      l => l.listingType !== LISTING_TAB_TYPES.PORTFOLIO
+      l =>
+        l.listingType !== LISTING_TAB_TYPES.PORTFOLIO &&
+        l.listingType !== LISTING_TAB_TYPES.HIDDEN_PRODUCT
     );
     return isListingTypeVariant
       ? {

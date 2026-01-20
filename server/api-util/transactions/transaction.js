@@ -1,10 +1,12 @@
 const purchaseProcess = require('./transactionProcessPurchase');
+const purchaseNoStripeProcess = require('./transactionProcessPurchaseNoStripe');
 
 // Supported unit types
 const ITEM = 'item';
 
 // Then names of supported processes
 const PURCHASE_PROCESS_NAME = 'default-purchase';
+const PURCHASE_NO_STRIPE_PROCESS_NAME = 'default-purchase-no-stripe';
 const BOOKING_PROCESS_NAME = 'default-booking';
 const INQUIRY_PROCESS_NAME = 'default-inquiry';
 
@@ -26,6 +28,12 @@ const PROCESSES = [
     name: PURCHASE_PROCESS_NAME,
     alias: `${PURCHASE_PROCESS_NAME}/release-1`,
     process: purchaseProcess,
+    unitTypes: [ITEM],
+  },
+  {
+    name: PURCHASE_NO_STRIPE_PROCESS_NAME,
+    alias: `${PURCHASE_NO_STRIPE_PROCESS_NAME}/release-1`,
+    process: purchaseNoStripeProcess,
     unitTypes: [ITEM],
   },
 ];
@@ -100,6 +108,8 @@ const resolveLatestProcessName = processName => {
     case 'default-buying-products':
     case PURCHASE_PROCESS_NAME:
       return PURCHASE_PROCESS_NAME;
+    case PURCHASE_NO_STRIPE_PROCESS_NAME:
+      return PURCHASE_NO_STRIPE_PROCESS_NAME;
     case 'flex-default-process':
     case 'flex-hourly-default-process':
     case 'flex-booking-default-process':
@@ -130,7 +140,31 @@ const getProcess = processName => {
   }
 };
 
+/**
+ * Determine the correct transaction process alias based on user metadata.
+ * For users with isLuupeAdmin: true, use default-purchase-no-stripe/release-1
+ * instead of default-purchase/release-1.
+ *
+ * @param {String} processAlias - The process alias from the listing (e.g., 'default-purchase/release-1')
+ * @param {Object} currentUser - The current user object with attributes.profile.metadata
+ * @returns {String} The process alias to use for transaction initiation
+ */
+const getTransactionProcessAlias = (processAlias, currentUser) => {
+  if (!processAlias) {
+    return processAlias;
+  }
+  const isDefaultPurchase = processAlias === 'default-purchase/release-1';
+  if (isDefaultPurchase) {
+    const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
+    if (isLuupeAdmin) {
+      return 'default-purchase-no-stripe/release-1';
+    }
+  }
+  return processAlias;
+};
+
 module.exports = {
   resolveLatestProcessName,
   getProcess,
+  getTransactionProcessAlias,
 };

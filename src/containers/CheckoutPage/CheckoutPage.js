@@ -16,7 +16,12 @@ import {
 import { hasPermissionToInitiateTransactions, isUserAuthorized } from '../../util/userHelpers';
 import { isErrorNoPermissionForInitiateTransactions } from '../../util/errors';
 import { LISTING_TYPES } from '../../util/types';
-import { INQUIRY_PROCESS_NAME, resolveLatestProcessName } from '../../transactions/transaction';
+import {
+  INQUIRY_PROCESS_NAME,
+  PURCHASE_NO_STRIPE_PROCESS_NAME,
+  resolveLatestProcessName,
+  getTransactionProcessAlias,
+} from '../../transactions/transaction';
 
 // Import global thunk functions
 import { isScrollingDisabled } from '../../ducks/ui.duck';
@@ -45,6 +50,7 @@ import CheckoutPageWithPayment, {
   loadInitialDataForStripePayments,
 } from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
+import CheckoutPageWithoutPayment, { loadInitialData } from './CheckoutPageWithoutPayment';
 
 const STORAGE_KEY = 'CheckoutPage';
 
@@ -52,14 +58,18 @@ const onSubmitCallback = () => {
   clearData(STORAGE_KEY);
 };
 
-const getProcessName = pageData => {
+const getProcessName = (pageData, currentUser) => {
   const { transaction, listing } = pageData || {};
-  const processName = transaction?.id
-    ? transaction?.attributes?.processName
-    : listing?.id
-    ? listing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0]
-    : null;
-  return resolveLatestProcessName(processName);
+  if (transaction?.id) {
+    return resolveLatestProcessName(transaction?.attributes?.processName);
+  }
+  if (listing?.id) {
+    const listingProcessAlias = listing?.attributes?.publicData?.transactionProcessAlias;
+    const resolvedProcessAlias = getTransactionProcessAlias(listingProcessAlias, currentUser);
+    const processName = resolvedProcessAlias ? resolvedProcessAlias.split('/')[0] : null;
+    return resolveLatestProcessName(processName);
+  }
+  return null;
 };
 
 const EnhancedCheckoutPage = props => {
@@ -87,8 +97,18 @@ const EnhancedCheckoutPage = props => {
 
     // Do not fetch extra data if user is not active (E.g. they are in pending-approval state.)
     if (isUserAuthorized(currentUser)) {
+      const processNameForData = getProcessName(data, currentUser);
       // This is for processes using payments with Stripe integration
-      if (getProcessName(data) !== INQUIRY_PROCESS_NAME) {
+      if (processNameForData === PURCHASE_NO_STRIPE_PROCESS_NAME) {
+        // Fetch speculateTransition for transactions without Stripe payments
+        loadInitialData({
+          pageData: data || {},
+          fetchSpeculatedTransaction,
+          config,
+          location,
+          currentUser,
+        });
+      } else if (processNameForData !== INQUIRY_PROCESS_NAME) {
         // Fetch StripeCustomer and speculateTransition for transactions that include Stripe payments
         loadInitialDataForStripePayments({
           pageData: data || {},
@@ -109,8 +129,9 @@ const EnhancedCheckoutPage = props => {
     onInquiryWithoutPayment,
     initiateOrderError,
   } = props;
-  const processName = getProcessName(pageData);
+  const processName = getProcessName(pageData, currentUser);
   const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
+  const isPurchaseNoStripeProcess = processName === PURCHASE_NO_STRIPE_PROCESS_NAME;
 
   // Handle redirection to ListingPage, if this is own listing or if required data is not available
   const listing = pageData?.listing;
@@ -118,6 +139,7 @@ const EnhancedCheckoutPage = props => {
   const { listingType } = publicData;
   const isPortfolioListing = listingType === LISTING_TYPES.PORTFOLIO;
   const isProfileListing = listingType === LISTING_TYPES.PROFILE;
+  const isHiddenProductListing = listingType === LISTING_TYPES.HIDDEN_PRODUCT;
   const isOwnListing = currentUser?.id && listing?.author?.id?.uuid === currentUser?.id?.uuid;
   const hasRequiredData = !!(listing?.id && listing?.author?.id && processName);
   const shouldRedirect = isDataLoaded && !(hasRequiredData && !isOwnListing);
@@ -138,6 +160,20 @@ const EnhancedCheckoutPage = props => {
         params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
       />
     );
+  }
+
+  // Check access for hidden-product-listing: only admins and owners can checkout
+  if (isHiddenProductListing && isDataLoaded) {
+    const isLuupeAdmin = currentUser?.attributes?.profile?.metadata?.isLuupeAdmin === true;
+    const hasAccess = isOwnListing || isLuupeAdmin;
+    if (!hasAccess) {
+      return (
+        <NamedRedirect
+          name="NoAccessPage"
+          params={{ missingAccessRight: NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE }}
+        />
+      );
+    }
   }
 
   // Redirect back to ListingPage if data is missing.
@@ -188,7 +224,25 @@ const EnhancedCheckoutPage = props => {
       onSubmitCallback={onSubmitCallback}
       {...props}
     />
-  ) : processName && !isInquiryProcess && !speculateTransactionInProgress ? (
+  ) : processName && isPurchaseNoStripeProcess ? (
+    <CheckoutPageWithoutPayment
+      config={config}
+      routeConfiguration={routeConfiguration}
+      intl={intl}
+      history={history}
+      processName={processName}
+      sessionStorageKey={STORAGE_KEY}
+      pageData={pageData}
+      setPageData={setPageData}
+      listingTitle={listingTitle}
+      title={title}
+      onSubmitCallback={onSubmitCallback}
+      {...props}
+    />
+  ) : processName &&
+    !isInquiryProcess &&
+    !isPurchaseNoStripeProcess &&
+    !speculateTransactionInProgress ? (
     <CheckoutPageWithPayment
       config={config}
       routeConfiguration={routeConfiguration}

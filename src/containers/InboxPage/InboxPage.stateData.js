@@ -3,6 +3,7 @@ import {
   BOOKING_PROCESS_NAME,
   INQUIRY_PROCESS_NAME,
   PURCHASE_PROCESS_NAME,
+  PURCHASE_NO_STRIPE_PROCESS_NAME,
   resolveLatestProcessName,
   getProcess,
 } from '../../transactions/transaction';
@@ -35,7 +36,7 @@ export const getStateData = params => {
     };
   };
 
-  if (processName === PURCHASE_PROCESS_NAME) {
+  if (processName === PURCHASE_PROCESS_NAME || processName === PURCHASE_NO_STRIPE_PROCESS_NAME) {
     return getStateDataForPurchaseProcess(params, processInfo());
   } else if (processName === BOOKING_PROCESS_NAME) {
     return getStateDataForBookingProcess(params, processInfo());
