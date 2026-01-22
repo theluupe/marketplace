@@ -38,6 +38,7 @@ const defaultDirectives = {
   childSrc: [blob],
   connectSrc: [
     self,
+    blob,
     baseUrl,
     assetCdnBaseUrl,
     '*.st-api.com',
