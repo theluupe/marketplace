@@ -70,6 +70,10 @@ const defaultDirectives = {
     // Imgix - needed for fetch() calls to download images
     '*.imgix.net',
     'sharetribe.imgix.net', // Safari 9.1 didn't recognize asterisk rule.
+
+    // Transloadit - needed for file uploads via Uppy
+    'api2.transloadit.com',
+    '*.transloadit.com',
   ],
   fontSrc: [self, data, 'assets-sharetribecom.sharetribe.com', 'fonts.gstatic.com'],
   formAction: [self],
@@ -77,6 +81,11 @@ const defaultDirectives = {
     self,
     '*.stripe.com',
     '*.youtube-nocookie.com',
+    '*.youtube.com',
+    '*.vimeo.com',
+    '*.dailymotion.com',
+    '*.twitch.tv',
+    '*.referral-factory.com',
     'https://bid.g.doubleclick.net',
     'https://td.doubleclick.net',
   ],
