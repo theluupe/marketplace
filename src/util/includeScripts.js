@@ -30,6 +30,16 @@ export const IncludeScripts = props => {
   // Collect relevant map libraries
   let mapLibraries = [];
   let analyticsLibraries = [];
+  let customLibraries = [];
+
+  // The Luupe custom scripts
+  customLibraries.push(
+    <script
+      key="ubembedApi"
+      src="https://3a5fde176df5410cbdbe61f0f27b438d.js.ubembed.com"
+      async
+    ></script>
+  );
 
   if (isMapboxInUse) {
     // NOTE: remember to update mapbox-sdk.min.js to a new version regularly.
@@ -147,6 +157,6 @@ export const IncludeScripts = props => {
     }
   };
 
-  const allScripts = [...analyticsLibraries, ...mapLibraries];
+  const allScripts = [...analyticsLibraries, ...mapLibraries, ...customLibraries];
   return <Helmet onChangeClientState={onChangeClientState}>{allScripts}</Helmet>;
 };
