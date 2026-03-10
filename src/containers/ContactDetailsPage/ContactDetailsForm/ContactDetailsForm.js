@@ -86,6 +86,7 @@ class ContactDetailsFormComponent extends Component {
     super(props);
     this.state = { showVerificationEmailSentMessage: false, showResetPasswordMessage: false };
     this.emailSentTimeoutId = null;
+    this.restartTimeoutId = null;
     this.handleResendVerificationEmail = this.handleResendVerificationEmail.bind(this);
     this.handleResetPassword = this.handleResetPassword.bind(this);
     this.submittedValues = {};
@@ -93,6 +94,7 @@ class ContactDetailsFormComponent extends Component {
 
   componentWillUnmount() {
     window.clearTimeout(this.emailSentTimeoutId);
+    window.clearTimeout(this.restartTimeoutId);
   }
 
   handleResendVerificationEmail() {
@@ -363,7 +365,11 @@ class ContactDetailsFormComponent extends Component {
               className={classes}
               onSubmit={e => {
                 this.submittedValues = values;
-                handleSubmit(e);
+                handleSubmit(e).then(() => {
+                  this.restartTimeoutId = setTimeout(() => {
+                    fieldRenderProps.form.restart({ email, phoneNumber });
+                  }, 1000);
+                });
               }}
             >
               <div className={css.contactDetailsSection}>
@@ -381,7 +387,7 @@ class ContactDetailsFormComponent extends Component {
                 <PhoneNumberMaybe formId={formId} userTypeConfig={userTypeConfig} intl={intl} />
               </div>
 
-              <div className={confirmClasses}>
+              <div className={confirmClasses} aria-hidden={!emailChanged}>
                 <H4 as="h3" className={css.confirmChangesTitle}>
                   <FormattedMessage id="ContactDetailsForm.confirmChangesTitle" />
                 </H4>
@@ -399,6 +405,7 @@ class ContactDetailsFormComponent extends Component {
                   type="password"
                   name="currentPassword"
                   id={formId ? `${formId}.currentPassword` : 'currentPassword'}
+                  disabled={!emailChanged}
                   autoComplete="current-password"
                   label={passwordLabel}
                   placeholder={passwordPlaceholder}

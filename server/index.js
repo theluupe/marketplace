@@ -45,6 +45,7 @@ const renderer = require('./renderer');
 const dataLoader = require('./dataLoader');
 const { generateCSPNonce, csp } = require('./csp');
 const sdkUtils = require('./api-util/sdk');
+const { getSDKProxy } = require('./api-util/sdkCacheProxy');
 
 const buildPath = path.resolve(__dirname, '..', 'build');
 const dev = process.env.REACT_APP_ENV === 'development';
@@ -155,7 +156,27 @@ if (TRUST_PROXY === 'true') {
 }
 
 app.use(compression());
-app.use('/static', express.static(path.join(buildPath, 'static')));
+app.use(
+  '/static',
+  express.static(path.join(buildPath, 'static'), {
+    setHeaders: (res, path) => {
+      const isMain = path.match(
+        /^\/.*static\/(js|css)\/main\.[a-z0-9]+\.(css|js|css\.map|js\.map)$/g
+      );
+      const isChunk = path.match(
+        /^\/.*static\/(js|css)\/.*\.[a-z0-9]+\.chunk\.(css|js|css\.map|js\.map)$/g
+      );
+      const isMapboxSDK = path.match(
+        /^\/.*static\/scripts\/mapbox\/mapbox-sdk@0.16.2\/mapbox-sdk\.min\.js$/g
+      );
+
+      if (isMain || isChunk || isMapboxSDK) {
+        // cache for one year
+        res.setHeader('Cache-Control', 'public, max-age=31557600');
+      }
+    },
+  })
+);
 app.use(cookieParser());
 
 // We don't serve favicon.ico from root. PNG images are used instead for icons through link elements.
@@ -210,7 +231,7 @@ const noCacheHeaders = {
   'Cache-control': 'no-cache, no-store, must-revalidate',
 };
 
-app.get('*', async (req, res) => {
+app.get('/{*splat}', async (req, res) => {
   if (req.url.startsWith('/static/')) {
     // The express.static middleware only handles static resources
     // that it finds, otherwise passes them through. However, we don't
@@ -238,19 +259,31 @@ app.get('*', async (req, res) => {
   const nodeEntrypoint = nodeExtractor.requireEntrypoint();
   const { default: renderApp, ...appInfo } = nodeEntrypoint;
 
-  const sdk = sdkUtils.getSdk(req, res);
+  // Note: Check ttl (time-to-live) and maxBytes (10MB by default for cached data) from sdkCacheProxy.js
+  // You could also define maxBytes based on free memory: const maxBytes = os.freemem() * 0.5;
+  const sharetribeSDK = sdkUtils.getSdk(req, res);
+  const sdk = getSDKProxy(sharetribeSDK);
+
+  res.locals.beforeLoadDataTimestamp = Date.now();
 
   dataLoader
     .loadData(req.url, sdk, appInfo)
     .then(data => {
+      res.locals.timestampAfterLoadData = Date.now();
       const cspNonce = cspEnabled ? res.locals.cspNonce : null;
+
       return renderer.render(req.url, context, data, renderApp, webExtractor, cspNonce);
     })
     .then(html => {
+      res.locals.timestampAfterRender = Date.now();
+
       if (dev) {
+        // Simple logging to inspect the SSR behavior against localhost:4000 (yarn run dev-server)
         const debugData = {
           url: req.url,
           context,
+          loadDataMs: res.locals.timestampAfterLoadData - res.locals.beforeLoadDataTimestamp,
+          renderingMs: res.locals.timestampAfterRender - res.locals.timestampAfterLoadData,
         };
         console.log(`\nRender info:\n${JSON.stringify(debugData, null, '  ')}`);
       }
@@ -314,7 +347,7 @@ const server = app.listen(PORT, () => {
   const mode = dev ? 'development' : 'production';
   console.log(`Listening to port ${PORT} in ${mode} mode`);
   if (dev) {
-    console.log(`Open http://localhost:${PORT}/ and start hacking!`);
+    console.log(`Open http://localhost:${PORT}/ and start hacking!\n`);
   }
 });
 

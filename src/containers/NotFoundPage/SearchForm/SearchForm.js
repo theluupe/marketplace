@@ -15,7 +15,10 @@ const KeywordSearchField = props => {
   const { intl, inputRef } = props;
   return (
     <div className={css.keywordSearchWrapper}>
-      <button className={css.searchSubmit}>
+      <button
+        className={css.searchSubmit}
+        aria-label={intl.formatMessage({ id: 'NotFoundPage.screenreader.search' })}
+      >
         <div className={css.searchInputIcon}>
           <IconSearchDesktop />
         </div>
@@ -43,6 +46,15 @@ const KeywordSearchField = props => {
 
 const LocationSearchField = props => {
   const { intl, handleChange } = props;
+
+  const submitButton = ({}) => (
+    <button
+      className={css.searchSubmit}
+      aria-label={intl.formatMessage({ id: 'NotFoundPage.screenreader.search' })}
+    >
+      <IconSearchDesktop />
+    </button>
+  );
   return (
     <Field
       name="location"
@@ -62,12 +74,15 @@ const LocationSearchField = props => {
         const searchInput = { ...restInput, onChange: searchOnChange };
         return (
           <LocationAutocompleteInput
+            id="location-search-404"
             placeholder={intl.formatMessage({ id: 'NotFoundPage.SearchForm.placeholder' })}
             iconClassName={css.searchInputIcon}
             inputClassName={css.searchInput}
             predictionsClassName={css.searchPredictions}
             input={searchInput}
             meta={meta}
+            submitButton={submitButton}
+            ariaLabel={intl.formatMessage({ id: 'NotFoundPage.screenreader.search' })}
           />
         );
       }}
@@ -104,12 +119,8 @@ const SearchForm = props => {
         const { rootClassName, className, isKeywordSearch, handleSubmit } = formRenderProps;
         const classes = classNames(rootClassName || css.root, className);
 
-        // Allow form submit only when the place has changed
-        const preventFormSubmit = e => e.preventDefault();
-        const submitFormFn = isKeywordSearch ? handleSubmit : preventFormSubmit;
-
         return (
-          <Form className={classes} onSubmit={submitFormFn}>
+          <Form className={classes} onSubmit={handleSubmit}>
             {isKeywordSearch ? (
               <KeywordSearchField intl={intl} />
             ) : (

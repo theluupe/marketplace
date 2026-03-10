@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { bool, node, object, shape, string } from 'prop-types';
 import { Form as FinalForm } from 'react-final-form';
+import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
 
 // Import contexts and util modules
@@ -12,54 +12,33 @@ import { formatMoney } from '../../util/currency';
 import { createSlug } from '../../util/urlHelpers';
 import { isTransactionInitiateListingNotFoundError } from '../../util/errors';
 import * as validators from '../../util/validators';
+import {
+  getPropsForCustomTransactionFieldInputs,
+  pickTransactionFieldsData,
+} from '../../util/fieldHelpers.js';
 import { getProcess } from '../../transactions/transaction';
 
 // Import shared components
 import {
   FieldTextInput,
   Form,
+  ErrorMessage,
   H3,
   H4,
   Heading,
   NamedLink,
   Page,
   PrimaryButton,
+  TopbarSimplified,
+  CustomExtendedDataField,
 } from '../../components';
 
 import { getTransactionTypeData } from './CheckoutPageTransactionHelpers.js';
 
-import CustomTopbar from './CustomTopbar';
 import DetailsSideCard from './DetailsSideCard';
 import MobileListingImage from './MobileListingImage';
 
 import css from './CheckoutPage.module.css';
-
-const ErrorMessage = props => {
-  const { error } = props;
-
-  // Since the listing data is already given from the ListingPage
-  // and stored to handle refreshes, it might not have the possible
-  // deleted or closed information in it. If the transaction
-  // initiate or the speculative initiate fail due to the listing
-  // being deleted or closed, we should dig the information from the
-  // errors and not the listing data.
-  const listingNotFound = isTransactionInitiateListingNotFoundError(error);
-
-  // No transaction process attached to listing
-  const noTransactionProcessAlias = error?.message === 'No transaction process attached to listing';
-
-  return error ? (
-    <p className={css.error}>
-      {listingNotFound ? (
-        <FormattedMessage id="CheckoutPage.listingNotFoundError" />
-      ) : noTransactionProcessAlias ? (
-        <FormattedMessage id="CheckoutPageWithInquiryProcess.initiateInquiryErrorNoProcess" />
-      ) : (
-        <FormattedMessage id="CheckoutPageWithInquiryProcess.initiateInquiryError" />
-      )}
-    </p>
-  ) : null;
-};
 
 const handleSubmit = (submitting, setSubmitting, props) => values => {
   if (submitting) {
@@ -75,6 +54,7 @@ const handleSubmit = (submitting, setSubmitting, props) => values => {
     processName,
     onInquiryWithoutPayment,
     onSubmitCallback,
+    transactionFieldConfigs = [],
   } = props;
 
   const { inquiryMessage } = values;
@@ -92,6 +72,7 @@ const handleSubmit = (submitting, setSubmitting, props) => values => {
     protectedData: {
       inquiryMessage,
       ...getTransactionTypeData(listingType, unitType, config),
+      ...pickTransactionFieldsData(values, 'protected', true, transactionFieldConfigs),
     },
   };
 
@@ -113,6 +94,21 @@ const handleSubmit = (submitting, setSubmitting, props) => values => {
     });
 };
 
+/**
+ * Checkout page for inquiry process.
+ * @param {Object} props - The component props.
+ * @param {boolean} props.scrollingDisabled - Whether scrolling is disabled.
+ * @param {string} props.processName - The process name.
+ * @param {Object} props.pageData - The page data.
+ * @param {propTypes.listing} props.pageData.listing - The listing.
+ * @param {propTypes.transaction} [props.pageData.transaction] - The transaction.
+ * @param {Object} [props.pageData.orderData] - The order data.
+ * @param {string} props.listingTitle - The listing title.
+ * @param {string} props.title - The title.
+ * @param {intlShape} props.intl - The intl object.
+ * @param {Object} props.config - The config object.
+ * @param {propTypes.error} props.initiateInquiryError - The error message.
+ */
 export const CheckoutPageWithInquiryProcess = props => {
   const [submitting, setSubmitting] = useState(false);
 
@@ -124,7 +120,9 @@ export const CheckoutPageWithInquiryProcess = props => {
     pageData,
     listingTitle,
     title,
+    showListingImage,
     initiateInquiryError,
+    transactionFieldConfigs = [],
   } = props;
 
   const onSubmit = handleSubmit(submitting, setSubmitting, props);
@@ -146,17 +144,24 @@ export const CheckoutPageWithInquiryProcess = props => {
   const listingTypeConfig = listingTypeConfigs.find(conf => conf.listingType === listingType);
   const showPrice = displayPrice(listingTypeConfig);
 
+  const hasTransactionFieldConfigs = transactionFieldConfigs.length > 0;
+  const transactionFieldsProps = getPropsForCustomTransactionFieldInputs(
+    transactionFieldConfigs,
+    true
+  );
+
   return (
     <Page title={title} scrollingDisabled={scrollingDisabled}>
-      <CustomTopbar intl={intl} linkToExternalSite={config?.topbar?.logoLink} />
+      <TopbarSimplified />
       <div className={css.contentContainer}>
         <MobileListingImage
           listingTitle={listingTitle}
           author={listing?.author}
           firstImage={firstImage}
           layoutListingImageConfig={config.layout.listingImage}
+          showListingImage={showListingImage}
         />
-        <div className={css.orderFormContainer}>
+        <main className={css.orderFormContainer}>
           <div className={css.headingContainer}>
             <H3 as="h1" className={css.heading}>
               {title}
@@ -179,6 +184,7 @@ export const CheckoutPageWithInquiryProcess = props => {
           <section className={css.paymentContainer}>
             <FinalForm
               onSubmit={onSubmit}
+              mutators={{ ...arrayMutators }}
               render={formRenderProps => {
                 const {
                   rootClassName,
@@ -200,6 +206,13 @@ export const CheckoutPageWithInquiryProcess = props => {
                     onSubmit={handleSubmit}
                     enforcePagePreloadFor="OrderDetailsPage"
                   >
+                    {hasTransactionFieldConfigs ? (
+                      <div className={css.transactionFieldsContainer}>
+                        {transactionFieldsProps.map(({ key, ...fieldProps }) => (
+                          <CustomExtendedDataField key={key} {...fieldProps} formId={formId} />
+                        ))}
+                      </div>
+                    ) : null}
                     <div className={css.section}>
                       <Heading as="h4" rootClassName={css.sectionHeading}>
                         <FormattedMessage
@@ -242,7 +255,7 @@ export const CheckoutPageWithInquiryProcess = props => {
               }}
             />
           </section>
-        </div>
+        </main>
 
         <DetailsSideCard
           listing={listing}
@@ -252,34 +265,12 @@ export const CheckoutPageWithInquiryProcess = props => {
           layoutListingImageConfig={config.layout.listingImage}
           processName={processName}
           showPrice={showPrice && !!price}
+          showListingImage={showListingImage}
           intl={intl}
         />
       </div>
     </Page>
   );
-};
-
-CheckoutPageWithInquiryProcess.propTypes = {
-  showPrice: true,
-};
-
-CheckoutPageWithInquiryProcess.propTypes = {
-  scrollingDisabled: bool.isRequired,
-  pageData: shape({
-    listing: propTypes.listing.isRequired,
-    transaction: propTypes.transaction,
-    orderData: object,
-  }).isRequired,
-  processName: string.isRequired,
-  listingTitle: node.isRequired,
-  title: node.isRequired,
-  showPrice: bool,
-
-  // from useIntl
-  intl: intlShape.isRequired,
-
-  // from useConfiguration
-  config: object.isRequired,
 };
 
 export default CheckoutPageWithInquiryProcess;

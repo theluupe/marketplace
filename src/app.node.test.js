@@ -4,13 +4,12 @@
 
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import forEach from 'lodash/forEach';
 import { getHostedConfiguration } from './util/testHelpers';
 import { ServerApp } from './app';
 import configureStore from './store';
 
 const render = (url, context) => {
-  const store = configureStore();
+  const store = configureStore({});
 
   const helmetContext = {};
 
@@ -57,7 +56,7 @@ describe('Application - node environment', () => {
       '/account/payments': loginPath,
       '/verify-email': loginPath,
     };
-    forEach(urlRedirects, (redirectPath, url) => {
+    Object.entries(urlRedirects).forEach(([url, redirectPath]) => {
       const context = {};
       render(url, context);
       expect(context.url).toEqual(redirectPath);
@@ -66,7 +65,7 @@ describe('Application - node environment', () => {
 
   it('redirects to correct URLs', () => {
     const urlRedirects = { '/l': '/', '/u': '/' };
-    forEach(urlRedirects, (redirectPath, url) => {
+    Object.entries(urlRedirects).forEach(([url, redirectPath]) => {
       const context = {};
       render(url, context);
       expect(context.url).toEqual(redirectPath);

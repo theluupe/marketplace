@@ -69,7 +69,7 @@ const scrollToTab = (currentPage, scrollLeft, setScrollLeft) => {
 const LayoutWrapperAccountSettingsSideNav = props => {
   const [mounted, setMounted] = useState(false);
   const [scrollLeft, setScrollLeft] = useGlobalState('scrollLeft');
-  const { accountSettingsNavProps } = props;
+  const { accountSettingsNavProps, ariaLabel } = props;
 
   useEffect(() => {
     setMounted(true);
@@ -138,9 +138,19 @@ const LayoutWrapperAccountSettingsSideNav = props => {
     },
     ...payoutDetailsMaybe,
     ...paymentMethodsMaybe,
+    {
+      text: <FormattedMessage id="LayoutWrapperAccountSettingsSideNav.manageAccountTabTitle" />,
+      selected: currentPage === 'ManageAccountPage',
+      id: 'ManageAccountPageTab',
+      linkProps: {
+        name: 'ManageAccountPage',
+      },
+    },
   ];
 
-  return <TabNav rootClassName={css.tabs} tabRootClassName={css.tab} tabs={tabs} />;
+  return (
+    <TabNav rootClassName={css.tabs} tabRootClassName={css.tab} tabs={tabs} ariaLabel={ariaLabel} />
+  );
 };
 
 export default LayoutWrapperAccountSettingsSideNav;

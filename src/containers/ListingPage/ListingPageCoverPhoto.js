@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
+import classNames from 'classnames';
 
 // Contexts
 import { useConfiguration } from '../../context/configurationContext';
@@ -25,6 +26,7 @@ import {
   isForbiddenError,
 } from '../../util/errors.js';
 import { hasPermissionToViewData, isUserAuthorized } from '../../util/userHelpers.js';
+import { requireListingImage } from '../../util/configHelpers';
 import {
   ensureListing,
   ensureOwnListing,
@@ -33,7 +35,10 @@ import {
 } from '../../util/data';
 import { richText } from '../../util/richText';
 import {
+  OFFER,
+  REQUEST,
   isBookingProcess,
+  isNegotiationProcess,
   isPurchaseProcess,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
@@ -46,11 +51,13 @@ import { initializeCardPaymentData } from '../../ducks/stripe.duck.js';
 // Shared components
 import {
   H4,
+  H3,
   Page,
   NamedLink,
   NamedRedirect,
   OrderPanel,
   LayoutSingleColumn,
+  SectionText,
 } from '../../components';
 
 // Related components and modules
@@ -72,15 +79,17 @@ import {
   listingImages,
   handleContactUser,
   handleSubmitInquiry,
+  handleNavigateToMakeOfferPage,
+  handleNavigateToRequestQuotePage,
   handleSubmit,
   priceForSchemaMaybe,
 } from './ListingPage.shared';
 import SectionHero from './SectionHero';
-import SectionTextMaybe from './SectionTextMaybe';
 import SectionReviews from './SectionReviews';
 import SectionAuthorMaybe from './SectionAuthorMaybe';
 import SectionMapMaybe from './SectionMapMaybe';
 import CustomListingFields from './CustomListingFields';
+import ActionBarMaybe from './ActionBarMaybe';
 
 import css from './ListingPage.module.css';
 
@@ -93,6 +102,12 @@ export const ListingPageComponent = props => {
     props.inquiryModalOpenForListingId === props.params.id
   );
   const [imageCarouselOpen, setImageCarouselOpen] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     isAuthenticated,
@@ -203,19 +218,33 @@ export const ListingPageComponent = props => {
   const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
   const isBooking = isBookingProcess(processName);
   const isPurchase = isPurchaseProcess(processName);
-  const processType = isBooking ? 'booking' : isPurchase ? 'purchase' : 'inquiry';
+  const isNegotiation = isNegotiationProcess(processName);
+  const processType = isBooking
+    ? 'booking'
+    : isPurchase
+    ? 'purchase'
+    : isNegotiation
+    ? 'negotiation'
+    : 'inquiry';
+
+  const validListingTypes = listingConfig.listingTypes;
+  const foundListingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
+  const showListingImage = requireListingImage(foundListingTypeConfig);
+  const showDescription = foundListingTypeConfig?.defaultListingFields?.description;
 
   const currentAuthor = authorAvailable ? currentListing.author : null;
   const ensuredAuthor = ensureUser(currentAuthor);
+  const authorNeedsPayoutDetails =
+    ['booking', 'purchase'].includes(processType) || (isNegotiation && unitType === OFFER);
   const noPayoutDetailsSetWithOwnListing =
-    isOwnListing && (processType !== 'inquiry' && !currentUser?.attributes?.stripeConnected);
+    isOwnListing && (authorNeedsPayoutDetails && !currentUser?.attributes?.stripeConnected);
   const payoutDetailsWarning = noPayoutDetailsSetWithOwnListing ? (
-    <div>
+    <span className={css.payoutDetailsWarning}>
       <FormattedMessage id="ListingPage.payoutDetailsWarning" values={{ processType }} />
       <NamedLink name="StripePayoutPage">
         <FormattedMessage id="ListingPage.payoutDetailsWarningLink" />
       </NamedLink>
-    </div>
+    </span>
   ) : null;
 
   // When user is banned or deleted the listing is also deleted.
@@ -234,12 +263,22 @@ export const ListingPageComponent = props => {
     setInitialValues,
     setInquiryModalOpen,
   });
-  // Note: this is for inquiry state in booking and purchase processes. Inquiry process is handled through handleSubmit.
+  // Note: this is for inquire transition to inquiry state in booking, purchase and negotiation processes.
+  // Inquiry process is handled through handleSubmit.
   const onSubmitInquiry = handleSubmitInquiry({
     ...commonParams,
     getListing,
     onSendInquiry,
     setInquiryModalOpen,
+  });
+  // This is to navigate to MakeOfferPage when NegotiationForm is submitted
+  const onNavigateToMakeOfferPage = handleNavigateToMakeOfferPage({
+    ...commonParams,
+    getListing,
+  });
+  const onNavigateToRequestQuotePage = handleNavigateToRequestQuotePage({
+    ...commonParams,
+    getListing,
   });
   const onSubmit = handleSubmit({
     ...commonParams,
@@ -253,6 +292,10 @@ export const ListingPageComponent = props => {
     const isCurrentlyClosed = currentListing.attributes.state === LISTING_STATE_CLOSED;
     if (isOwnListing || isCurrentlyClosed) {
       window.scrollTo(0, 0);
+    } else if (isNegotiation && unitType === REQUEST) {
+      onNavigateToMakeOfferPage(values);
+    } else if (isNegotiation && unitType === OFFER) {
+      onNavigateToRequestQuotePage(values);
     } else {
       onSubmit(values);
     }
@@ -281,6 +324,8 @@ export const ListingPageComponent = props => {
     : 'https://schema.org/OutOfStock';
 
   const availabilityMaybe = schemaAvailability ? { availability: schemaAvailability } : {};
+  const noIndexMaybe =
+    currentListing.attributes.state === LISTING_STATE_CLOSED ? { noIndex: true } : {};
 
   const handleViewPhotosClick = e => {
     // Stop event from bubbling up to prevent image click handler
@@ -288,6 +333,37 @@ export const ListingPageComponent = props => {
     e.stopPropagation();
     setImageCarouselOpen(true);
   };
+
+  const actionBar =
+    mounted && currentListing.id && isOwnListing ? (
+      <>
+        {noPayoutDetailsSetWithOwnListing ? (
+          <ActionBarMaybe
+            className={classNames(css.actionBarForHeroLayout, {
+              [css.actionBarNoBorderRadiusOnMobile]: !showListingImage,
+            })}
+            isOwnListing={isOwnListing}
+            listing={currentListing}
+            showNoPayoutDetailsSet={noPayoutDetailsSetWithOwnListing}
+            currentUser={currentUser}
+          />
+        ) : null}
+        <ActionBarMaybe
+          className={classNames(css.actionBarForHeroLayout, {
+            [css.actionBarNoBorderRadiusOnMobile]: !showListingImage,
+          })}
+          isOwnListing={isOwnListing}
+          listing={currentListing}
+          currentUser={currentUser}
+          editParams={{
+            id: listingId.uuid,
+            slug: listingSlug,
+            type: listingPathParamType,
+            tab: listingTab,
+          }}
+        />
+      </>
+    ) : null;
 
   return (
     <Page
@@ -297,6 +373,7 @@ export const ListingPageComponent = props => {
       description={description}
       facebookImages={facebookImages}
       twitterImages={twitterImages}
+      {...noIndexMaybe}
       schema={{
         '@context': 'http://schema.org',
         '@type': 'Product',
@@ -312,31 +389,40 @@ export const ListingPageComponent = props => {
       }}
     >
       <LayoutSingleColumn className={css.pageRoot} topbar={topbar} footer={<FooterContainer />}>
-        <SectionHero
-          title={title}
-          listing={currentListing}
-          isOwnListing={isOwnListing}
-          currentUser={currentUser}
-          editParams={{
-            id: listingId.uuid,
-            slug: listingSlug,
-            type: listingPathParamType,
-            tab: listingTab,
-          }}
-          imageCarouselOpen={imageCarouselOpen}
-          onImageCarouselClose={() => setImageCarouselOpen(false)}
-          handleViewPhotosClick={handleViewPhotosClick}
-          onManageDisableScrolling={onManageDisableScrolling}
-          noPayoutDetailsSetWithOwnListing={noPayoutDetailsSetWithOwnListing}
-        />
+        {showListingImage ? (
+          <SectionHero
+            title={title}
+            listing={currentListing}
+            isOwnListing={isOwnListing}
+            imageCarouselOpen={imageCarouselOpen}
+            onImageCarouselClose={() => setImageCarouselOpen(false)}
+            handleViewPhotosClick={handleViewPhotosClick}
+            onManageDisableScrolling={onManageDisableScrolling}
+            actionBar={actionBar}
+          />
+        ) : (
+          isOwnListing && <div className={css.actionBarContainerForNoListingImage}>{actionBar}</div>
+        )}
         <div className={css.contentWrapperForHeroLayout}>
           <div className={css.mainColumnForHeroLayout}>
-            <div className={css.mobileHeading}>
-              <H4 as="h1" className={css.orderPanelTitle}>
-                <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
-              </H4>
+            <div className={showListingImage ? css.mobileHeading : css.noListingImageHeadingHero}>
+              {showListingImage ? (
+                // add css logic here that applies larger margin on mobile view to push down title
+                <H4 as="h1" className={css.orderPanelTitle}>
+                  <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
+                </H4>
+              ) : (
+                <H3
+                  as="h1"
+                  className={classNames(css.orderPanelTitle, {
+                    [css.titleMarginForOwnListingNoImage]: isOwnListing,
+                  })}
+                >
+                  <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
+                </H3>
+              )}
             </div>
-            <SectionTextMaybe text={description} showAsIngress />
+            {showDescription && <SectionText text={description} showAsIngress />}
 
             <CustomListingFields
               publicData={publicData}
@@ -398,6 +484,7 @@ export const ListingPageComponent = props => {
               marketplaceCurrency={config.currency}
               dayCountAvailableForBooking={config.stripe.dayCountAvailableForBooking}
               marketplaceName={config.marketplaceName}
+              showListingImage={showListingImage}
             />
           </div>
         </div>

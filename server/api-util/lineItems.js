@@ -1,9 +1,9 @@
 const {
   calculateQuantityFromDates,
   calculateQuantityFromHours,
-  calculateTotalFromLineItems,
   calculateShippingFee,
-  hasCommissionPercentage,
+  getProviderCommissionMaybe,
+  getCustomerCommissionMaybe,
 } = require('./lineItemHelpers');
 const { types } = require('sharetribe-flex-sdk');
 const { Money } = types;
@@ -35,7 +35,7 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
     : null;
 
   // Add line-item for given delivery method.
-  // Note: by default, pickup considered as free.
+  // Note: by default, pickup considered as free and, therefore, we don't add pickup fee line-item
   const deliveryLineItem = !!shippingFee
     ? [
         {
@@ -45,18 +45,13 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
           includeFor: ['customer', 'provider'],
         },
       ]
-    : isPickup
-    ? [
-        {
-          code: 'line-item/pickup-fee',
-          unitPrice: new Money(0, currency),
-          quantity: 1,
-          includeFor: ['customer', 'provider'],
-        },
-      ]
     : [];
 
   return { quantity, extraLineItems: deliveryLineItem };
+};
+
+const getOfferQuantityAndLineItems = orderData => {
+  return { quantity: 1, extraLineItems: [] };
 };
 
 /**
@@ -134,6 +129,8 @@ const getDateRangeQuantityAndLineItems = (orderData, code) => {
  *
  * @param {Object} listing
  * @param {Object} orderData
+ * @param {string} [orderData.priceVariantName] - The name of the price variant (potentially used with bookable unit types)
+ * @param {Money} [orderData.offer] - The offer for the offer (if transition intent is "make-offer")
  * @param {Object} providerCommission
  * @param {Object} customerCommission
  * @returns {Array} lineItems
@@ -145,10 +142,11 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
   const { unitType, priceVariants, priceVariationsEnabled } = publicData;
 
   const isBookable = ['day', 'night', 'hour', 'fixed'].includes(unitType);
+  const isNegotiationUnitType = ['offer', 'request'].includes(unitType);
   const priceAttribute = listing.attributes.price;
-  const currency = priceAttribute.currency;
+  const currency = priceAttribute?.currency || orderData.currency;
 
-  const { priceVariantName } = orderData || {};
+  const { priceVariantName, offer } = orderData || {};
   const priceVariantConfig = priceVariants
     ? priceVariants.find(pv => pv.name === priceVariantName)
     : null;
@@ -158,6 +156,8 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
   const unitPrice =
     isBookable && priceVariationsEnabled && isPriceInSubunitsValid
       ? new Money(priceInSubunits, currency)
+      : offer instanceof Money && isNegotiationUnitType
+      ? offer
       : priceAttribute;
 
   /**
@@ -184,6 +184,8 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
       ? getHourQuantityAndLineItems(orderData)
       : ['day', 'night'].includes(unitType)
       ? getDateRangeQuantityAndLineItems(orderData, code)
+      : isNegotiationUnitType
+      ? getOfferQuantityAndLineItems(orderData)
       : {};
 
   const { quantity, units, seats, extraLineItems } = quantityAndExtraLineItems;
@@ -225,50 +227,13 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
     includeFor: ['customer', 'provider'],
   };
 
-  // Provider commission reduces the amount of money that is paid out to provider.
-  // Therefore, the provider commission line-item should have negative effect to the payout total.
-  const getNegation = percentage => {
-    return -1 * percentage;
-  };
-
-  // Note: extraLineItems for product selling (aka shipping fee)
-  // is not included in either customer or provider commission calculation.
-
-  // The provider commission is what the provider pays for the transaction, and
-  // it is the subtracted from the order price to get the provider payout:
-  // orderPrice - providerCommission = providerPayout
-  const providerCommissionMaybe = hasCommissionPercentage(providerCommission)
-    ? [
-        {
-          code: 'line-item/provider-commission',
-          unitPrice: calculateTotalFromLineItems([order]),
-          percentage: getNegation(providerCommission.percentage),
-          includeFor: ['provider'],
-        },
-      ]
-    : [];
-
-  // The customer commission is what the customer pays for the transaction, and
-  // it is added on top of the order price to get the customer's payin price:
-  // orderPrice + customerCommission = customerPayin
-  const customerCommissionMaybe = hasCommissionPercentage(customerCommission)
-    ? [
-        {
-          code: 'line-item/customer-commission',
-          unitPrice: calculateTotalFromLineItems([order]),
-          percentage: customerCommission.percentage,
-          includeFor: ['customer'],
-        },
-      ]
-    : [];
-
   // Let's keep the base price (order) as first line item and provider and customer commissions as last.
   // Note: the order matters only if OrderBreakdown component doesn't recognize line-item.
   const lineItems = [
     order,
     ...extraLineItems,
-    ...providerCommissionMaybe,
-    ...customerCommissionMaybe,
+    ...getProviderCommissionMaybe(providerCommission, order, currency),
+    ...getCustomerCommissionMaybe(customerCommission, order, currency),
   ];
 
   return lineItems;

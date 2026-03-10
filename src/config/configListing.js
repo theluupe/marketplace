@@ -267,25 +267,110 @@ export const listingFields = [
  *                        The payoutDetails flag allows provider to bypass setting of payout details.
  *                        Note: customers can't order listings, if provider has not set payout details! Monitor
  *                        providers who have not set payout details and contact them to ensure that they add the details.
+ * - transactionFields    You can define an array of custom transaction fields for each listing type. Each transaction field
+ *                        should have the following attributes:
+ *                        - key (string)
+ *                        - label (string)
+ *                        - showTo (string, options: 'customer', 'provider'). Option 'provider' is only used for negotiation process.
+ *                        - schemaType (string, options: 'enum', 'multi-enum', 'text', 'long', 'boolean', 'youtubeVideoUrl')
+ *                        - saveConfig (object, optional,  { required: true })
+ *                        - schema specific attributes:
+ *                          - numberConfig (object, for schemaType: 'long'): { minimum: number, maximum: number }
+ *                          - enumOptions (array, for schemaType: 'enum', 'multi-enum'): [{ label: string, option: string }]
  */
 
 export const listingTypes = [
-  {
-    listingType: 'daily-booking',
-    label: 'Daily booking',
-    transactionType: {
-      process: 'default-booking',
-      alias: 'default-booking/release-1',
-      unitType: 'day',
-    },
-    availabilityType: 'oneSeat',
-    defaultListingFields: {
-      location: true,
-      payoutDetails: true,
-    },
-  },
-  // // Here are some examples for other listingTypes
+  // // Here are some examples of listingTypes
   // // TODO: SearchPage does not work well if both booking and product selling are used at the same time
+  // {
+  //   listingType: 'daily-booking',
+  //   label: 'Daily booking',
+  //   transactionType: {
+  //     process: 'default-booking',
+  //     alias: 'default-booking/release-1',
+  //     unitType: 'day',
+  //   },
+  //   availabilityType: 'oneSeat',
+  //   defaultListingFields: {
+  //     location: true,
+  //     payoutDetails: true,
+  //   },
+  //   transactionFields: [
+  //     {
+  //       showTo: 'customer',
+  //       label: 'Extra requests for the hosts',
+  //       key: 'requests',
+  //       schemaType: 'text',
+  //     },
+  //     {
+  //       showTo: 'customer',
+  //       label: 'Are you traveling with minors?',
+  //       key: 'minors',
+  //       schemaType: 'boolean',
+  //     },
+  //     {
+  //       showTo: 'customer',
+  //       numberConfig: {
+  //         minimum: 1,
+  //         maximum: 10,
+  //       },
+  //       label: 'How many people are staying at the venue',
+  //       key: 'peopleStaying',
+  //       schemaType: 'long',
+  //       saveConfig: {
+  //         required: true,
+  //       },
+  //     },
+  //     {
+  //       showTo: 'customer',
+  //       enumOptions: [
+  //         {
+  //           label: 'Morning cleanup (10am-12am)',
+  //           option: 'morning',
+  //         },
+  //         {
+  //           label: 'Afternoon cleanup (2pm-4pm)',
+  //           option: 'afternoon',
+  //         },
+  //       ],
+  //       label: 'Schedule preference',
+  //       key: 'schedulePreference',
+  //       schemaType: 'enum',
+  //     },
+  //     {
+  //       showTo: 'customer',
+  //       enumOptions: [
+  //         {
+  //           label: 'Vegetarian',
+  //           option: 'vegetarian',
+  //         },
+  //         {
+  //           label: 'Vegan',
+  //           option: 'vegan',
+  //         },
+  //         {
+  //           label: 'Gluten free',
+  //           option: 'glutenFree',
+  //         },
+  //         {
+  //           label: 'No caffeine',
+  //           option: 'decaf',
+  //         },
+  //         {
+  //           label: 'Nut free',
+  //           option: 'nutFree',
+  //         },
+  //         {
+  //           label: 'Dairy free',
+  //           option: 'dairyFree',
+  //         },
+  //       ],
+  //       label: 'Dietary preferences',
+  //       key: 'dietaryPreferences',
+  //       schemaType: 'multi-enum',
+  //     },
+  //   ],
+  // },
   // {
   //   listingType: 'nightly-booking',
   //   label: 'Nightly booking',

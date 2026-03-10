@@ -5,11 +5,13 @@
  */
 import React, { Component } from 'react';
 import { Form as FinalForm } from 'react-final-form';
+import arrayMutators from 'final-form-arrays';
 import classNames from 'classnames';
 
 import { FormattedMessage, injectIntl } from '../../../util/reactIntl';
 import { propTypes } from '../../../util/types';
 import { ensurePaymentMethodCard } from '../../../util/data';
+import { getPropsForCustomTransactionFieldInputs } from '../../../util/fieldHelpers';
 
 import {
   Heading,
@@ -20,6 +22,7 @@ import {
   IconSpinner,
   SavedCardDetails,
   StripePaymentAddress,
+  CustomExtendedDataField,
 } from '../../../components';
 
 import ShippingDetails from '../ShippingDetails/ShippingDetails';
@@ -210,11 +213,11 @@ const checkOnetimePaymentFields = (
 const LocationOrShippingDetails = props => {
   const {
     askShippingDetails,
-    showPickUplocation,
+    showPickUpLocation,
+    showLocation,
     listingLocation,
     formApi,
     locale,
-    isBooking,
     isFuzzyLocation,
     intl,
   } = props;
@@ -227,14 +230,14 @@ const LocationOrShippingDetails = props => {
 
   return askShippingDetails ? (
     <ShippingDetails intl={intl} formApi={formApi} locale={locale} />
-  ) : !isBooking && showPickUplocation ? (
+  ) : showPickUpLocation ? (
     <div className={css.locationWrapper}>
       <Heading as="h3" rootClassName={css.heading}>
         <FormattedMessage id="StripePaymentForm.pickupDetailsTitle" />
       </Heading>
       <p className={css.locationDetails}>{locationDetails}</p>
     </div>
-  ) : isBooking && !isFuzzyLocation ? (
+  ) : showLocation && !isFuzzyLocation ? (
     <div className={css.locationWrapper}>
       <Heading as="h3" rootClassName={css.heading}>
         <FormattedMessage id="StripePaymentForm.locationDetailsTitle" />
@@ -280,7 +283,8 @@ const initialState = {
  * @param {boolean} props.hasHandledCardPayment - Whether the card payment has been handled
  * @param {Object} props.defaultPaymentMethod - The default payment method
  * @param {boolean} props.askShippingDetails - Whether to ask for shipping details
- * @param {boolean} props.showPickUplocation - Whether to show the pickup location
+ * @param {boolean} props.showPickUpLocation - Whether to show the pickup location
+ * @param {boolean} props.showLocation - Whether to show the location address
  * @param {string} props.totalPrice - The total price
  * @param {string} props.locale - The locale
  * @param {Object} props.listingLocation - The listing location
@@ -454,7 +458,7 @@ class StripePaymentForm extends Component {
       inProgress: submitInProgress,
       loadingData,
       formId,
-      authorDisplayName,
+      providerDisplayName,
       showInitialMessageInput,
       intl,
       initiateOrderError,
@@ -467,17 +471,25 @@ class StripePaymentForm extends Component {
       defaultPaymentMethod,
       listingLocation,
       askShippingDetails,
-      showPickUplocation,
+      showLocation,
+      showPickUpLocation,
       totalPrice,
       locale,
       stripePublishableKey,
       marketplaceName,
       isBooking,
       isFuzzyLocation,
+      transactionFieldConfigs,
+      showTransactionFields,
       values,
     } = formRenderProps;
 
     this.finalFormAPI = formApi;
+    const hasTransactionFieldConfigs = transactionFieldConfigs.length > 0;
+    const transactionFieldsProps = getPropsForCustomTransactionFieldInputs(
+      transactionFieldConfigs,
+      true
+    );
 
     const ensuredDefaultPaymentMethod = ensurePaymentMethodCard(defaultPaymentMethod);
     const billingDetailsNeeded = !(hasHandledCardPayment || confirmPaymentError);
@@ -528,7 +540,7 @@ class StripePaymentForm extends Component {
 
     const messagePlaceholder = intl.formatMessage(
       { id: 'StripePaymentForm.messagePlaceholder' },
-      { name: authorDisplayName }
+      { name: providerDisplayName }
     );
 
     const messageOptionalText = intl.formatMessage({
@@ -560,13 +572,16 @@ class StripePaymentForm extends Component {
     };
     const isBookingYesNo = isBooking ? 'yes' : 'no';
 
+    const showAdditionalInfoHeading =
+      showInitialMessageInput || (hasTransactionFieldConfigs && showTransactionFields);
+
     return hasStripeKey ? (
       <Form className={classes} onSubmit={handleSubmit} enforcePagePreloadFor="OrderDetailsPage">
         <LocationOrShippingDetails
           askShippingDetails={askShippingDetails}
-          showPickUplocation={showPickUplocation}
+          showPickUpLocation={showPickUpLocation}
+          showLocation={showLocation}
           listingLocation={listingLocation}
-          isBooking={isBooking}
           isFuzzyLocation={isFuzzyLocation}
           formApi={formApi}
           locale={locale}
@@ -649,12 +664,21 @@ class StripePaymentForm extends Component {
         {initiateOrderError ? (
           <span className={css.errorMessage}>{initiateOrderError.message}</span>
         ) : null}
+
+        {showAdditionalInfoHeading ? (
+          <Heading as="h3" rootClassName={css.heading}>
+            <FormattedMessage id="StripePaymentForm.messageHeading" />
+          </Heading>
+        ) : null}
+        {hasTransactionFieldConfigs && showTransactionFields ? (
+          <div className={css.transactionFieldsContainer}>
+            {transactionFieldsProps.map(({ key, ...fieldProps }) => (
+              <CustomExtendedDataField key={key} {...fieldProps} formId={formId} />
+            ))}
+          </div>
+        ) : null}
         {showInitialMessageInput ? (
           <div>
-            <Heading as="h3" rootClassName={css.heading}>
-              <FormattedMessage id="StripePaymentForm.messageHeading" />
-            </Heading>
-
             <FieldTextInput
               type="textarea"
               id={`${formId}-message`}
@@ -690,7 +714,7 @@ class StripePaymentForm extends Component {
           <p className={css.paymentInfo}>
             <FormattedMessage
               id="StripePaymentForm.submitConfirmPaymentFinePrint"
-              values={{ isBooking: isBookingYesNo, name: authorDisplayName }}
+              values={{ isBooking: isBookingYesNo, name: providerDisplayName }}
             />
           </p>
         </div>
@@ -704,7 +728,14 @@ class StripePaymentForm extends Component {
 
   render() {
     const { onSubmit, ...rest } = this.props;
-    return <FinalForm onSubmit={this.handleSubmit} {...rest} render={this.paymentForm} />;
+    return (
+      <FinalForm
+        onSubmit={this.handleSubmit}
+        mutators={{ ...arrayMutators }}
+        {...rest}
+        render={this.paymentForm}
+      />
+    );
   }
 }
 

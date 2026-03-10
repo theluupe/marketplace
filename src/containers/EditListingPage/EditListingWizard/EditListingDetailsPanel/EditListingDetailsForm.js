@@ -5,6 +5,8 @@ import classNames from 'classnames';
 
 // Import util modules
 import { FormattedMessage, useIntl } from '../../../../util/reactIntl';
+import { displayDescription } from '../../../../util/configHelpers.js';
+import { useConfiguration } from '../../../../context/configurationContext.js';
 import { EXTENDED_DATA_SCHEMA_TYPES, propTypes } from '../../../../util/types';
 import {
   isFieldForCategory,
@@ -64,7 +66,7 @@ const FieldSelectListingType = props => {
   const {
     name,
     listingTypes,
-    hasExistingListingType,
+    hasPredefinedListingType,
     onListingTypeChange,
     formApi,
     formId,
@@ -86,7 +88,7 @@ const FieldSelectListingType = props => {
     return listingTypeConfig ? listingTypeConfig.label : listingType;
   };
 
-  return hasMultipleListingTypes && !hasExistingListingType ? (
+  return hasMultipleListingTypes && !hasPredefinedListingType ? (
     <>
       <FieldSelect
         id={formId ? `${formId}.${name}` : name}
@@ -113,7 +115,7 @@ const FieldSelectListingType = props => {
       <FieldHidden name="transactionProcessAlias" />
       <FieldHidden name="unitType" />
     </>
-  ) : hasMultipleListingTypes && hasExistingListingType ? (
+  ) : hasMultipleListingTypes && hasPredefinedListingType ? (
     <div className={css.listingTypeSelect}>
       <Heading as="h5" rootClassName={css.selectedLabel}>
         {intl.formatMessage({ id: 'EditListingDetailsForm.listingTypeLabel' })}
@@ -274,6 +276,11 @@ const AddListingFields = props => {
   return <>{fields}</>;
 };
 
+// Return configuration for given listingType
+const getListingTypeConfig = (config, listingType) => {
+  return config.listing.listingTypes?.find(config => config.listingType === listingType);
+};
+
 /**
  * Form that asks title, description, transaction process and unit type for pricing
  * In addition, it asks about custom fields according to marketplace-custom-config.js
@@ -292,7 +299,7 @@ const AddListingFields = props => {
  * @param {propTypes.error} [props.fetchErrors.updateListingError] - The update listing error
  * @param {Function} props.pickSelectedCategories - The pick selected categories function
  * @param {Array<Object>} props.selectableListingTypes - The selectable listing types
- * @param {boolean} props.hasExistingListingType - Whether the listing type is existing
+ * @param {boolean} props.hasPredefinedListingType - Whether the listing type is already saved or predefined through URL
  * @param {propTypes.listingFields} props.listingFieldsConfig - The listing fields config
  * @param {string} props.listingCurrency - The listing currency
  * @param {string} props.saveActionMsg - The save action message
@@ -321,7 +328,7 @@ const EditListingDetailsForm = props => (
         marketplaceName,
         selectableListingTypes,
         selectableCategories,
-        hasExistingListingType = false,
+        hasPredefinedListingType = false,
         pickSelectedCategories,
         categoryPrefix,
         saveActionMsg,
@@ -366,7 +373,14 @@ const EditListingDetailsForm = props => (
       const showCategories = listingType && hasCategories;
 
       const showTitle = hasCategories ? allCategoriesChosen : listingType;
-      const showDescription = hasCategories ? allCategoriesChosen : listingType;
+
+      const config = useConfiguration();
+      const listingTypeConfig = getListingTypeConfig(config, listingType);
+      const showDescriptionMaybe = displayDescription(listingTypeConfig);
+      const showDescription = hasCategories
+        ? allCategoriesChosen && showDescriptionMaybe
+        : showDescriptionMaybe;
+
       const showListingFields = hasCategories ? allCategoriesChosen : listingType;
 
       const classes = classNames(css.root, className);
@@ -387,7 +401,7 @@ const EditListingDetailsForm = props => (
           <FieldSelectListingType
             name="listingType"
             listingTypes={selectableListingTypes}
-            hasExistingListingType={hasExistingListingType}
+            hasPredefinedListingType={hasPredefinedListingType}
             onListingTypeChange={onListingTypeChange}
             formApi={formApi}
             formId={formId}

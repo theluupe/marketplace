@@ -1,4 +1,3 @@
-import queryString from 'query-string';
 import { types as sdkTypes } from './sdkLoader';
 
 const { LatLng, LatLngBounds } = sdkTypes;
@@ -89,10 +88,21 @@ export const parseFloatNum = str => {
   if (!trimmed) {
     return null;
   }
+  // Don't allow: '9asdf' -> Number.parseFloat('9asdf') === 9
+  const isFloatShaped = /^-?\d+\.?\d*$/.test(trimmed);
   const num = parseFloat(trimmed);
   const isNumber = !isNaN(num);
-  const isFullyParsedNum = isNumber && num.toString() === trimmed;
-  return isFullyParsedNum ? num : null;
+
+  if (isFloatShaped && isNumber) {
+    const [integerPart] = trimmed.split('.');
+    const wholeNumber = parseInt(integerPart, 10);
+    // Edge cases: Number.parseInt('-0').toString() === '0' and Number.parseInt('0009') === 9
+    const isFullyParsedNum = wholeNumber === -0 || wholeNumber.toString() === integerPart;
+    if (isFullyParsedNum) {
+      return num;
+    }
+  }
+  return null;
 };
 
 /**
@@ -182,16 +192,19 @@ const serialiseSdkTypes = obj =>
  */
 export const stringify = params => {
   const serialised = serialiseSdkTypes(params);
-  const cleaned = Object.keys(serialised).reduce((result, key) => {
+  const sorted = Object.keys(serialised).sort();
+
+  const cleaned = sorted.reduce((result, key) => {
     const val = serialised[key];
-    /* eslint-disable no-param-reassign */
-    if (val !== null) {
+    if (val !== null && val !== undefined) {
       result[key] = val;
     }
-    /* eslint-enable no-param-reassign */
     return result;
   }, {});
-  return queryString.stringify(cleaned);
+  // Note: We previously used query-string library to stringify. It encoded spaces as '%20',
+  // but URLSearchParams encodes spaces as '+'. If this matters, we could replace + with %20.
+  // return new URLSearchParams(cleaned).toString().replace(/\+/g, '%20')
+  return new URLSearchParams(cleaned).toString();
 };
 
 /**
@@ -213,9 +226,9 @@ export const stringify = params => {
  */
 export const parse = (search, options = {}) => {
   const { latlng = [], latlngBounds = [] } = options;
-  const params = queryString.parse(search);
-  return Object.keys(params).reduce((result, key) => {
-    const val = params[key];
+  const searchString = typeof search === 'string' ? search : '';
+  const params = new URLSearchParams(searchString);
+  return Array.from(params.entries()).reduce((result, [key, val]) => {
     /* eslint-disable no-param-reassign */
     if (latlng.includes(key)) {
       result[key] = decodeLatLng(val);
@@ -248,4 +261,22 @@ export const twitterPageURL = twitterHandle => {
     return `https://twitter.com/${twitterHandle}`;
   }
   return null;
+};
+
+/**
+ * Check that the provided sort matches one of the accepted options
+ *
+ * @param {String} sort - Sort parameter
+ *
+ * @return {Object} Returns sort parameter if valid, otherwise empty object
+ */
+export const getValidInboxSort = sort => {
+  const validOptions = ['createdAt', 'lastMessageAt', 'lastTransitionedAt'];
+  // Discard invalid sorting options
+  if (!validOptions.includes(sort)) {
+    return {};
+  }
+  // Enforce createdAt order for those returned transactions that don't have messages.
+  // Background: API does not guarantee the order of responses if the primary sort property is missing.
+  return sort === 'lastMessageAt' ? { sort: 'lastMessageAt,createdAt' } : { sort };
 };

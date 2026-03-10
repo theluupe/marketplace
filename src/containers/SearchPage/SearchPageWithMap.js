@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
 import classNames from 'classnames';
 
 import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 
+import { omit } from '../../util/common';
 import { useIntl, FormattedMessage } from '../../util/reactIntl';
 import {
   isAnyFilterActive,
@@ -154,7 +154,8 @@ export class SearchPageComponent extends Component {
       };
 
       // parse query parameters, including a custom attribute named category
-      const { address, bounds, mapSearch, ...rest } = parse(location.search, {
+      // when onMapMoveEnd is called, pagination needs to be reset.
+      const { address, bounds, mapSearch, page, ...rest } = parse(location.search, {
         latlng: ['origin'],
         latlngBounds: ['bounds'],
       });
@@ -360,7 +361,7 @@ export class SearchPageComponent extends Component {
     const { listingType: listingTypePathParam } = currentPathParams;
 
     const { listingFields } = config?.listing || {};
-    const { defaultFilters: defaultFiltersRaw, sortConfig } = config?.search || {};
+    const { defaultFilters: defaultFiltersRaw, sortConfig, mainSearch } = config?.search || {};
 
     const activeListingTypes = config?.listing?.listingTypes.map(config => config.listingType);
     const defaultFiltersConfig = listingTypePathParam
@@ -383,6 +384,7 @@ export class SearchPageComponent extends Component {
       listingCategories,
       activeListingTypes,
       currentPathParams,
+      mainSearch,
     };
 
     // Page transition might initially use values from previous search
@@ -393,6 +395,7 @@ export class SearchPageComponent extends Component {
       searchParams,
       filterConfigs,
       sortConfig,
+      mainSearch,
       isOriginInUse(config)
     );
 
@@ -486,6 +489,7 @@ export class SearchPageComponent extends Component {
           onSelect={this.handleSortBy}
           showAsPopup
           mode={mode}
+          labelId={`${mode}-search-page-sort-by`}
           contentPlacementOffset={FILTER_DROPDOWN_OFFSET}
         />
       ) : null;
@@ -500,13 +504,19 @@ export class SearchPageComponent extends Component {
       />
     );
 
+    // Parse page heading to be included in the title
+    const pageHeading = searchInProgress
+      ? intl.formatMessage({ id: 'MainPanelHeader.loadingResults' })
+      : intl.formatMessage({ id: 'MainPanelHeader.foundResults' }, { count: totalItems });
+
     const { bounds, origin } = searchParamsInURL || {};
     const { title, description, schema } = createSearchResultSchema(
       listings,
       searchParamsInURL || {},
       intl,
       routeConfiguration,
-      config
+      config,
+      pageHeading
     );
 
     // Set topbar class based on if a modal is open in
@@ -525,7 +535,7 @@ export class SearchPageComponent extends Component {
         schema={schema}
       >
         <TopbarContainer rootClassName={topbarClasses} currentSearchParams={validQueryParams} />
-        <div className={css.container}>
+        <div id="main-content" className={css.container} role="main">
           <div className={css.searchResultContainer}>
             <SearchFiltersMobile
               className={css.searchFiltersMobileMap}
@@ -550,11 +560,13 @@ export class SearchPageComponent extends Component {
                 const key = `SearchFiltersMobile.${filterConfig.scope || 'built-in'}.${
                   filterConfig.key
                 }`;
+                const filterId = `SearchFiltersMobile.${filterConfig.key.toLowerCase()}`;
                 return (
                   <FilterComponent
                     key={key}
-                    idPrefix="SearchFiltersMobile"
+                    id={filterId}
                     config={filterConfig}
+                    containerId="SearchPage_MobileFilters"
                     listingCategories={listingCategories}
                     marketplaceCurrency={marketplaceCurrency}
                     urlQueryParams={validQueryParams}
@@ -582,11 +594,13 @@ export class SearchPageComponent extends Component {
                   const key = `SearchFiltersPrimary.${filterConfig.scope || 'built-in'}.${
                     filterConfig.key
                   }`;
+                  const filterId = `SearchFiltersPrimary.${filterConfig.key.toLowerCase()}`;
                   return (
                     <FilterComponent
                       key={key}
-                      idPrefix="SearchFiltersPrimary"
+                      id={filterId}
                       config={filterConfig}
+                      containerId="SearchPageWithMap_PrimaryFilters"
                       listingCategories={listingCategories}
                       marketplaceCurrency={marketplaceCurrency}
                       urlQueryParams={validQueryParams}
@@ -614,11 +628,13 @@ export class SearchPageComponent extends Component {
                     const key = `SearchFiltersSecondary.${filterConfig.scope || 'built-in'}.${
                       filterConfig.key
                     }`;
+                    const filterId = `SearchFiltersSecondary.${filterConfig.key.toLowerCase()}`;
                     return (
                       <FilterComponent
                         key={key}
-                        idPrefix="SearchFiltersSecondary"
+                        id={filterId}
                         config={filterConfig}
+                        containerId="SearchPageWithMap_SecondaryFilters"
                         listingCategories={listingCategories}
                         marketplaceCurrency={marketplaceCurrency}
                         urlQueryParams={validQueryParams}
@@ -655,6 +671,7 @@ export class SearchPageComponent extends Component {
                   setActiveListing={onActivateListing}
                   isMapVariant
                   listingTypeParam={listingTypePathParam}
+                  intl={intl}
                 />
               </div>
             )}

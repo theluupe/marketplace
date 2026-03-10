@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import classNames from 'classnames';
 
+import { useIntl } from '../../util/reactIntl';
 import css from './IconSpinner.module.css';
 
 const IconSpinner = props => {
-  const { rootClassName, className } = props;
+  const { rootClassName, className, ariaLabel } = props;
   const classes = classNames(rootClassName || css.root, className);
   return (
     <svg
@@ -12,6 +13,8 @@ const IconSpinner = props => {
       viewBox="0 0 30 30"
       preserveAspectRatio="xMidYMid"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={ariaLabel}
     >
       <circle cx="15" cy="15" r="12" fill="none" strokeLinecap="round">
         <animateTransform
@@ -61,9 +64,15 @@ const DelayedSpinner = props => {
  * @returns {JSX.Element} SVG icon
  */
 const Spinner = props => {
+  const intl = useIntl();
   const { delay, ...restOfProps } = props;
+  const ariaLabel = intl.formatMessage({ id: 'IconSpinner.screenreader.loading' });
 
-  return delay != null ? <DelayedSpinner {...props} /> : <IconSpinner {...restOfProps} />;
+  return delay != null ? (
+    <DelayedSpinner ariaLabel={ariaLabel} {...props} />
+  ) : (
+    <IconSpinner ariaLabel={ariaLabel} {...restOfProps} />
+  );
 };
 
 export default Spinner;

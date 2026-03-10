@@ -59,7 +59,14 @@ export const clearUserId = () => {
 const printAPIErrorsAsConsoleTable = apiErrors => {
   if (apiErrors != null && apiErrors.length > 0 && typeof console.table === 'function') {
     console.log('Errors returned by Marketplace API call:');
-    console.table(apiErrors.map(err => ({ status: err.status, code: err.code, ...err.meta })));
+    console.table(
+      apiErrors.map(err => ({
+        status: err.status,
+        code: err.code,
+        details: err.details,
+        ...err.meta,
+      }))
+    );
   }
 };
 
@@ -72,6 +79,7 @@ const responseApiErrorInfo = err =>
     status: e.status,
     code: e.code,
     meta: e.meta,
+    details: e.details,
   }));
 
 /**
@@ -121,18 +129,18 @@ const setCause = (error, cause) => {
   setCauseIfNoExistingCause(error, cause);
 };
 
-export const onRecoverableError = (error, componentStack) => {
+export const onRecoverableError = (e, componentStack) => {
   let data = {};
 
   if (componentStack) {
     // Generating this synthetic error allows monitoring services to apply sourcemaps
     // to unminify the stacktrace and make it readable.
-    const errorBoundaryError = new Error(error.message);
+    const errorBoundaryError = new Error(e.message);
     errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
     errorBoundaryError.stack = componentStack;
 
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
-    setCause(error, errorBoundaryError);
+    setCause(e, errorBoundaryError);
 
     data.componentStack = componentStack;
   }

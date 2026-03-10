@@ -10,7 +10,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { FieldArray } from 'react-final-form-arrays';
-import { FieldCheckbox, ValidationError } from '../../components';
+import { FieldCheckbox, ValidationError, HelpText } from '../../components';
 
 import css from './FieldCheckboxGroup.module.css';
 
@@ -19,6 +19,7 @@ const FieldCheckboxRenderer = props => {
     className,
     rootClassName,
     label,
+    helpText,
     optionLabelClassName,
     twoColumns,
     id,
@@ -29,9 +30,10 @@ const FieldCheckboxRenderer = props => {
 
   const classes = classNames(rootClassName || css.root, className);
   const listClasses = twoColumns ? classNames(css.list, css.twoColumns) : css.list;
+  const Tag = label ? 'fieldset' : 'div';
 
   return (
-    <fieldset className={classes}>
+    <Tag className={classes}>
       {label ? <legend>{label}</legend> : null}
       <ul className={listClasses}>
         {options.map((option, index) => {
@@ -51,8 +53,9 @@ const FieldCheckboxRenderer = props => {
           );
         })}
       </ul>
+      <HelpText helpText={helpText} />
       <ValidationError fieldMeta={{ ...meta }} />
-    </fieldset>
+    </Tag>
   );
 };
 

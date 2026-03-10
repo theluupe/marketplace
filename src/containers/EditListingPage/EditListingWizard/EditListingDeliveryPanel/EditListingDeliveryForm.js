@@ -67,7 +67,7 @@ export const EditListingDeliveryForm = props => (
         invalid,
         listingTypeConfig,
         marketplaceCurrency,
-        hasStockInUse = true,
+        allowOrdersOfMultipleItems = false,
         saveActionMsg,
         updated,
         updateInProgress,
@@ -161,6 +161,7 @@ export const EditListingDeliveryForm = props => (
               validClassName={css.validLocation}
               autoFocus={autoFocus}
               name="location"
+              id={`${formId}.location`}
               label={intl.formatMessage({ id: 'EditListingDeliveryForm.address' })}
               placeholder={intl.formatMessage({
                 id: 'EditListingDeliveryForm.addressPlaceholder',
@@ -246,7 +247,7 @@ export const EditListingDeliveryForm = props => (
               key={shippingEnabled ? 'oneItemValidation' : 'noOneItemValidation'}
             />
 
-            {hasStockInUse ? (
+            {allowOrdersOfMultipleItems ? (
               <FieldCurrencyInput
                 id={
                   formId

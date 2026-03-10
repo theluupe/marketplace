@@ -1,8 +1,10 @@
 import React from 'react';
-import dropWhile from 'lodash/dropWhile';
 import classNames from 'classnames';
 
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
+import { types as sdkTypes } from '../../../util/sdkLoader';
+import { useConfiguration } from '../../../context/configurationContext';
+import { formatMoney } from '../../../util/currency';
 import { richText } from '../../../util/richText';
 import { formatDateWithProximity } from '../../../util/dates';
 import { propTypes } from '../../../util/types';
@@ -20,7 +22,37 @@ import { stateDataShape } from '../TransactionPage.stateData';
 
 import css from './ActivityFeed.module.css';
 
+const { Money } = sdkTypes;
+
 const MIN_LENGTH_FOR_LONG_WORDS = 20;
+
+/**
+ * Formats the content and format of the message for display. Replaces message content
+ * with a marketplace text item if the sender is banned.
+ * @param {Object} message The message to format
+ * @param {Object} transaction The transaction where the message was sent
+ * @param {Object} intl Intl
+ * @returns A rich text version of the message content
+ */
+const getMessageContent = (message, transaction, intl, richTextOptions = {}) => {
+  const { customer, provider } = transaction;
+  const customerBannedUuid = customer?.attributes.banned ? customer?.id.uuid : '';
+  const providerBannedUuid = provider?.attributes.banned ? provider?.id.uuid : '';
+
+  const isBannedSender = [customerBannedUuid, providerBannedUuid].includes(message.sender.id.uuid);
+  const content = isBannedSender
+    ? intl.formatMessage({
+        id: 'TransactionPage.messageSenderBanned',
+      })
+    : message.attributes.content;
+
+  return richText(content, {
+    linkify: true,
+    longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
+    longWordClass: css.longWord,
+    ...richTextOptions,
+  });
+};
 
 /**
  * @component
@@ -30,12 +62,8 @@ const MIN_LENGTH_FOR_LONG_WORDS = 20;
  * @returns {JSX.Element} The Message component
  */
 const Message = props => {
-  const { message, formattedDate } = props;
-  const content = richText(message.attributes.content, {
-    linkify: true,
-    longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
-    longWordClass: css.longWord,
-  });
+  const { message, formattedDate, transaction, intl } = props;
+  const content = getMessageContent(message, transaction, intl);
 
   return (
     <div className={css.message}>
@@ -56,12 +84,9 @@ const Message = props => {
  * @returns {JSX.Element} The OwnMessage component
  */
 const OwnMessage = props => {
-  const { message, formattedDate } = props;
-  const content = richText(message.attributes.content, {
-    linkify: true,
+  const { message, formattedDate, transaction, intl } = props;
+  const content = getMessageContent(message, transaction, intl, {
     linkClass: css.ownMessageContentLink,
-    longWordMinLength: MIN_LENGTH_FOR_LONG_WORDS,
-    longWordClass: css.longWord,
   });
 
   return (
@@ -104,6 +129,7 @@ const TransitionMessage = props => {
     stateData,
     deliveryMethod,
     listingTitle,
+    negotiationOffer = '-',
     ownRole,
     otherUsersName,
     onOpenReviewModal,
@@ -111,6 +137,7 @@ const TransitionMessage = props => {
   } = props;
   const { processName, processState, showReviewAsFirstLink, showReviewAsSecondLink } = stateData;
   const stateStatus = nextState === processState ? 'current' : 'past';
+  const transitionName = transition.transition;
 
   // actor: 'you', 'system', 'operator', or display name of the other party
   const actor =
@@ -121,11 +148,11 @@ const TransitionMessage = props => {
       : otherUsersName;
 
   const reviewLink = showReviewAsFirstLink ? (
-    <InlineTextButton onClick={onOpenReviewModal}>
+    <InlineTextButton onClick={onOpenReviewModal} rootClassName={css.reviewLink}>
       <FormattedMessage id="TransactionPage.ActivityFeed.reviewLink" values={{ otherUsersName }} />
     </InlineTextButton>
   ) : showReviewAsSecondLink ? (
-    <InlineTextButton onClick={onOpenReviewModal}>
+    <InlineTextButton onClick={onOpenReviewModal} rootClassName={css.reviewLink}>
       <FormattedMessage
         id="TransactionPage.ActivityFeed.reviewAsSecondLink"
         values={{ otherUsersName }}
@@ -133,14 +160,39 @@ const TransitionMessage = props => {
     </InlineTextButton>
   ) : null;
 
+  // If there is a transition specific message, use it.
+  const messageConfig = stateData.transitionMessages?.find(m => m.transition === transitionName);
+  const transitionMessage = messageConfig
+    ? intl.formatMessage(
+        { id: messageConfig.translationId },
+        {
+          actor,
+          otherUsersName,
+          listingTitle,
+          reviewLink,
+          deliveryMethod,
+          stateStatus,
+          negotiationOffer,
+        }
+      )
+    : '';
+
   // ActivityFeed messages are tied to transaction process and transitions.
   // However, in practice, transitions leading to same state have had the same message.
-  const message = intl.formatMessage(
+  const defaultMessage = intl.formatMessage(
     { id: `TransactionPage.ActivityFeed.${processName}.${nextState}` },
-    { actor, otherUsersName, listingTitle, reviewLink, deliveryMethod, stateStatus }
+    {
+      actor,
+      otherUsersName,
+      listingTitle,
+      reviewLink,
+      deliveryMethod,
+      stateStatus,
+      negotiationOffer,
+    }
   );
 
-  return message;
+  return messageConfig ? transitionMessage : defaultMessage;
 };
 
 /**
@@ -203,7 +255,8 @@ const organizedItems = (messages, transitions, hideOldTransitions) => {
     // Hide transitions that happened before the oldest message. Since
     // we have older items (messages) that we are not showing, seeing
     // old transitions would be confusing.
-    return dropWhile(items, i => !isMessage(i));
+    const firstMessageIndex = items.findIndex(i => isMessage(i));
+    return firstMessageIndex >= 0 ? items.slice(firstMessageIndex) : [];
   } else {
     return items;
   }
@@ -226,11 +279,12 @@ const organizedItems = (messages, transitions, hideOldTransitions) => {
  */
 export const ActivityFeed = props => {
   const intl = props.intl || useIntl();
+  const config = useConfiguration();
   const {
     rootClassName,
     className,
     messages,
-    transaction,
+    transaction = {},
     stateData = {},
     currentUser,
     hasOlderMessages,
@@ -247,7 +301,18 @@ export const ActivityFeed = props => {
   }
   const process = getProcess(processName);
   const transitions = transaction?.attributes?.transitions || [];
-  const relevantTransitions = transitions.filter(t =>
+  const offers = transaction?.attributes?.metadata?.offers;
+
+  const enhancedTransitions =
+    offers && process.getTransitionsWithMatchingOffers
+      ? process.getTransitionsWithMatchingOffers(transitions, offers)
+      : transitions;
+  // Check currency primarily from tx, secondarily from listing, the fallback is marketplace currency
+  const currency =
+    transaction?.attributes?.payinTotal?.currency ||
+    transaction?.listing?.attributes?.price?.currency ||
+    config.currency;
+  const relevantTransitions = enhancedTransitions.filter(t =>
     process.isRelevantPastTransition(t.transition)
   );
   const todayString = intl.formatMessage({ id: 'TransactionPage.ActivityFeed.today' });
@@ -260,9 +325,19 @@ export const ActivityFeed = props => {
     const formattedDate = formatDateWithProximity(message.attributes.createdAt, intl, todayString);
     const isOwnMessage = currentUser?.id && message?.sender?.id?.uuid === currentUser.id?.uuid;
     const messageComponent = isOwnMessage ? (
-      <OwnMessage message={message} formattedDate={formattedDate} />
+      <OwnMessage
+        message={message}
+        formattedDate={formattedDate}
+        transaction={transaction}
+        intl={intl}
+      />
     ) : (
-      <Message message={message} formattedDate={formattedDate} />
+      <Message
+        message={message}
+        formattedDate={formattedDate}
+        transaction={transaction}
+        intl={intl}
+      />
     );
 
     return (
@@ -297,6 +372,11 @@ export const ActivityFeed = props => {
       const ownRole = getUserTxRole(currentUser.id, transaction);
       const otherUser = ownRole === TX_TRANSITION_ACTOR_PROVIDER ? customer : provider;
 
+      const offerInSubunits = transition.offerInSubunits;
+      const negotiationOffer = offerInSubunits
+        ? formatMoney(intl, new Money(offerInSubunits, currency))
+        : null;
+
       transitionComponent = (
         <Transition
           formattedDate={formattedDate}
@@ -307,6 +387,7 @@ export const ActivityFeed = props => {
               stateData={stateData}
               deliveryMethod={transaction.attributes?.protectedData?.deliveryMethod || 'none'}
               listingTitle={listingTitle}
+              negotiationOffer={negotiationOffer}
               ownRole={ownRole}
               otherUsersName={<UserDisplayName user={otherUser} intl={intl} />}
               onOpenReviewModal={onOpenReviewModal}
@@ -325,7 +406,7 @@ export const ActivityFeed = props => {
       );
     }
     return (
-      <li key={transition.transition} className={css.transitionItem}>
+      <li key={`${transition.transition}-${transition.createdAt}`} className={css.transitionItem}>
         {transitionComponent}
       </li>
     );

@@ -4,9 +4,10 @@ import { FormattedMessage } from '../../util/reactIntl';
 import { ResponsiveImage, Modal } from '../../components';
 
 import ImageCarousel from './ImageCarousel/ImageCarousel';
-import ActionBarMaybe from './ActionBarMaybe';
 
 import css from './ListingPage.module.css';
+
+const VIEW_PHOTOS_BUTTON_ID = 'viewPhotosButton';
 
 const SectionHero = props => {
   const [mounted, setMounted] = useState(false);
@@ -18,13 +19,11 @@ const SectionHero = props => {
     title,
     listing,
     isOwnListing,
-    editParams,
-    currentUser,
     handleViewPhotosClick,
     imageCarouselOpen,
     onImageCarouselClose,
     onManageDisableScrolling,
-    noPayoutDetailsSetWithOwnListing,
+    actionBar,
   } = props;
 
   const hasImages = listing.images && listing.images.length > 0;
@@ -34,7 +33,7 @@ const SectionHero = props => {
     : [];
 
   const viewPhotosButton = hasImages ? (
-    <button className={css.viewPhotos} onClick={handleViewPhotosClick}>
+    <button id={VIEW_PHOTOS_BUTTON_ID} className={css.viewPhotos} onClick={handleViewPhotosClick}>
       <FormattedMessage
         id="ListingPage.viewImagesButton"
         values={{ count: listing.images.length }}
@@ -47,23 +46,7 @@ const SectionHero = props => {
       <div className={css.imageWrapperForSectionHero} onClick={handleViewPhotosClick}>
         {mounted && listing.id && isOwnListing ? (
           <div onClick={e => e.stopPropagation()} className={css.actionBarContainerForHeroLayout}>
-            {noPayoutDetailsSetWithOwnListing ? (
-              <ActionBarMaybe
-                className={css.actionBarForHeroLayout}
-                isOwnListing={isOwnListing}
-                listing={listing}
-                showNoPayoutDetailsSet={noPayoutDetailsSetWithOwnListing}
-                currentUser={currentUser}
-              />
-            ) : null}
-
-            <ActionBarMaybe
-              className={css.actionBarForHeroLayout}
-              isOwnListing={isOwnListing}
-              listing={listing}
-              editParams={editParams}
-              currentUser={currentUser}
-            />
+            {actionBar}
           </div>
         ) : null}
 
@@ -84,6 +67,7 @@ const SectionHero = props => {
         onClose={onImageCarouselClose}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={VIEW_PHOTOS_BUTTON_ID}
       >
         <ImageCarousel
           images={listing.images}

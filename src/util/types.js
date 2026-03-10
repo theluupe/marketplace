@@ -399,6 +399,8 @@ export const LINE_ITEM_DAY = 'line-item/day';
 export const LINE_ITEM_HOUR = 'line-item/hour';
 export const LINE_ITEM_FIXED = 'line-item/fixed';
 export const LINE_ITEM_ITEM = 'line-item/item';
+export const LINE_ITEM_OFFER = 'line-item/offer';
+export const LINE_ITEM_REQUEST = 'line-item/request';
 export const LINE_ITEM_CUSTOMER_COMMISSION = 'line-item/customer-commission';
 export const LINE_ITEM_PROVIDER_COMMISSION = 'line-item/provider-commission';
 export const LINE_ITEM_SHIPPING_FEE = 'line-item/shipping-fee';
@@ -410,6 +412,8 @@ export const LINE_ITEMS = [
   LINE_ITEM_HOUR,
   LINE_ITEM_FIXED,
   LINE_ITEM_ITEM,
+  LINE_ITEM_OFFER,
+  LINE_ITEM_REQUEST,
   LINE_ITEM_CUSTOMER_COMMISSION,
   LINE_ITEM_PROVIDER_COMMISSION,
   LINE_ITEM_SHIPPING_FEE,
@@ -421,6 +425,8 @@ export const LISTING_UNIT_TYPES = [
   LINE_ITEM_HOUR,
   LINE_ITEM_FIXED,
   LINE_ITEM_ITEM,
+  LINE_ITEM_OFFER,
+  LINE_ITEM_REQUEST,
 ];
 
 propTypes.lineItemUnitType = oneOf(LISTING_UNIT_TYPES);
@@ -721,5 +727,9 @@ export const DATE_TYPE_TIME = 'time';
 export const DATE_TYPE_DATETIME = 'datetime';
 
 propTypes.dateType = oneOf([DATE_TYPE_DATE, DATE_TYPE_TIME, DATE_TYPE_DATETIME]);
+
+// This array defines the color schemes that are in use when listing images are disabled.
+// These values are stored in the listing public data, under the property "cardStyle".
+export const colorSchemes = ['white', 'grey', 'black', 'main-brand', 'primary-button'];
 
 export { propTypes };

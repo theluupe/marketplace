@@ -3,6 +3,7 @@ import { findRouteByRouteName } from '../../util/routes';
 import { ensureStripeCustomer, ensureTransaction } from '../../util/data';
 import { minutesBetween } from '../../util/dates';
 import { formatMoney } from '../../util/currency';
+import { NEGOTIATION_PROCESS_NAME, resolveLatestProcessName } from '../../transactions/transaction';
 import { storeData } from './CheckoutPageSessionHelpers';
 
 /**
@@ -180,12 +181,10 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
     hasPaymentIntentUserActionsDone,
     isPaymentFlowUseSavedCard,
     isPaymentFlowPayAndSaveCard,
-    message,
     onConfirmCardPayment,
     onConfirmPayment,
     onInitiateOrder,
     onSavePaymentMethod,
-    onSendMessage,
     pageData,
     paymentIntent,
     process,
@@ -209,9 +208,15 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
     // fnParams should be { listingId, deliveryMethod?, quantity?, bookingDates?, paymentMethod?.setupPaymentMethodForSaving?, protectedData }
     const hasPaymentIntents = storedTx.attributes.protectedData?.stripePaymentIntents;
 
+    const isOfferPendingInNegotiationProcess =
+      resolveLatestProcessName(processAlias.split('/')[0]) === NEGOTIATION_PROCESS_NAME &&
+      storedTx.attributes.state === `state/${process.states.OFFER_PENDING}`;
+
     const requestTransition =
       storedTx?.attributes?.lastTransition === process.transitions.INQUIRE
         ? process.transitions.REQUEST_PAYMENT_AFTER_INQUIRY
+        : isOfferPendingInNegotiationProcess
+        ? process.transitions.REQUEST_PAYMENT_TO_ACCEPT_OFFER
         : process.transitions.REQUEST_PAYMENT;
     const isPrivileged = process.isPrivileged(requestTransition);
 
@@ -296,19 +301,12 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
     return orderPromise;
   };
 
-  //////////////////////////////////
-  // Step 4: send initial message //
-  //////////////////////////////////
-  const fnSendMessage = fnParams => {
-    const orderId = fnParams?.id;
-    return onSendMessage({ id: orderId, message });
-  };
-
   //////////////////////////////////////////////////////////
-  // Step 5: optionally save card as defaultPaymentMethod //
+  // Step 4: optionally save card as defaultPaymentMethod //
   //////////////////////////////////////////////////////////
   const fnSavePaymentMethod = fnParams => {
     const pi = createdPaymentIntent || paymentIntent;
+    const orderId = fnParams?.id;
 
     if (isPaymentFlowPayAndSaveCard) {
       return onSavePaymentMethod(ensuredStripeCustomer, pi.payment_method)
@@ -323,7 +321,7 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
           return { ...fnParams, paymentMethodSaved: false };
         });
     } else {
-      return Promise.resolve({ ...fnParams, paymentMethodSaved: true });
+      return Promise.resolve({ orderId, paymentMethodSaved: true });
     }
   };
 
@@ -338,7 +336,6 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
     fnRequestPayment,
     fnConfirmCardPayment,
     fnConfirmPayment,
-    fnSendMessage,
     fnSavePaymentMethod
   );
 
@@ -355,7 +352,6 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
 export const setOrderPageInitialValues = (initialValues, routes, dispatch) => {
   const OrderPage = findRouteByRouteName('OrderDetailsPage', routes);
 
-  // Transaction is already created, but if the initial message
-  // sending failed, we tell it to the OrderDetailsPage.
+  // Transaction is already created
   dispatch(OrderPage.setInitialValues(initialValues));
 };

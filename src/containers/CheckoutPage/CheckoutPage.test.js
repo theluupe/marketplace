@@ -19,7 +19,7 @@ import {
 
 import CheckoutPageWithPayment from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
-import checkoutPageReducer, { SET_INITIAL_VALUES, setInitialValues } from './CheckoutPage.duck';
+import checkoutPageReducer, { setInitialValues } from './CheckoutPage.duck';
 
 const { Money } = sdkTypes;
 const { screen } = testingLibrary;
@@ -99,7 +99,6 @@ describe('CheckoutPage', () => {
     onInitiateOrder: noop,
     onRetrievePaymentIntent: noop,
     onSavePaymentMethod: noop,
-    onSendMessage: noop,
     confirmCardPaymentInProgress: false,
     config: getDefaultConfiguration(),
     routeConfiguration,
@@ -381,7 +380,7 @@ describe('CheckoutPage', () => {
       );
       const orderData = { quantity: 3, deliveryMethod: 'shipping' };
       const expectedAction = {
-        type: SET_INITIAL_VALUES,
+        type: 'CheckoutPage/setInitialValues',
         payload: { listing, orderData },
       };
 
@@ -408,7 +407,7 @@ describe('CheckoutPage', () => {
         expect(checkoutPageReducer(undefined, {})).toEqual(initialValues);
       });
 
-      it('should handle SET_INITIAL_VALUES', () => {
+      it('should handle setInitialValues', () => {
         const listing = createListing(
           '00000000-0000-0000-0000-000000000000',
           {},
@@ -419,7 +418,9 @@ describe('CheckoutPage', () => {
         const orderData = { quantity: 3, deliveryMethod: 'shipping' };
         const payload = { listing, orderData };
         const expected = { ...initialValues, ...payload };
-        expect(checkoutPageReducer({}, { type: SET_INITIAL_VALUES, payload })).toEqual(expected);
+        expect(checkoutPageReducer({}, { type: 'CheckoutPage/setInitialValues', payload })).toEqual(
+          expected
+        );
       });
     });
   });

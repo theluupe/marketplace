@@ -205,6 +205,7 @@ const commonProps = {
   marketplaceCurrency: 'USD',
   dayCountAvailableForBooking: 90,
   marketplaceName: 'Test marketplace',
+  showListingImage: true,
 
   history: {
     push: noop,
@@ -274,7 +275,7 @@ describe('OrderPanel', () => {
       expect(getByText('BookingDatesForm.bookingStartTitle')).toBeInTheDocument();
       expect(getByText('BookingDatesForm.bookingEndTitle')).toBeInTheDocument();
       expect(getByText('BookingDatesForm.requestToBook')).toBeInTheDocument();
-      expect(getByText('BookingDatesForm.youWontBeChargedInfo')).toBeInTheDocument();
+      expect(getByText('OrderPanel.youWontBeChargedInfo')).toBeInTheDocument();
       expect(getByText('OrderPanel.ctaButtonMessageBooking')).toBeInTheDocument();
     });
   });
@@ -324,7 +325,7 @@ describe('OrderPanel', () => {
       expect(getByText('BookingDatesForm.bookingStartTitle')).toBeInTheDocument();
       expect(getByText('BookingDatesForm.bookingEndTitle')).toBeInTheDocument();
       expect(getByText('BookingDatesForm.requestToBook')).toBeInTheDocument();
-      expect(getByText('BookingDatesForm.youWontBeChargedInfo')).toBeInTheDocument();
+      expect(getByText('OrderPanel.youWontBeChargedInfo')).toBeInTheDocument();
       expect(getByText('OrderPanel.ctaButtonMessageBooking')).toBeInTheDocument();
     });
   });
@@ -382,7 +383,7 @@ describe('OrderPanel', () => {
       expect(getByText('FieldDateAndTimeInput.startTime')).toBeInTheDocument();
       expect(getByText('FieldDateAndTimeInput.endTime')).toBeInTheDocument();
       expect(getByText('BookingTimeForm.requestToBook')).toBeInTheDocument();
-      expect(getByText('BookingTimeForm.youWontBeChargedInfo')).toBeInTheDocument();
+      expect(getByText('OrderPanel.youWontBeChargedInfo')).toBeInTheDocument();
       expect(getByText('OrderPanel.ctaButtonMessageBooking')).toBeInTheDocument();
     });
   });
@@ -447,7 +448,7 @@ describe('OrderPanel', () => {
       expect(getByText('FieldDateAndTimeInput.startTime')).toBeInTheDocument();
       expect(queryByText('FieldDateAndTimeInput.endTime')).not.toBeInTheDocument();
       expect(getByText('BookingFixedDurationForm.requestToBook')).toBeInTheDocument();
-      expect(getByText('BookingFixedDurationForm.youWontBeChargedInfo')).toBeInTheDocument();
+      expect(getByText('OrderPanel.youWontBeChargedInfo')).toBeInTheDocument();
       expect(getByText('OrderPanel.ctaButtonMessageBooking')).toBeInTheDocument();
     });
   });

@@ -4,16 +4,16 @@ import { connect } from 'react-redux';
 import { withRouter, Redirect } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import classNames from 'classnames';
-import isEmpty from 'lodash/isEmpty';
 
 import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
+import { isEmpty } from '../../util/common';
 import { camelize } from '../../util/string';
 import { pathByRouteName } from '../../util/routes';
 import { apiBaseUrl } from '../../util/api';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
-import { ensureCurrentUser } from '../../util/data';
+import { ensureCurrentUser, getFeaturedListingsProps } from '../../util/data';
 import {
   isSignupEmailTakenError,
   isTooManyEmailVerificationRequestsError,
@@ -23,6 +23,8 @@ import { pickUserFieldsData, addScopePrefix } from '../../util/userHelpers';
 import { login, authenticationInProgress, signup, signupWithIdp } from '../../ducks/auth.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { sendVerificationEmail } from '../../ducks/user.duck';
+import { fetchFeaturedListings } from '../../ducks/featuredListings.duck';
+import { getListingsById } from '../../ducks/marketplaceData.duck';
 
 import {
   Page,
@@ -61,6 +63,7 @@ import { FacebookLogo, GoogleLogo } from './socialLoginLogos';
 // Social login buttons are needed by AuthenticationForms
 export const SocialLoginButtonsMaybe = props => {
   const routeConfiguration = useRouteConfiguration();
+  const intl = useIntl();
   const { isLogin, showFacebookLogin, showGoogleLogin, from, userType } = props;
   const showSocialLogins = showFacebookLogin || showGoogleLogin;
 
@@ -96,6 +99,13 @@ export const SocialLoginButtonsMaybe = props => {
     window.location.href = `${baseUrl}/api/auth/google?${queryParams}`;
   };
 
+  const facebookAuthenticationMessage = isLogin
+    ? intl.formatMessage({ id: 'AuthenticationPage.loginWithFacebook' })
+    : intl.formatMessage({ id: 'AuthenticationPage.signupWithFacebook' });
+
+  const googleAuthenticationMessage = isLogin
+    ? intl.formatMessage({ id: 'AuthenticationPage.loginWithGoogle' })
+    : intl.formatMessage({ id: 'AuthenticationPage.signupWithGoogle' });
   return showSocialLogins ? (
     <div className={css.idpButtons}>
       <div className={css.socialButtonsOr}>
@@ -107,12 +117,10 @@ export const SocialLoginButtonsMaybe = props => {
       {showFacebookLogin ? (
         <div className={css.socialButtonWrapper}>
           <SocialLoginButton onClick={() => authWithFacebook()}>
-            <span className={css.buttonIcon}>{FacebookLogo}</span>
-            {isLogin ? (
-              <FormattedMessage id="AuthenticationPage.loginWithFacebook" />
-            ) : (
-              <FormattedMessage id="AuthenticationPage.signupWithFacebook" />
-            )}
+            <span className={css.buttonIcon}>
+              <FacebookLogo ariaLabelledBy="facebook-authentication-msg" />
+            </span>
+            <span id="facebook-authentication-msg">{facebookAuthenticationMessage}</span>
           </SocialLoginButton>
         </div>
       ) : null}
@@ -120,12 +128,10 @@ export const SocialLoginButtonsMaybe = props => {
       {showGoogleLogin ? (
         <div className={css.socialButtonWrapper}>
           <SocialLoginButton onClick={() => authWithGoogle()}>
-            <span className={css.buttonIcon}>{GoogleLogo}</span>
-            {isLogin ? (
-              <FormattedMessage id="AuthenticationPage.loginWithGoogle" />
-            ) : (
-              <FormattedMessage id="AuthenticationPage.signupWithGoogle" />
-            )}
+            <span className={css.buttonIcon}>
+              <GoogleLogo ariaLabelledBy="google-authentication-msg" />
+            </span>
+            <span id="google-authentication-msg">{googleAuthenticationMessage}</span>
           </SocialLoginButton>
         </div>
       ) : null}
@@ -165,6 +171,7 @@ export const AuthenticationForms = props => {
     termsAndConditions,
   } = props;
   const config = useConfiguration();
+  const intl = useIntl();
   const { userFields, userTypes = [] } = config.user;
   const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
 
@@ -257,9 +264,13 @@ export const AuthenticationForms = props => {
       ? signupErrorMessage
       : null;
 
+  const ariaLabel = `${intl.formatMessage({
+    id: 'AuthenticationPage.signupLinkText',
+  })} & ${intl.formatMessage({ id: 'AuthenticationPage.loginLinkText' })}`;
+
   return (
     <div className={css.content}>
-      <LinkTabNavHorizontal className={css.tabs} tabs={tabs} />
+      <LinkTabNavHorizontal className={css.tabs} tabs={tabs} ariaLabel={ariaLabel} />
       {loginOrSignupError}
 
       {isLogin ? (
@@ -545,9 +556,9 @@ export const AuthenticationPageComponent = props => {
     sendVerificationEmailError,
     onResendVerificationEmail,
     onManageDisableScrolling,
-    tosAssetsData,
-    tosFetchInProgress,
-    tosFetchError,
+    pageAssetsData,
+    pageAssetsFetchInProgress,
+    pageAssetsFetchError,
   } = props;
 
   // History API has potentially state tied to this route
@@ -690,12 +701,15 @@ export const AuthenticationPageComponent = props => {
         onClose={() => setTosModalOpen(false)}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={'terms-accepted.tos-and-privacy'}
       >
-        <div className={css.termsWrapper}>
+        <div className={css.termsWrapper} role="complementary">
           <TermsOfServiceContent
-            inProgress={tosFetchInProgress}
-            error={tosFetchError}
-            data={tosAssetsData?.[camelize(TOS_ASSET_NAME)]?.data}
+            inProgress={pageAssetsFetchInProgress}
+            error={pageAssetsFetchError}
+            data={pageAssetsData?.[camelize(TOS_ASSET_NAME)]?.data}
+            featuredListings={getFeaturedListingsProps(camelize(PRIVACY_POLICY_ASSET_NAME), props)}
+            isOpen={tosModalOpen}
           />
         </div>
       </Modal>
@@ -705,12 +719,15 @@ export const AuthenticationPageComponent = props => {
         onClose={() => setPrivacyModalOpen(false)}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={'terms-accepted.tos-and-privacy'}
       >
-        <div className={css.privacyWrapper}>
+        <div className={css.privacyWrapper} role="complementary">
           <PrivacyPolicyContent
-            inProgress={tosFetchInProgress}
-            error={tosFetchError}
-            data={tosAssetsData?.[camelize(PRIVACY_POLICY_ASSET_NAME)]?.data}
+            inProgress={pageAssetsFetchInProgress}
+            error={pageAssetsFetchError}
+            data={pageAssetsData?.[camelize(PRIVACY_POLICY_ASSET_NAME)]?.data}
+            featuredListings={getFeaturedListingsProps(camelize(PRIVACY_POLICY_ASSET_NAME), props)}
+            isOpen={privacyModalOpen}
           />
         </div>
       </Modal>
@@ -721,13 +738,11 @@ export const AuthenticationPageComponent = props => {
 const mapStateToProps = state => {
   const { isAuthenticated, loginError, signupError, confirmError } = state.auth;
   const { currentUser, sendVerificationEmailInProgress, sendVerificationEmailError } = state.user;
-  const {
-    pageAssetsData: privacyAssetsData,
-    inProgress: privacyFetchInProgress,
-    error: privacyFetchError,
-  } = state.hostedAssets || {};
-  const { pageAssetsData: tosAssetsData, inProgress: tosFetchInProgress, error: tosFetchError } =
+  const { pageAssetsData, inProgress: pageAssetsFetchInProgress, error: pageAssetsFetchError } =
     state.hostedAssets || {};
+  const featuredListingData = state.featuredListings || {};
+
+  const getListingEntitiesById = listingIds => getListingsById(state, listingIds);
 
   return {
     authInProgress: authenticationInProgress(state),
@@ -739,12 +754,11 @@ const mapStateToProps = state => {
     confirmError,
     sendVerificationEmailInProgress,
     sendVerificationEmailError,
-    privacyAssetsData,
-    privacyFetchInProgress,
-    privacyFetchError,
-    tosAssetsData,
-    tosFetchInProgress,
-    tosFetchError,
+    pageAssetsData,
+    pageAssetsFetchInProgress,
+    pageAssetsFetchError,
+    featuredListingData,
+    getListingEntitiesById,
   };
 };
 
@@ -755,6 +769,8 @@ const mapDispatchToProps = dispatch => ({
   onResendVerificationEmail: () => dispatch(sendVerificationEmail()),
   onManageDisableScrolling: (componentId, disableScrolling) =>
     dispatch(manageDisableScrolling(componentId, disableScrolling)),
+  onFetchFeaturedListings: (sectionId, parentPage, listingImageConfig, allSections) =>
+    dispatch(fetchFeaturedListings({ sectionId, parentPage, listingImageConfig, allSections })),
 });
 
 // Note: it is important that the withRouter HOC is **outside** the

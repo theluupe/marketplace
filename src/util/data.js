@@ -1,5 +1,3 @@
-import isArray from 'lodash/isArray';
-import reduce from 'lodash/reduce';
 import { sanitizeEntity } from './sanitize';
 // NOTE: This file imports sanitize.js, which may lead to circular dependency
 
@@ -92,28 +90,24 @@ export const denormalisedEntities = (entities, resources, throwIfNotFound = true
 
     if (relationships) {
       // Recursively join in all the relationship entities
-      return reduce(
-        relationships,
-        (ent, relRef, relName) => {
-          // A relationship reference can be either a single object or
-          // an array of objects. We want to keep that form in the final
-          // result.
-          const hasMultipleRefs = Array.isArray(relRef.data);
-          const multipleRefsEmpty = hasMultipleRefs && relRef.data.length === 0;
-          if (!relRef.data || multipleRefsEmpty) {
-            ent[relName] = hasMultipleRefs ? [] : null;
-          } else {
-            const refs = hasMultipleRefs ? relRef.data : [relRef.data];
+      return Object.entries(relationships).reduce((ent, [relName, relRef]) => {
+        // A relationship reference can be either a single object or
+        // an array of objects. We want to keep that form in the final
+        // result.
+        const hasMultipleRefs = Array.isArray(relRef.data);
+        const multipleRefsEmpty = hasMultipleRefs && relRef.data.length === 0;
+        if (!relRef.data || multipleRefsEmpty) {
+          ent[relName] = hasMultipleRefs ? [] : null;
+        } else {
+          const refs = hasMultipleRefs ? relRef.data : [relRef.data];
 
-            // If a relationship is not found, an Error should be thrown
-            const rels = denormalisedEntities(entities, refs, true);
+          // If a relationship is not found, an Error should be thrown
+          const rels = denormalisedEntities(entities, refs, true);
 
-            ent[relName] = hasMultipleRefs ? rels : rels[0];
-          }
-          return ent;
-        },
-        entityData
-      );
+          ent[relName] = hasMultipleRefs ? rels : rels[0];
+        }
+        return ent;
+      }, entityData);
     }
     return entityData;
   });
@@ -200,6 +194,66 @@ const denormalizeJsonData = (data, included) => {
 export const denormalizeAssetData = assetJson => {
   const { data, included } = assetJson || {};
   return denormalizeJsonData(data, included);
+};
+
+/**
+ * Limits the number of listing sections on a page to 10
+ *
+ * This function filters sections to enforce a maximum limit of listing sections
+ * while preserving all other section types. It maintains the original order of sections.
+ *
+ * @param {Object} data - Page data object containing sections array
+ *
+ * @return {Object} Filtered sections array
+ *
+ * @example
+ * const pageData = {
+ *   sections: [
+ *     { sectionType: 'hero' },
+ *     { sectionType: 'listings' },  // kept (1st listing section)
+ *     { sectionType: 'listings' },  // kept (2nd listing section)
+ *     // ... more listing sections up to 10th
+ *     { sectionType: 'listings' },  // removed (11th listing section)
+ *     { sectionType: 'footer' }     // kept (non-listing section)
+ *   ]
+ * };
+ * const limited = limitListingsSections(pageData);
+ */
+export const limitListingsSections = data => {
+  let acc = 0;
+  const listingSectionLimit = 10;
+  const filteredSections = data.sections.filter(section => {
+    if (section.sectionType === 'listings') {
+      if (acc < listingSectionLimit) {
+        acc++;
+        return true; // Keep this listing section
+      }
+      return false; // Remove this listing section (limit exceeded)
+    }
+    // Keep all non-listing sections
+    return true;
+  });
+  return { ...data, sections: filteredSections };
+};
+
+/**
+ * Create a wrapper object to pass as a prop to PageBuilder.
+ * This helper wraps all the necessary data and functions related to featured listings.
+ *
+ * @param {String} pageId The ID of the current page
+ * @param {Object} props Component props containing featuredListingData, onFetchFeaturedListings, and getListingEntitiesById
+ *
+ * @return {Object} Object wrapper containing listing data and handlers for the specified page
+ */
+export const getFeaturedListingsProps = (pageId, props) => {
+  const { featuredListingData, onFetchFeaturedListings, getListingEntitiesById } = props;
+
+  return {
+    featuredListingData: featuredListingData?.[pageId] || {},
+    parentPage: pageId,
+    onFetchFeaturedListings,
+    getListingEntitiesById,
+  };
 };
 
 /**
@@ -401,31 +455,6 @@ export const userAbbreviatedName = (user, defaultUserAbbreviatedName) => {
     return user.attributes.profile.abbreviatedName;
   } else {
     return defaultUserAbbreviatedName || '';
-  }
-};
-
-/**
- * A customizer function to be used with the
- * mergeWith function from lodash.
- *
- * Works like merge in every way exept that on case of
- * an array the old value is completely overridden with
- * the new value.
- *
- * @param {Object} objValue Value of current field, denoted by key
- * @param {Object} srcValue New value
- * @param {String} key Key of the field currently being merged
- * @param {Object} object Target object that is receiving values from source
- * @param {Object} source Source object that is merged into object param
- * @param {Object} stack Tracks merged values
- *
- * @return {Object} New value for objValue if the original is an array,
- * otherwise undefined is returned, which results in mergeWith using the
- * standard merging function
- */
-export const overrideArrays = (objValue, srcValue, key, object, source, stack) => {
-  if (isArray(objValue)) {
-    return srcValue;
   }
 };
 

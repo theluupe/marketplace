@@ -35,6 +35,7 @@ const getKeywordQueryParam = queryParamNames => {
  * @param {string} props.id - The ID
  * @param {string} props.name - The name
  * @param {React.Node} props.label - The label
+ * @param {Function} props.getAriaLabel - The function to retrieve the aria label for the component
  * @param {Array<string>} props.queryParamNames - The query param names
  * @param {Object} props.initialValues - The initial values
  * @param {Object} props.initialValues.keyword - The keyword
@@ -62,6 +63,7 @@ class KeywordFilter extends Component {
       id,
       name,
       label,
+      getAriaLabel,
       initialValues,
       contentPlacementOffset = 0,
       onSubmit,
@@ -74,13 +76,10 @@ class KeywordFilter extends Component {
     const classes = classNames(rootClassName || css.root, className);
 
     const urlParam = getKeywordQueryParam(queryParamNames);
-    const hasInitialValues =
-      !!initialValues && !!initialValues[urlParam] && initialValues[urlParam].length > 0;
+    const rawInitialValues = initialValues?.[urlParam];
+    const hasInitialValues = !!initialValues && !!rawInitialValues && rawInitialValues.length > 0;
     const labelForPopup = hasInitialValues
-      ? intl.formatMessage(
-          { id: 'KeywordFilter.labelSelected' },
-          { labelText: initialValues[urlParam] }
-        )
+      ? intl.formatMessage({ id: 'KeywordFilter.labelSelected' }, { labelText: rawInitialValues })
       : label;
 
     const labelClass = hasInitialValues ? css.labelPlainSelected : css.labelPlain;
@@ -91,7 +90,7 @@ class KeywordFilter extends Component {
 
     // pass the initial values with the name key so that
     // they can be passed to the correct field
-    const namedInitialValues = { [name]: initialValues[urlParam] };
+    const namedInitialValues = { [name]: rawInitialValues };
 
     const handleSubmit = values => {
       const usedValue = values ? values[name] : values;
@@ -137,6 +136,7 @@ class KeywordFilter extends Component {
         popupClassName={css.popupSize}
         name={name}
         label={labelForPopup}
+        ariaLabel={getAriaLabel(label, rawInitialValues)}
         isSelected={hasInitialValues}
         id={`${id}.popup`}
         showAsPopup
@@ -162,6 +162,7 @@ class KeywordFilter extends Component {
         className={className}
         rootClassName={rootClassName}
         label={labelForPlain}
+        ariaLabel={getAriaLabel(label, rawInitialValues)}
         isSelected={hasInitialValues}
         id={`${id}.plain`}
         liveEdit
@@ -170,7 +171,7 @@ class KeywordFilter extends Component {
         initialValues={namedInitialValues}
         {...rest}
       >
-        <fieldset className={css.fieldPlain}>
+        <div className={css.fieldPlain}>
           <label className={css.fieldPlainLabel} htmlFor={`${id}-input`}>
             {filterText}
           </label>
@@ -183,7 +184,7 @@ class KeywordFilter extends Component {
             placeholder={placeholder}
             autoComplete="off"
           />
-        </fieldset>
+        </div>
       </FilterPlain>
     );
   }

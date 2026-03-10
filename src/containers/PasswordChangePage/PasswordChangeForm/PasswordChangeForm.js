@@ -215,7 +215,7 @@ class PasswordChangeForm extends Component {
                 />
               </div>
 
-              <div className={confirmClasses}>
+              <div className={confirmClasses} aria-hidden={pristine}>
                 <H4 as="h3" className={css.confirmChangesTitle}>
                   <FormattedMessage id="PasswordChangeForm.confirmChangesTitle" />
                 </H4>
@@ -233,6 +233,7 @@ class PasswordChangeForm extends Component {
                   type="password"
                   id="currentPassword"
                   name="currentPassword"
+                  disabled={pristine}
                   autoComplete="current-password"
                   label={passwordLabel}
                   placeholder={passwordPlaceholder}

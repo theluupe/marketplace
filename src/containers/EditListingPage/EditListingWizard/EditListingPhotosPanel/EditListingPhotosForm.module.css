@@ -96,7 +96,7 @@
 
 .imageTypes {
   composes: marketplaceTinyFontStyles from global;
-  color: var(--colorGrey300);
+  color: var(--colorGrey600);
 
   margin-top: 0;
   margin-bottom: 0;
@@ -108,14 +108,25 @@
 }
 
 .addImageInput {
-  display: none;
+  clip-path: inset(50%);
+  height: 1px;
+  width: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+
+  &:focus ~ .addImage {
+    border-color: var(--colorGrey300);
+  }
 }
 
 .tip {
   composes: h5 from global;
 
   flex-shrink: 0;
-  color: var(--colorGrey300);
+  color: var(--colorGrey600);
   margin-top: 24px;
   margin-bottom: 60px;
 
