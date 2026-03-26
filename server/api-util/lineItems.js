@@ -1,15 +1,12 @@
 const {
   calculateQuantityFromDates,
   calculateQuantityFromHours,
-  calculateTotalFromLineItems,
   calculateShippingFee,
-  hasCommissionPercentage,
   hasLicenseDeal,
   getLicenseUpgradeLineItem,
-  getNegation,
   validateVoucher,
-  getVoucherDiscountLineItem,
-  getDiscount,
+  getProviderCommissionMaybe,
+  getCustomerCommissionMaybe,
 } = require('./lineItemHelpers');
 
 const { types } = require('sharetribe-flex-sdk');
@@ -40,7 +37,7 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
       )
     : null;
   // Add line-item for given delivery method.
-  // Note: by default, pickup considered as free.
+  // Note: by default, pickup considered as free and, therefore, we don't add pickup fee line-item
   const deliveryLineItem = !!shippingFee
     ? [
         {
@@ -50,17 +47,12 @@ const getItemQuantityAndLineItems = (orderData, publicData, currency) => {
           includeFor: ['customer', 'provider'],
         },
       ]
-    : isPickup
-    ? [
-        {
-          code: 'line-item/pickup-fee',
-          unitPrice: new Money(0, currency),
-          quantity: 1,
-          includeFor: ['customer', 'provider'],
-        },
-      ]
     : [];
   return { quantity, extraLineItems: deliveryLineItem };
+};
+
+const getOfferQuantityAndLineItems = orderData => {
+  return { quantity: 1, extraLineItems: [] };
 };
 
 /**
@@ -136,6 +128,8 @@ const getDateRangeQuantityAndLineItems = (orderData, code) => {
  *
  * @param {Object} listing
  * @param {Object} orderData
+ * @param {string} [orderData.priceVariantName] - The name of the price variant (potentially used with bookable unit types)
+ * @param {Money} [orderData.offer] - The offer for the offer (if transition intent is "make-offer")
  * @param {Object} providerCommission
  * @param {Object} customerCommission
  * @returns {Array} lineItems
@@ -153,10 +147,11 @@ exports.transactionLineItems = async (
   const { unitType, priceVariants, priceVariationsEnabled } = publicData;
 
   const isBookable = ['day', 'night', 'hour', 'fixed'].includes(unitType);
+  const isNegotiationUnitType = ['offer', 'request'].includes(unitType);
   const priceAttribute = listing.attributes.price;
-  const currency = priceAttribute.currency;
+  const currency = priceAttribute?.currency || orderData.currency;
 
-  const { priceVariantName } = orderData || {};
+  const { priceVariantName, offer } = orderData || {};
   const priceVariantConfig = priceVariants
     ? priceVariants.find(pv => pv.name === priceVariantName)
     : null;
@@ -166,6 +161,8 @@ exports.transactionLineItems = async (
   const unitPrice =
     isBookable && priceVariationsEnabled && isPriceInSubunitsValid
       ? new Money(priceInSubunits, currency)
+      : offer instanceof Money && isNegotiationUnitType
+      ? offer
       : priceAttribute;
 
   /**
@@ -192,6 +189,8 @@ exports.transactionLineItems = async (
       ? getHourQuantityAndLineItems(orderData)
       : ['day', 'night'].includes(unitType)
       ? getDateRangeQuantityAndLineItems(orderData, code)
+      : isNegotiationUnitType
+      ? getOfferQuantityAndLineItems(orderData)
       : {};
 
   const { quantity, units, seats, extraLineItems } = quantityAndExtraLineItems;
@@ -241,17 +240,7 @@ exports.transactionLineItems = async (
 
   // Calculate the base line items that should be included in commission calculations WITHOUT voucher discount
   const baseLineItemsForCommission = [order, ...licenseUpgradeLineItem];
-
   const voucherData = await validateVoucher(currentUserId, voucherCode);
-  const voucherDiscountMaybe = getVoucherDiscountLineItem(
-    voucherData,
-    baseLineItemsForCommission,
-    providerCommission
-  );
-  const voucherDiscountPercentage =
-    !voucherData || !voucherData.isValid
-      ? 0
-      : getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
 
   // Note: extraLineItems for product selling (aka shipping fee)
   // is not included in either customer or provider commission calculation.
@@ -259,31 +248,21 @@ exports.transactionLineItems = async (
   // The provider commission is what the provider pays for the transaction, and
   // it is the subtracted from the order price to get the provider payout:
   // orderPrice - providerCommission = providerPayout
-  const providerCommissionMaybe = hasCommissionPercentage(providerCommission)
-    ? [
-        {
-          code: 'line-item/provider-commission',
-          unitPrice: calculateTotalFromLineItems(baseLineItemsForCommission),
-          percentage: getNegation(providerCommission.percentage - voucherDiscountPercentage),
-          includeFor: ['provider'],
-        },
-        ...voucherDiscountMaybe,
-      ]
-    : [];
+  const providerCommissionMaybe = getProviderCommissionMaybe(
+    providerCommission,
+    baseLineItemsForCommission,
+    currency,
+    voucherData
+  );
 
   // The customer commission is what the customer pays for the transaction, and
   // it is added on top of the order price to get the customer's payin price:
   // orderPrice + customerCommission = customerPayin
-  const customerCommissionMaybe = hasCommissionPercentage(customerCommission)
-    ? [
-        {
-          code: 'line-item/customer-commission',
-          unitPrice: calculateTotalFromLineItems(baseLineItemsForCommission),
-          percentage: customerCommission.percentage,
-          includeFor: ['customer'],
-        },
-      ]
-    : [];
+  const customerCommissionMaybe = getCustomerCommissionMaybe(
+    customerCommission,
+    baseLineItemsForCommission,
+    currency
+  );
 
   // Let's keep the base price (order) as first line item, then extra items, then license upgrades, voucher discounts, and commissions as last.
   // Note: the order matters only if OrderBreakdown component doesn't recognize line-item.

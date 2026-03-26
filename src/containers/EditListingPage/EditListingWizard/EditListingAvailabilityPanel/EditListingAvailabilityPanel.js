@@ -20,6 +20,8 @@ import css from './EditListingAvailabilityPanel.module.css';
 // This is the order of days as JavaScript understands them
 // The number returned by "new Date().getDay()" refers to day of week starting from sunday.
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const EDIT_AVAILABILITY_PLAN_BUTTON = 'editAvailabilityPlanButton';
+const EDIT_AVAILABILITY_EXCEPTIONS_BUTTON = 'editAvailabilityExceptionsButton';
 
 // This is the order of days as JavaScript understands them
 // The number returned by "new Date().getDay()" refers to day of week starting from sunday.
@@ -174,6 +176,8 @@ const EditListingAvailabilityPanel = props => {
     config,
     routeConfiguration,
     history,
+    updatePageTitle: UpdatePageTitle,
+    intl,
   } = props;
   // Hooks
   const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false);
@@ -216,6 +220,7 @@ const EditListingAvailabilityPanel = props => {
     return onSubmit(createAvailabilityPlan(values))
       .then(() => {
         setIsEditPlanModalOpen(false);
+        document.getElementById(EDIT_AVAILABILITY_PLAN_BUTTON)?.focus();
       })
       .catch(e => {
         // Don't close modal if there was an error
@@ -257,20 +262,28 @@ const EditListingAvailabilityPanel = props => {
       });
   };
 
+  const panelHeadingProps = isPublished
+    ? {
+        id: 'EditListingAvailabilityPanel.title',
+        values: { listingTitle: <ListingLink listing={listing} />, lineBreak: <br /> },
+        messageProps: { listingTitle: listing.attributes.title },
+      }
+    : {
+        id: 'EditListingAvailabilityPanel.createListingTitle',
+        values: { lineBreak: <br /> },
+        messageProps: {},
+      };
+
   return (
     <main className={classes}>
-      <H3 as="h1" className={css.heading}>
-        {isPublished ? (
-          <FormattedMessage
-            id="EditListingAvailabilityPanel.title"
-            values={{ listingTitle: <ListingLink listing={listing} />, lineBreak: <br /> }}
-          />
-        ) : (
-          <FormattedMessage
-            id="EditListingAvailabilityPanel.createListingTitle"
-            values={{ lineBreak: <br /> }}
-          />
+      <UpdatePageTitle
+        panelHeading={intl.formatMessage(
+          { id: panelHeadingProps.id },
+          { ...panelHeadingProps.messageProps }
         )}
+      />
+      <H3 as="h1">
+        <FormattedMessage id={panelHeadingProps.id} values={{ ...panelHeadingProps.values }} />
       </H3>
 
       <div className={css.planInfo}>
@@ -281,6 +294,7 @@ const EditListingAvailabilityPanel = props => {
         ) : null}
 
         <InlineTextButton
+          id={EDIT_AVAILABILITY_PLAN_BUTTON}
           className={css.editPlanButton}
           onClick={() => setIsEditPlanModalOpen(true)}
         >
@@ -315,6 +329,7 @@ const EditListingAvailabilityPanel = props => {
 
           <section className={css.section}>
             <InlineTextButton
+              id={EDIT_AVAILABILITY_EXCEPTIONS_BUTTON}
               className={css.addExceptionButton}
               onClick={() => setIsEditExceptionsModalOpen(true)}
               disabled={disabled || !hasAvailabilityPlan}
@@ -348,6 +363,7 @@ const EditListingAvailabilityPanel = props => {
           isOpen={isEditPlanModalOpen}
           onClose={() => setIsEditPlanModalOpen(false)}
           onManageDisableScrolling={onManageDisableScrolling}
+          focusElementId={EDIT_AVAILABILITY_PLAN_BUTTON}
           containerClassName={css.modalContainer}
           usePortal
         >
@@ -373,6 +389,7 @@ const EditListingAvailabilityPanel = props => {
           isOpen={isEditExceptionsModalOpen}
           onClose={() => setIsEditExceptionsModalOpen(false)}
           onManageDisableScrolling={onManageDisableScrolling}
+          focusElementId={EDIT_AVAILABILITY_EXCEPTIONS_BUTTON}
           containerClassName={css.modalContainer}
           usePortal
         >

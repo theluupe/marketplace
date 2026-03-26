@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 
 const { deserialize } = require('./api-util/sdk');
 const { authenticateAuth0, authenticateAuth0Callback } = require('./api/auth/auth0');
+const deleteAccount = require('./api/delete-account');
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
 const initiateLoginAs = require('./api/initiate-login-as');
 const loginAs = require('./api/login-as');
@@ -87,6 +88,7 @@ router.post('/phototag-keywords', phototagKeywords);
 router.post('/referral-program/opt-in', referralProgramOptIn);
 router.post('/transaction/product-download', generateDownloadUrls);
 router.post('/transition-privileged', transitionPrivileged);
+router.post('/delete-account', deleteAccount);
 router.post('/transloadit-params', transloaditParams);
 router.post('/validate-license-deal', validateLicenseDeal);
 router.post('/validate-voucher', validateVoucher);

@@ -21,7 +21,7 @@ import css from './TopbarDesktop.module.css';
 
 const SignupLink = () => {
   return (
-    <NamedLink name="SignupPage" className={css.topbarLink}>
+    <NamedLink id="signup-link" name="SignupPage" className={css.topbarLink}>
       <span className={css.topbarLinkLabel}>
         <FormattedMessage id="TopbarDesktop.signup" />
       </span>
@@ -31,7 +31,7 @@ const SignupLink = () => {
 
 const LoginLink = () => {
   return (
-    <NamedLink name="LoginPage" className={css.topbarLink}>
+    <NamedLink id="login-link" name="LoginPage" className={css.topbarLink}>
       <span className={css.topbarLinkLabel}>
         <FormattedMessage id="TopbarDesktop.login" />
       </span>
@@ -42,7 +42,12 @@ const LoginLink = () => {
 const InboxLink = ({ notificationCount, inboxTab }) => {
   const notificationDot = notificationCount > 0 ? <div className={css.notificationDot} /> : null;
   return (
-    <NamedLink className={css.topbarLink} name="InboxPage" params={{ tab: inboxTab }}>
+    <NamedLink
+      id="inbox-link"
+      className={css.topbarLink}
+      name="InboxPage"
+      params={{ tab: inboxTab }}
+    >
       <span className={css.topbarLinkLabel}>
         <FormattedMessage id="TopbarDesktop.inbox" />
         {notificationDot}
@@ -51,7 +56,7 @@ const InboxLink = ({ notificationCount, inboxTab }) => {
   );
 };
 
-const ProfileMenu = ({ currentPage, currentUser, onLogout }) => {
+const ProfileMenu = ({ currentPage, currentUser, onLogout, intl }) => {
   const currentPageClass = page => {
     const isAccountSettingsPage =
       page === 'AccountSettingsPage' && ACCOUNT_SETTINGS_PAGES.includes(currentPage);
@@ -59,8 +64,13 @@ const ProfileMenu = ({ currentPage, currentUser, onLogout }) => {
   };
 
   return (
-    <Menu>
-      <MenuLabel className={css.profileMenuLabel} isOpenClassName={css.profileMenuIsOpen}>
+    <Menu skipFocusOnNavigation={true}>
+      <MenuLabel
+        id="profile-menu-label"
+        className={css.profileMenuLabel}
+        isOpenClassName={css.profileMenuIsOpen}
+        ariaLabel={intl.formatMessage({ id: 'TopbarDesktop.screenreader.profileMenu' })}
+      >
         <Avatar className={css.avatar} user={currentUser} disableProfileLink />
       </MenuLabel>
       <MenuContent className={css.profileMenuContent}>
@@ -166,7 +176,12 @@ const TopbarDesktop = props => {
   ) : null;
 
   const profileMenuMaybe = authenticatedOnClientSide ? (
-    <ProfileMenu currentPage={currentPage} currentUser={currentUser} onLogout={onLogout} />
+    <ProfileMenu
+      currentPage={currentPage}
+      currentUser={currentUser}
+      onLogout={onLogout}
+      intl={intl}
+    />
   ) : null;
 
   const signupLinkMaybe = isAuthenticatedOrJustHydrated ? null : <SignupLink />;
@@ -190,8 +205,12 @@ const TopbarDesktop = props => {
   );
 
   return (
-    <nav className={classes}>
+    <nav
+      className={classes}
+      aria-label={intl.formatMessage({ id: 'TopbarDesktop.screenreader.topbarNavigation' })}
+    >
       <LinkedLogo
+        id="logo-topbar-desktop"
         className={css.logoLink}
         layout="desktop"
         alt={intl.formatMessage({ id: 'TopbarDesktop.logo' }, { marketplaceName })}

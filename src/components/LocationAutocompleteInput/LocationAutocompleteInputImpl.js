@@ -3,11 +3,11 @@ import classNames from 'classnames';
 import debounce from 'lodash/debounce';
 
 import { useConfiguration } from '../../context/configurationContext';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 
 import { IconSpinner } from '../../components';
 
-import IconHourGlass from './IconHourGlass';
+import IconLookingGlass from './IconLookingGlass';
 import IconCurrentLocation from './IconCurrentLocation';
 import * as geocoderMapbox from './GeocoderMapbox';
 import * as geocoderGoogleMaps from './GeocoderGoogleMaps';
@@ -40,6 +40,7 @@ const getGeocoderVariant = mapProvider => {
 // Renders the autocompletion prediction results in a list
 const LocationPredictionsList = props => {
   const {
+    id,
     rootClassName,
     className,
     useDarkText,
@@ -68,6 +69,8 @@ const LocationPredictionsList = props => {
           useDarkText ? css.listItemBlackText : css.listItemWhiteText
         )}
         key={predictionId}
+        id={predictionId}
+        role="option"
         onTouchStart={e => {
           e.preventDefault();
           onSelectStart(getTouchCoordinates(e.nativeEvent));
@@ -111,8 +114,10 @@ const LocationPredictionsList = props => {
   );
 
   return (
-    <div className={classes}>
-      <ul className={css.predictions}>{predictions.map(item)}</ul>
+    <div className={classes} id={id}>
+      <ul className={css.predictions} role="listbox">
+        {predictions.map(item)}
+      </ul>
       {children}
     </div>
   );
@@ -223,8 +228,9 @@ class LocationAutocompleteInputImplementation extends Component {
         this.input?.blur();
       }
     } else if (e.keyCode === KEY_CODE_TAB) {
-      this.selectItemIfNoneSelected();
-      this.input?.blur();
+      if (!e.shiftKey) {
+        this.selectItemIfNoneSelected();
+      }
     } else if (e.keyCode === KEY_CODE_ESC && this.input) {
       this.input.blur();
     }
@@ -337,6 +343,15 @@ class LocationAutocompleteInputImplementation extends Component {
     const predictions = this.currentPredictions();
     if (!selectedPlace) {
       if (predictions && predictions.length > 0) {
+        const geocoderVariant = getGeocoderVariant(this.props.config.maps.mapProvider);
+        if (
+          this.state.highlightedIndex === -1 &&
+          predictions.length === 1 &&
+          predictions[0].id === geocoderVariant.CURRENT_LOCATION_ID
+        ) {
+          // If the only prediction is the current location, do not select it automatically.
+          return;
+        }
         const index = this.state.highlightedIndex !== -1 ? this.state.highlightedIndex : 0;
         this.selectPrediction(predictions[index]);
       } else {
@@ -450,12 +465,18 @@ class LocationAutocompleteInputImplementation extends Component {
       inputRef,
       disabled,
       config,
+      intl,
+      id,
+      submitButton: SubmitButton,
+      ariaLabel,
     } = this.props;
     const { name, onFocus } = input;
     const { search } = currentValue(this.props);
     const { touched, valid } = meta || {};
     const isValid = valid && touched;
     const predictions = this.currentPredictions();
+
+    const ariaLabelMaybe = ariaLabel ? { ['aria-label']: ariaLabel } : {};
 
     const handleOnFocus = e => {
       this.setState({ inputHasFocus: true });
@@ -490,6 +511,8 @@ class LocationAutocompleteInputImplementation extends Component {
         ? { ref: inputRef }
         : {};
 
+    const predictionsId = `${id}.predictions`;
+
     return (
       <div className={rootClass}>
         <div className={iconClass}>
@@ -497,8 +520,14 @@ class LocationAutocompleteInputImplementation extends Component {
             <IconSpinner className={css.iconSpinner} />
           ) : CustomIcon ? (
             <CustomIcon />
+          ) : SubmitButton ? (
+            <SubmitButton />
           ) : (
-            <IconHourGlass />
+            <IconLookingGlass
+              ariaLabel={intl.formatMessage({
+                id: 'LocationAutocompleteInput.screenreader.search',
+              })}
+            />
           )}
         </div>
         <input
@@ -508,6 +537,7 @@ class LocationAutocompleteInputImplementation extends Component {
           autoFocus={autoFocus}
           placeholder={placeholder}
           name={name}
+          id={id}
           value={search}
           disabled={disabled || this.state.fetchingPlaceDetails}
           onFocus={handleOnFocus}
@@ -517,9 +547,16 @@ class LocationAutocompleteInputImplementation extends Component {
           {...refMaybe}
           title={search}
           data-testid="location-search"
+          {...ariaLabelMaybe}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={renderPredictions}
+          aria-controls={predictionsId}
+          aria-activedescendant={predictions[this.state.highlightedIndex]?.id}
         />
         {renderPredictions ? (
           <LocationPredictionsList
+            id={predictionsId}
             rootClassName={predictionsClass}
             useDarkText={useDarkText}
             predictions={predictions}
@@ -597,8 +634,9 @@ class LocationAutocompleteInputImplementation extends Component {
  */
 const LocationAutocompleteInputImpl = props => {
   const config = useConfiguration();
+  const intl = useIntl();
 
-  return <LocationAutocompleteInputImplementation config={config} {...props} />;
+  return <LocationAutocompleteInputImplementation config={config} intl={intl} {...props} />;
 };
 
 export default LocationAutocompleteInputImpl;

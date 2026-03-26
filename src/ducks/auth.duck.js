@@ -1,3 +1,4 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { fetchCurrentUser } from './user.duck';
@@ -6,24 +7,7 @@ import { createUserWithIdp } from '../util/api';
 const authenticated = authInfo => authInfo?.isAnonymous === false;
 const loggedInAs = authInfo => authInfo?.isLoggedInAs === true;
 
-// ================ Action types ================ //
-
-export const AUTH_INFO_REQUEST = 'app/auth/AUTH_INFO_REQUEST';
-export const AUTH_INFO_SUCCESS = 'app/auth/AUTH_INFO_SUCCESS';
-
-export const LOGOUT_REQUEST = 'app/auth/LOGOUT_REQUEST';
-export const LOGOUT_SUCCESS = 'app/auth/LOGOUT_SUCCESS';
-export const LOGOUT_ERROR = 'app/auth/LOGOUT_ERROR';
-
-export const CONFIRM_REQUEST = 'app/auth/CONFIRM_REQUEST';
-export const CONFIRM_SUCCESS = 'app/auth/CONFIRM_SUCCESS';
-export const CONFIRM_ERROR = 'app/auth/CONFIRM_ERROR';
-
-// Generic user_logout action that can be handled elsewhere
-// E.g. src/reducers.js clears store as a consequence
-export const USER_LOGOUT = 'app/USER_LOGOUT';
-
-// ================ Reducer ================ //
+// ================ Initial State ================ //
 
 const initialState = {
   isAuthenticated: false,
@@ -41,49 +25,124 @@ const initialState = {
   logoutError: null,
   logoutInProgress: false,
 
-  // confirm (create use with idp)
+  // confirm (create user with idp)
   confirmError: null,
   confirmInProgress: false,
 };
 
-export default function reducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case AUTH_INFO_REQUEST:
-      return state;
-    case AUTH_INFO_SUCCESS:
-      return {
-        ...state,
-        authInfoLoaded: true,
-        isAuthenticated: authenticated(payload),
-        isLoggedInAs: loggedInAs(payload),
-        authScopes: payload.scopes,
-      };
+// ================ Async Thunks ================ //
 
-    case LOGOUT_REQUEST:
-      return { ...state, logoutInProgress: true, logoutError: null };
-    case LOGOUT_SUCCESS:
-      return {
-        ...state,
-        logoutInProgress: false,
-        isAuthenticated: false,
-        isLoggedInAs: false,
-        authScopes: [],
-      };
-    case LOGOUT_ERROR:
-      return { ...state, logoutInProgress: false, logoutError: payload };
+const authInfoThunk = createAsyncThunk('auth/authInfo', (_, thunkAPI) => {
+  const { extra: sdk } = thunkAPI;
+  return sdk.authInfo().catch(e => {
+    log.error(e, 'auth-info-failed');
+    return null;
+  });
+});
 
-    case CONFIRM_REQUEST:
-      return { ...state, confirmInProgress: true, confirmError: null };
-    case CONFIRM_SUCCESS:
-      return { ...state, confirmInProgress: false, isAuthenticated: true };
-    case CONFIRM_ERROR:
-      return { ...state, confirmInProgress: false, confirmError: payload };
+/**
+ * Luupe: after SDK logout, redirect to Auth0 logout so the IdP session ends.
+ * We do not dispatch clearCurrentUser here — doing so before the Auth0 redirect
+ * can send users to the app login screen and skip Auth0 logout (see legacy
+ * comment on this flow).
+ */
+const logoutThunk = createAsyncThunk(
+  'auth/logout',
+  (_, thunkAPI) => {
+    const { rejectWithValue, extra: sdk } = thunkAPI;
 
-    default:
-      return state;
+    return sdk
+      .logout()
+      .then(() => {
+        if (typeof window !== 'undefined') {
+          const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
+          const AUTH0_CLIENT_ID = process.env.REACT_APP_AUTH0_MARKETPLACE_CLIENT_ID;
+          const returnTo = encodeURIComponent(process.env.REACT_APP_MARKETPLACE_ROOT_URL || '');
+          window.location.href = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${returnTo}`;
+        }
+        return true;
+      })
+      .catch(e => rejectWithValue(storableError(e)));
+  },
+  {
+    condition: (_, { getState }) => {
+      if (getState().auth.logoutInProgress) {
+        return false;
+      }
+    },
   }
-}
+);
+
+const signupWithIdpThunk = createAsyncThunk(
+  'auth/signupWithIdp',
+  (params, thunkAPI) => {
+    const { rejectWithValue, dispatch } = thunkAPI;
+    return createUserWithIdp(params)
+      .then(() => dispatch(fetchCurrentUser({ afterLogin: true })))
+      .then(() => params)
+      .catch(e => {
+        log.error(e, 'create-user-with-idp-failed', { params });
+        return rejectWithValue(storableError(e));
+      });
+  },
+  {
+    condition: (_, { getState }) => {
+      if (getState().auth.confirmInProgress) {
+        return false;
+      }
+    },
+  }
+);
+
+// ================ Slice ================ //
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {},
+  extraReducers: builder => {
+    builder.addCase(authInfoThunk.fulfilled, (state, action) => {
+      const payload = action.payload;
+      state.authInfoLoaded = true;
+      state.isAuthenticated = authenticated(payload);
+      state.isLoggedInAs = loggedInAs(payload);
+      state.authScopes = payload?.scopes || [];
+    });
+
+    builder
+      .addCase(logoutThunk.pending, state => {
+        state.logoutInProgress = true;
+        state.logoutError = null;
+      })
+      .addCase(logoutThunk.fulfilled, state => {
+        state.logoutInProgress = false;
+        state.isAuthenticated = false;
+        state.isLoggedInAs = false;
+        state.authScopes = [];
+      })
+      .addCase(logoutThunk.rejected, (state, action) => {
+        state.logoutInProgress = false;
+        state.logoutError = action.payload;
+      });
+
+    builder
+      .addCase(signupWithIdpThunk.pending, state => {
+        state.confirmInProgress = true;
+        state.confirmError = null;
+      })
+      .addCase(signupWithIdpThunk.fulfilled, state => {
+        state.confirmInProgress = false;
+        state.isAuthenticated = true;
+      })
+      .addCase(signupWithIdpThunk.rejected, (state, action) => {
+        state.confirmInProgress = false;
+        state.confirmError = action.payload;
+      });
+  },
+});
+
+export { logoutThunk };
+export default authSlice.reducer;
 
 // ================ Selectors ================ //
 
@@ -92,77 +151,17 @@ export const authenticationInProgress = state => {
   return logoutInProgress || confirmInProgress;
 };
 
-// ================ Action creators ================ //
-
-export const authInfoRequest = () => ({ type: AUTH_INFO_REQUEST });
-export const authInfoSuccess = info => ({ type: AUTH_INFO_SUCCESS, payload: info });
-
-export const logoutRequest = () => ({ type: LOGOUT_REQUEST });
-export const logoutSuccess = () => ({ type: LOGOUT_SUCCESS });
-export const logoutError = error => ({ type: LOGOUT_ERROR, payload: error, error: true });
-
-export const confirmRequest = () => ({ type: CONFIRM_REQUEST });
-export const confirmSuccess = () => ({ type: CONFIRM_SUCCESS });
-export const confirmError = error => ({ type: CONFIRM_ERROR, payload: error, error: true });
-
-export const userLogout = () => ({ type: USER_LOGOUT });
-
-// ================ Thunks ================ //
-
-export const authInfo = () => (dispatch, getState, sdk) => {
-  dispatch(authInfoRequest());
-  return sdk
-    .authInfo()
-    .then(info => dispatch(authInfoSuccess(info)))
-    .catch(e => {
-      // Requesting auth info just reads the token from the token
-      // store (i.e. cookies), and should not fail in normal
-      // circumstances. If it fails, it's due to a programming
-      // error. In that case we mark the operation done and dispatch
-      // `null` success action that marks the user as unauthenticated.
-      log.error(e, 'auth-info-failed');
-      dispatch(authInfoSuccess(null));
-    });
-};
+// ================ Thunk Wrappers ================ //
+// These maintain the same API as the original thunks
 
 export const logout = () => (dispatch, getState, sdk) => {
-  if (authenticationInProgress(getState())) {
-    return Promise.reject(new Error('Login or logout already in progress'));
-  }
-  dispatch(logoutRequest());
-
-  // Note that the thunk does not reject when the logout fails, it
-  // just dispatches the logout error action.
-  return (
-    sdk
-      .logout()
-      // This would redirect us to the login on protected routes and the auth0 logout wouldn't take place
-      // .then(() => {
-      //   // The order of the dispatched actions
-      //   dispatch(logoutSuccess());
-      //   dispatch(clearCurrentUser());
-      //   log.clearUserId();
-      //   dispatch(userLogout());
-      // })
-      .then(() => {
-        const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
-        const AUTH0_CLIENT_ID = process.env.REACT_APP_AUTH0_MARKETPLACE_CLIENT_ID;
-        const returnTo = encodeURIComponent(process.env.REACT_APP_MARKETPLACE_ROOT_URL);
-        window.location.href = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${returnTo}`;
-      })
-      .catch(e => dispatch(logoutError(storableError(e))))
-  );
+  return dispatch(logoutThunk()).unwrap();
 };
 
 export const signupWithIdp = params => (dispatch, getState, sdk) => {
-  dispatch(confirmRequest());
-  return createUserWithIdp(params)
-    .then(res => {
-      return dispatch(confirmSuccess());
-    })
-    .then(() => dispatch(fetchCurrentUser()))
-    .catch(e => {
-      log.error(e, 'create-user-with-idp-failed', { params });
-      return dispatch(confirmError(storableError(e)));
-    });
+  return dispatch(signupWithIdpThunk(params)).unwrap();
+};
+
+export const authInfo = () => (dispatch, getState, sdk) => {
+  return dispatch(authInfoThunk()).unwrap();
 };

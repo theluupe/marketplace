@@ -25,6 +25,8 @@ import { Form, PrimaryButton, FieldDateRangePicker, FieldSelect, H6 } from '../.
 
 import EstimatedCustomerBreakdownMaybe from '../EstimatedCustomerBreakdownMaybe';
 
+import FetchLineItemsError from '../FetchLineItemsError/FetchLineItemsError.js';
+
 import css from './BookingDatesForm.module.css';
 
 const TODAY = new Date();
@@ -616,6 +618,7 @@ export const BookingDatesForm = props => {
           fetchLineItemsError,
           onFetchTimeSlots,
           form: formApi,
+          finePrintComponent: FinePrint,
         } = formRenderProps;
         const { startDate, endDate } = values?.bookingDates ? values.bookingDates : {};
         const priceVariantName = values?.priceVariantName || null;
@@ -837,11 +840,7 @@ export const BookingDatesForm = props => {
                 />
               </div>
             ) : null}
-            {fetchLineItemsError ? (
-              <span className={css.sideBarError}>
-                <FormattedMessage id="BookingDatesForm.fetchLineItemsError" />
-              </span>
-            ) : null}
+            <FetchLineItemsError error={fetchLineItemsError} />
 
             <div className={css.submitButton}>
               <PrimaryButton
@@ -852,19 +851,7 @@ export const BookingDatesForm = props => {
                 <FormattedMessage id="BookingDatesForm.requestToBook" />
               </PrimaryButton>
             </div>
-            <p className={css.finePrint}>
-              {payoutDetailsWarning ? (
-                payoutDetailsWarning
-              ) : (
-                <FormattedMessage
-                  id={
-                    isOwnListing
-                      ? 'BookingDatesForm.ownListing'
-                      : 'BookingDatesForm.youWontBeChargedInfo'
-                  }
-                />
-              )}
-            </p>
+            <FinePrint payoutDetailsWarning={payoutDetailsWarning} isOwnListing={isOwnListing} />
           </Form>
         );
       }}

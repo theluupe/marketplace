@@ -49,17 +49,21 @@ const CustomLinkComponent = ({ linkConfig, currentPage }) => {
     const { name, params, to } = route || {};
     const className = classNames(css.navigationLink, getCurrentPageClass(name));
     return (
-      <NamedLink name={name} params={params} to={to} className={className}>
-        <span className={css.menuItemBorder} />
-        {text}
-      </NamedLink>
+      <li className={className}>
+        <NamedLink name={name} params={params} to={to}>
+          <span className={css.menuItemBorder} />
+          {text}
+        </NamedLink>
+      </li>
     );
   }
   return (
-    <ExternalLink href={href} className={css.navigationLink}>
-      <span className={css.menuItemBorder} />
-      {text}
-    </ExternalLink>
+    <li className={css.navigationLink}>
+      <ExternalLink href={href}>
+        <span className={css.menuItemBorder} />
+        {text}
+      </ExternalLink>
+    </li>
   );
 };
 
@@ -130,11 +134,14 @@ const TopbarMobileMenu = props => {
 
     const signupOrLogin = (
       <span className={css.authenticationLinks}>
-        <FormattedMessage id="TopbarMobileMenu.signupOrLogin" values={{ signup, login }} />
+        <FormattedMessage
+          id="TopbarMobileMenu.signupOrLogin"
+          values={{ lineBreak: <br />, signup, login }}
+        />
       </span>
     );
     return (
-      <div className={css.root}>
+      <nav className={css.root}>
         <div className={css.content}>
           <div className={css.authenticationGreeting}>
             <FormattedMessage
@@ -142,10 +149,10 @@ const TopbarMobileMenu = props => {
               values={{ lineBreak: <br />, signupOrLogin }}
             />
           </div>
-          <div className={css.customLinksWrapper}>{extraLinks}</div>
+          <ul className={css.customLinksWrapper}>{extraLinks}</ul>
           <div className={css.spacer} />
         </div>
-      </div>
+      </nav>
     );
   }
 
@@ -172,42 +179,35 @@ const TopbarMobileMenu = props => {
         <InlineTextButton rootClassName={css.logoutButton} onClick={onLogout}>
           <FormattedMessage id="TopbarMobileMenu.logoutLink" />
         </InlineTextButton>
-
-        <div className={css.accountLinksWrapper}>
-          <NamedLink
-            className={classNames(css.inbox, currentPageClass(`InboxPage:${inboxTab}`))}
-            name="InboxPage"
-            params={{ tab: inboxTab }}
-          >
-            <FormattedMessage id="TopbarMobileMenu.inboxLink" />
-            {notificationCountBadge}
-          </NamedLink>
-          <NamedLink
-            className={classNames(css.navigationLink, currentPageClass('FavoriteListingsPage'))}
-            name="FavoriteListingsPage"
-          >
-            <FormattedMessage id="TopbarMobileMenu.favoriteListings" />
-          </NamedLink>
-          <NamedLink
-            className={classNames(css.navigationLink, currentPageClass('ReferralProgramPage'))}
-            name="ReferralProgramPage"
-          >
-            <FormattedMessage id="TopbarMobileMenu.referralProgram" />
-          </NamedLink>
-          <NamedLink
-            className={classNames(css.navigationLink, currentPageClass('ProfileSettingsPage'))}
-            name="ProfileSettingsPage"
-          >
-            <FormattedMessage id="TopbarMobileMenu.profileSettingsLink" />
-          </NamedLink>
-          <NamedLink
-            className={classNames(css.navigationLink, currentPageClass('AccountSettingsPage'))}
-            name="AccountSettingsPage"
-          >
-            <FormattedMessage id="TopbarMobileMenu.accountSettingsLink" />
-          </NamedLink>
-        </div>
-        <div className={css.customLinksWrapper}>{extraLinks}</div>
+        <ul className={css.accountLinksWrapper}>
+          <li className={classNames(css.inbox, currentPageClass(`InboxPage:${inboxTab}`))}>
+            <NamedLink name="InboxPage" params={{ tab: inboxTab }}>
+              <FormattedMessage id="TopbarMobileMenu.inboxLink" />
+              {notificationCountBadge}
+            </NamedLink>
+          </li>
+          <li className={classNames(css.navigationLink, currentPageClass('FavoriteListingsPage'))}>
+            <NamedLink name="FavoriteListingsPage">
+              <FormattedMessage id="TopbarMobileMenu.favoriteListings" />
+            </NamedLink>
+          </li>
+          <li className={classNames(css.navigationLink, currentPageClass('ReferralProgramPage'))}>
+            <NamedLink name="ReferralProgramPage">
+              <FormattedMessage id="TopbarMobileMenu.referralProgram" />
+            </NamedLink>
+          </li>
+          <li className={classNames(css.navigationLink, currentPageClass('ProfileSettingsPage'))}>
+            <NamedLink name="ProfileSettingsPage">
+              <FormattedMessage id="TopbarMobileMenu.profileSettingsLink" />
+            </NamedLink>
+          </li>
+          <li className={classNames(css.navigationLink, currentPageClass('AccountSettingsPage'))}>
+            <NamedLink name="AccountSettingsPage">
+              <FormattedMessage id="TopbarMobileMenu.accountSettingsLink" />
+            </NamedLink>
+          </li>
+        </ul>
+        <ul className={css.customLinksWrapper}>{extraLinks}</ul>
         <div className={css.spacer} />
       </div>
 

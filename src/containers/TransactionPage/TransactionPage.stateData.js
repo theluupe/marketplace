@@ -4,11 +4,13 @@ import {
   INQUIRY_PROCESS_NAME,
   PURCHASE_PROCESS_NAME,
   PURCHASE_NO_STRIPE_PROCESS_NAME,
+  NEGOTIATION_PROCESS_NAME,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
 import { getStateDataForBookingProcess } from './TransactionPage.stateDataBooking.js';
 import { getStateDataForInquiryProcess } from './TransactionPage.stateDataInquiry.js';
 import { getStateDataForPurchaseProcess } from './TransactionPage.stateDataPurchase.js';
+import { getStateDataForNegotiationProcess } from './TransactionPage.stateDataNegotiation.js';
 
 const errorShape = shape({
   type: oneOf(['error']).isRequired,
@@ -29,6 +31,7 @@ export const stateDataShape = shape({
   processState: string.isRequired,
   primaryButtonProps: actionButtonsShape,
   secondaryButtonProps: actionButtonsShape,
+  tertiaryButtonProps: actionButtonsShape,
   showActionButtons: bool,
   showDetailCardHeadings: bool,
   showDispute: bool,
@@ -57,15 +60,20 @@ const getActionButtonPropsMaybe = (params, onlyForRole = 'both') => {
     actionButtonTranslationId,
     actionButtonTranslationErrorId,
     intl,
+    ...extraParams
   } = params;
   const transitionKey = getTransitionKey(transitionName);
 
   const actionButtonTrId =
     actionButtonTranslationId ||
     `TransactionPage.${processName}.${transactionRole}.transition-${transitionKey}.actionButton`;
-  const actionButtonTrErrorId =
-    actionButtonTranslationErrorId ||
-    `TransactionPage.${processName}.${transactionRole}.transition-${transitionKey}.actionError`;
+
+  const isPastNegotiationOffersInvalidError =
+    transitionError?.statusText === 'Past negotiation offers are invalid';
+  const actionButtonTrErrorId = isPastNegotiationOffersInvalidError
+    ? `TransactionPage.${processName}.actionError.pastNegotiationOffersInvalid`
+    : actionButtonTranslationErrorId ||
+      `TransactionPage.${processName}.${transactionRole}.transition-${transitionKey}.actionError`;
 
   return onlyForRole === 'both' || onlyForRole === transactionRole
     ? {
@@ -74,6 +82,7 @@ const getActionButtonPropsMaybe = (params, onlyForRole = 'both') => {
         onAction,
         buttonText: intl.formatMessage({ id: actionButtonTrId }),
         errorText: intl.formatMessage({ id: actionButtonTrErrorId }),
+        ...extraParams,
       }
     : {};
 };
@@ -89,12 +98,18 @@ export const getStateData = (params, process) => {
     sendReviewInProgress,
     sendReviewError,
     onOpenReviewModal,
+    //onOpenRequestChangesModal,
+    //onOpenMakeCounterOfferModal,
+    //onCheckoutRedirect,
+    //onMakeOfferRedirect,
   } = params;
   const isCustomer = transactionRole === 'customer';
   const processName = resolveLatestProcessName(transaction?.attributes?.processName);
 
-  const getActionButtonProps = (transitionName, forRole, extra = {}) =>
-    getActionButtonPropsMaybe(
+  const getActionButtonProps = (transitionName, forRole, extra = {}) => {
+    const { orderData, ...rest } = extra;
+    const params = orderData ? { orderData } : {};
+    return getActionButtonPropsMaybe(
       {
         processName,
         transitionName,
@@ -102,11 +117,12 @@ export const getStateData = (params, process) => {
         intl,
         inProgress: transitionInProgress === transitionName,
         transitionError,
-        onAction: () => onTransition(transaction?.id, transitionName, {}),
-        ...extra,
+        onAction: () => onTransition(transaction?.id, transitionName, params),
+        ...rest,
       },
       forRole
     );
+  };
 
   const getLeaveReviewProps = getActionButtonPropsMaybe({
     processName,
@@ -133,6 +149,7 @@ export const getStateData = (params, process) => {
       leaveReviewProps: getLeaveReviewProps,
     };
   };
+
   const getCustomState = () => {
     if (processName === PURCHASE_PROCESS_NAME || processName === PURCHASE_NO_STRIPE_PROCESS_NAME) {
       return getStateDataForPurchaseProcess(params, processInfo());
@@ -140,6 +157,8 @@ export const getStateData = (params, process) => {
       return getStateDataForBookingProcess(params, processInfo());
     } else if (processName === INQUIRY_PROCESS_NAME) {
       return getStateDataForInquiryProcess(params, processInfo());
+    } else if (processName === NEGOTIATION_PROCESS_NAME) {
+      return getStateDataForNegotiationProcess(params, processInfo());
     } else {
       return null;
     }

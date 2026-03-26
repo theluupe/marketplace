@@ -149,6 +149,7 @@ export const EditListingPageComponent = props => {
     stripeAccountFetched,
     stripeAccount,
     updateStripeAccountError,
+    authScopes,
   } = props;
 
   const { id, type, returnURLType } = params;
@@ -259,12 +260,12 @@ export const EditListingPageComponent = props => {
       removedImageIds
     );
 
-    const title = isNewListingFlow
-      ? intl.formatMessage({ id: 'EditListingPage.titleCreateListing' })
-      : intl.formatMessage({ id: 'EditListingPage.titleEditListing' });
+    const titleId = isNewListingFlow
+      ? 'EditListingPage.titleCreateListing'
+      : 'EditListingPage.titleEditListing';
 
     return (
-      <Page title={title} scrollingDisabled={scrollingDisabled}>
+      <Page title={intl.formatMessage({ id: titleId })} scrollingDisabled={scrollingDisabled}>
         <TopbarContainer
           mobileRootClassName={css.mobileTopbar}
           desktopClassName={css.desktopTopbar}
@@ -310,6 +311,8 @@ export const EditListingPageComponent = props => {
             createStripeAccountError || updateStripeAccountError || fetchStripeAccountError
           }
           stripeAccountLinkError={getAccountLinkError}
+          authScopes={authScopes}
+          titleId={titleId}
         />
       </Page>
     );
@@ -349,6 +352,8 @@ const mapStateToProps = state => {
     return listings.length === 1 ? listings[0] : null;
   };
 
+  const { authScopes } = state.auth;
+
   return {
     getAccountLinkInProgress,
     getAccountLinkError,
@@ -362,6 +367,7 @@ const mapStateToProps = state => {
     getOwnListing,
     page,
     scrollingDisabled: isScrollingDisabled(state),
+    authScopes,
   };
 };
 

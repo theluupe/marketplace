@@ -1,16 +1,17 @@
 import React from 'react';
-import pickBy from 'lodash/pickBy';
 import classNames from 'classnames';
 
 import { useConfiguration } from '../../../context/configurationContext';
 import { useRouteConfiguration } from '../../../context/routeConfigurationContext';
 
+import { pickBy } from '../../../util/common';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { isMainSearchTypeKeywords, isOriginInUse } from '../../../util/search';
 import { parse, stringify } from '../../../util/urlHelpers';
 import { createResourceLocatorString, matchPathname } from '../../../util/routes';
 import {
   Button,
+  IconArrowHead,
   LimitedAccessBanner,
   LinkedLogo,
   Modal,
@@ -32,6 +33,8 @@ const MAX_MOBILE_SCREEN_WIDTH = 1024;
 const SEARCH_DISPLAY_ALWAYS = 'always';
 const SEARCH_DISPLAY_NOT_LANDING_PAGE = 'notLandingPage';
 const SEARCH_DISPLAY_ONLY_SEARCH_PAGE = 'onlySearchPage';
+const MOBILE_MENU_BUTTON_ID = 'mobileMenuButton';
+const MOBILE_SEARCH_BUTTON_ID = 'mobileSearchButton';
 
 const redirectToURLWithModalState = (history, location, modalStateParam) => {
   const { pathname, search, state } = location;
@@ -59,7 +62,7 @@ const compareGroups = (a, b) => {
 };
 // Returns links in order where primary links are returned first
 const sortCustomLinks = customLinks => {
-  const links = Array.isArray(customLinks) ? customLinks : [];
+  const links = Array.isArray(customLinks) ? [...customLinks] : [];
   return links.sort(compareGroups);
 };
 
@@ -115,15 +118,15 @@ const GenericError = props => {
   const classes = classNames(css.genericError, {
     [css.genericErrorVisible]: show,
   });
-  return (
-    <div className={classes}>
+  return show ? (
+    <div className={classes} role="alert">
       <div className={css.genericErrorContent}>
         <p className={css.genericErrorText}>
           <FormattedMessage id="Topbar.genericError" />
         </p>
       </div>
     </div>
-  );
+  ) : null;
 };
 
 const TopbarComponent = props => {
@@ -162,8 +165,8 @@ const TopbarComponent = props => {
         return { keywords: values?.keywords };
       }
       // topbar search defaults to 'location' search
-      const { search, selectedPlace } = values?.location;
-      const { origin, bounds } = selectedPlace;
+      const { search, selectedPlace } = values?.location || {};
+      const { origin, bounds } = selectedPlace || {};
       const originMaybe = isOriginInUse(config) ? { origin } : {};
 
       return {
@@ -283,18 +286,45 @@ const TopbarComponent = props => {
 
   const mobileSearchButtonMaybe = showSearchForm ? (
     <Button
+      id={MOBILE_SEARCH_BUTTON_ID}
       rootClassName={css.searchMenu}
       onClick={() => redirectToURLWithModalState(history, location, 'mobilesearch')}
       title={intl.formatMessage({ id: 'Topbar.searchIcon' })}
     >
-      <SearchIcon className={css.searchMenuIcon} />
+      <SearchIcon
+        className={css.searchMenuIcon}
+        ariaLabel={intl.formatMessage({ id: 'Topbar.searchIcon' })}
+      />
     </Button>
   ) : (
     <div className={css.searchMenu} />
   );
 
+  const handleSkipToMainContent = e => {
+    e.preventDefault();
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+      mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Focus the main content for screen readers
+      mainContent.setAttribute('tabindex', '-1');
+      mainContent.focus();
+      // Remove tabindex after blur to avoid tabbing into it later
+      mainContent.addEventListener(
+        'blur',
+        () => {
+          mainContent.removeAttribute('tabindex');
+        },
+        { once: true }
+      );
+    }
+  };
+
   return (
     <div className={classes}>
+      <Button onClick={handleSkipToMainContent} className={css.skipToMainContent}>
+        <FormattedMessage id="Topbar.skipToMainContent" />
+        <IconArrowHead direction="right" size="small" rootClassName={css.skiptoMainArrow} />
+      </Button>
       <LimitedAccessBanner
         isAuthenticated={isAuthenticated}
         isLoggedInAs={isLoggedInAs}
@@ -303,22 +333,27 @@ const TopbarComponent = props => {
         onLogout={handleLogout}
         currentPage={resolvedCurrentPage}
       />
-      <div className={classNames(mobileRootClassName || css.container, mobileClassName)}>
+      <nav className={classNames(mobileRootClassName || css.container, mobileClassName)}>
         <Button
+          id={MOBILE_MENU_BUTTON_ID}
           rootClassName={css.menu}
           onClick={() => redirectToURLWithModalState(history, location, 'mobilemenu')}
           title={intl.formatMessage({ id: 'Topbar.menuIcon' })}
         >
-          <MenuIcon className={css.menuIcon} />
+          <MenuIcon
+            className={css.menuIcon}
+            ariaLabel={intl.formatMessage({ id: 'Topbar.menuIcon' })}
+          />
           {notificationDot}
         </Button>
         <LinkedLogo
+          id="logo-topbar-mobile"
           layout={'mobile'}
           alt={intl.formatMessage({ id: 'Topbar.logoIcon' })}
           linkToExternalSite={config?.topbar?.logoLink}
         />
         {mobileSearchButtonMaybe}
-      </div>
+      </nav>
       <div className={css.desktop}>
         <TopbarDesktop
           className={desktopClassName}
@@ -343,6 +378,7 @@ const TopbarComponent = props => {
         onClose={() => redirectToURLWithoutModalState(history, location, 'mobilemenu')}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={MOBILE_MENU_BUTTON_ID}
       >
         {authInProgress ? null : mobileMenu}
       </Modal>
@@ -353,6 +389,7 @@ const TopbarComponent = props => {
         onClose={() => redirectToURLWithoutModalState(history, location, 'mobilesearch')}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={MOBILE_SEARCH_BUTTON_ID}
       >
         <div className={css.searchContainer}>
           <TopbarSearchForm

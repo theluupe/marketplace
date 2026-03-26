@@ -19,7 +19,7 @@ const ESCAPE_TEXT_REPLACEMENTS = {
 
 // An example how you could sanitize text content.
 // This swaps some coding related characters to less dangerous ones
-const sanitizeText = str =>
+export const sanitizeText = str =>
   str == null
     ? str
     : typeof str === 'string'
@@ -178,7 +178,13 @@ const sanitizeConfiguredPublicData = (publicData, config = {}) => {
     const [key, value] = entry;
     const foundListingFieldConfig = config?.listingFields?.find(d => d.key === key);
     const foundUserFieldConfig = config?.userFields?.find(d => d.key === key);
-    const knownKeysWithString = ['listingType', 'transactionProcessAlias', 'unitType', 'userType'];
+    const knownKeysWithString = [
+      'listingType',
+      'transactionProcessAlias',
+      'unitType',
+      'userType',
+      'cardStyle',
+    ];
     const sanitizedValue = knownKeysWithString.includes(key)
       ? sanitizeText(value)
       : foundListingFieldConfig

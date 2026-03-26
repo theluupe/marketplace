@@ -16,6 +16,7 @@ exports[`Menu matches snapshot 1`] = `
     >
       <ul
         class="content"
+        role="menu"
       >
         <li
           class="root"

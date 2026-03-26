@@ -147,12 +147,7 @@ class ProfileSettingsFormComponent extends Component {
           const pristineSinceLastSubmit = submittedOnce && isEqual(values, this.submittedValues);
           const submitDisabled =
             invalid || pristine || pristineSinceLastSubmit || uploadInProgress || submitInProgress;
-          const userFieldProps = getPropsForCustomUserFieldInputs(
-            userFields,
-            intl,
-            userType,
-            false
-          );
+          const userFieldProps = getPropsForCustomUserFieldInputs(userFields, userType, false);
 
           return (
             <Form

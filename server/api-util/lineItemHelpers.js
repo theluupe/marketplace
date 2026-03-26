@@ -17,6 +17,26 @@ const isNumber = value => {
   return typeof value === 'number' && !isNaN(value);
 };
 
+// Provider commission reduces the amount of money that is paid out to provider.
+// Therefore, the provider commission line-item should have negative effect to the payout total.
+const getNegation = percentage => {
+  return percentage === 0 ? percentage : -1 * percentage;
+};
+
+// Returns percentage applied to a given amount if applicable and valid, otherwise returns 0
+const calculateCommissionWithPercentage = (percentage, amount) => {
+  const hasValidAmountAndPercentage = amount != null && percentage != null && percentage > 0;
+
+  if (hasValidAmountAndPercentage) {
+    return new Decimal(amount)
+      .times(percentage)
+      .dividedBy(100)
+      .toNearest(1, Decimal.ROUND_HALF_UP)
+      .toNumber();
+  }
+  return 0;
+};
+
 /**
  * Calculates shipping fee based on saved public data fields and quantity.
  * The total will be `shippingPriceInSubunitsOneItem + (shippingPriceInSubunitsAdditionalItems * (quantity - 1))`.
@@ -58,6 +78,14 @@ exports.calculateShippingFee = (
     const additionalItemsTotal = additionalItemsFee.times(quantity - 1);
     const numericShippingFee = convertDecimalJSToNumber(oneItemFee.plus(additionalItemsTotal));
     return new Money(numericShippingFee, currency);
+  } else if (
+    currency &&
+    quantity > 1 &&
+    (!isNumber(shippingPriceInSubunitsOneItem) || !isNumber(shippingPriceInSubunitsAdditionalItems))
+  ) {
+    // If both shippingPriceInSubunitsOneItem and shippingPriceInSubunitsAdditionalItems are NOT set,
+    // when quantity is greater than 1, there's an error somewhere in the code
+    throw new Error('Shipping fee is not set correctly for multiple items');
   }
   return null;
 };
@@ -189,7 +217,6 @@ exports.calculateQuantityFromHours = (startDate, endDate) => {
  */
 exports.calculateLineTotal = lineItem => {
   const { code, unitPrice, quantity, percentage, seats, units } = lineItem;
-
   if (quantity) {
     return this.calculateTotalPriceFromQuantity(unitPrice, quantity);
   } else if (percentage != null) {
@@ -288,7 +315,6 @@ exports.hasCommissionPercentage = commission => {
   if (isDefined && !isNumber) {
     throw new Error(`${percentage} is not a number.`);
   }
-
   // Only create a line item if the percentage is set to be more than zero
   const isMoreThanZero = percentage > 0;
   return isDefined && isMoreThanZero;
@@ -373,12 +399,6 @@ exports.validateVoucher = async (currentUserId, voucherCode) => {
   }
 };
 
-// Provider commission reduces the amount of money that is paid out to provider.
-// Therefore, the provider commission line-item should have negative effect to the payout total.
-exports.getNegation = percentage => {
-  return percentage === 0 ? percentage : -1 * percentage;
-};
-
 exports.getDiscount = (discount, commission) => {
   return discount < 0 ? 0 : discount > commission ? commission : discount;
 };
@@ -392,7 +412,7 @@ exports.getVoucherDiscountLineItem = (voucherData, baseLineItems, providerCommis
     providerCommission.percentage
   );
   const baseAmount = this.calculateTotalFromLineItems(baseLineItems);
-  const discount = this.getNegation(percentOff);
+  const discount = getNegation(percentOff);
   const providerCommissionMaybe = this.hasCommissionPercentage(providerCommission)
     ? [
         {
@@ -404,4 +424,135 @@ exports.getVoucherDiscountLineItem = (voucherData, baseLineItems, providerCommis
       ]
     : [];
   return providerCommissionMaybe;
+};
+
+/**
+ * Check if commission object has minimum commission property defined.
+ * @param {Object} commission object potentially containing minimum commission property.
+ * @returns boolean
+ */
+exports.hasMinimumCommission = commission => {
+  const minimum = commission?.minimum_amount;
+  const isDefined = minimum != null;
+  const isNumber = typeof minimum === 'number' && !isNaN(minimum);
+  if (isDefined && !isNumber) {
+    throw new Error(`${minimum} is not a number.`);
+  }
+  const isMoreThanZero = minimum > 0;
+  return isDefined && isMoreThanZero;
+};
+
+/**
+ * Get provider commission
+ * @param {Object} providerCommission object containing provider commission info
+ * @param {Object} baseLineItemsForCommission object containing baseLineItemsForCommission line items
+ * @param {Object} priceAttribute object containing listing price information
+ * @returns {Array} provider commission line item
+ */
+exports.getProviderCommissionMaybe = (
+  providerCommission,
+  baseLineItemsForCommission,
+  currency,
+  voucherData
+) => {
+  // Check if either minimum commission or percentage are defined in the commission object
+  const hasMinimumCommission = this.hasMinimumCommission(providerCommission);
+  const hasCommissionPercentage = this.hasCommissionPercentage(providerCommission);
+  if (!hasMinimumCommission && !hasCommissionPercentage) {
+    return [];
+  }
+
+  // Calculate the total money paid into the transaction
+  const totalMoneyIn = this.calculateTotalFromLineItems(baseLineItemsForCommission);
+  // Calculate the estimated commission with percentage applied, if applicable
+  const estimatedCommissionFromPercentage = calculateCommissionWithPercentage(
+    providerCommission?.percentage,
+    totalMoneyIn.amount
+  );
+  // Minimum commission is preferred if it is greated than the estimated transaction amount
+  const useMinimumCommission =
+    providerCommission?.minimum_amount > estimatedCommissionFromPercentage;
+  if (providerCommission?.minimum_amount > totalMoneyIn.amount) {
+    throw new Error('Minimum commission amount is greater than the amount of money paid in');
+  }
+
+  const voucherDiscountMaybe = this.getVoucherDiscountLineItem(
+    voucherData,
+    baseLineItemsForCommission,
+    providerCommission
+  );
+  const voucherDiscountPercentage =
+    !voucherData || !voucherData.isValid
+      ? 0
+      : this.getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
+
+  // Note: extraLineItems for product selling (aka shipping fee)
+  // is not included in either customer or provider commission calculation.
+
+  // The provider commission is what the provider pays for the transaction, and
+  // it is the subtracted from the baseLineItemsForCommission price to get the provider payout:
+  // orderPrice - providerCommission = providerPayout
+  return useMinimumCommission
+    ? [
+        {
+          code: 'line-item/provider-commission',
+          unitPrice: new Money(providerCommission?.minimum_amount, currency),
+          quantity: getNegation(1),
+          includeFor: ['provider'],
+        },
+      ]
+    : [
+        {
+          code: 'line-item/provider-commission',
+          unitPrice: totalMoneyIn,
+          percentage: getNegation(providerCommission.percentage - voucherDiscountPercentage),
+          includeFor: ['provider'],
+        },
+        ...voucherDiscountMaybe,
+      ];
+};
+
+/**
+ * Get customer commission
+ * @param {Object} customerCommission object containing customer commission info
+ * @param {Object} baseLineItemsForCommission object containing baseLineItemsForCommission line items
+ * @returns {Array} customer commission line item
+ */
+exports.getCustomerCommissionMaybe = (customerCommission, baseLineItemsForCommission, currency) => {
+  // Check if either minimum commission or percentage are defined in the commission object
+  const hasMinimumCommission = this.hasMinimumCommission(customerCommission);
+  const hasCommissionPercentage = this.hasCommissionPercentage(customerCommission);
+  if (!hasMinimumCommission && !hasCommissionPercentage) {
+    return [];
+  }
+  // Calculate the total money paid into the transaction
+  const totalMoneyIn = this.calculateTotalFromLineItems(baseLineItemsForCommission);
+  // Calculate the estimated commission with percentage applied, if applicable
+  const estimatedCommissionFromPercentage = calculateCommissionWithPercentage(
+    customerCommission?.percentage,
+    totalMoneyIn.amount
+  );
+  // Minimum commission is preferred if it is greated than the estimated transaction amount
+  const useMinimumCommission =
+    customerCommission?.minimum_amount > estimatedCommissionFromPercentage;
+  // The customer commission is what the customer pays for the transaction, and
+  // it is added on top of the baseLineItemsForCommission price to get the customer's payin price:
+  // orderPrice + customerCommission = customerPayin
+  return useMinimumCommission
+    ? [
+        {
+          code: 'line-item/customer-commission',
+          unitPrice: new Money(customerCommission?.minimum_amount, currency),
+          quantity: 1,
+          includeFor: ['customer'],
+        },
+      ]
+    : [
+        {
+          code: 'line-item/customer-commission',
+          unitPrice: totalMoneyIn,
+          percentage: customerCommission.percentage,
+          includeFor: ['customer'],
+        },
+      ];
 };

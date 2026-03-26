@@ -4,61 +4,86 @@ import { HeartOutlined, HeartFilled } from '@ant-design/icons';
 import classNames from 'classnames';
 
 import { FormattedMessage } from '../../../util/reactIntl';
+import { SCHEMA_TYPE_ENUM, SCHEMA_TYPE_MULTI_ENUM, SCHEMA_TYPE_TEXT } from '../../../util/types';
 import {
-  SCHEMA_TYPE_ENUM,
-  SCHEMA_TYPE_MULTI_ENUM,
-  SCHEMA_TYPE_TEXT,
-  SCHEMA_TYPE_YOUTUBE,
-  USER_TYPES,
-} from '../../../util/types';
-import { pickCustomFieldProps } from '../../../util/fieldHelpers';
+  getDetailCustomFieldValue,
+  getFieldValue,
+  pickCustomFieldProps,
+} from '../../../util/fieldHelpers';
 import { isValidURL, stripUrl } from '../../../util/urlHelpers';
-import { getUserTypeFieldInputs } from '../../../util/userHelpers';
 
-import { H2, H3, AvatarExtraLarge, AvatarLarge, NamedLink } from '../../../components';
+import {
+  H2,
+  H3,
+  AvatarExtraLarge,
+  AvatarLarge,
+  NamedLink,
+  CustomExtendedDataSection,
+} from '../../../components';
 import { ExpandableBio } from '../../ListingPage/UserCard/UserCard';
 
 import CustomListingFields from '../../ListingPage/CustomListingFields';
 import SectionMapMaybe from '../../ListingPage/SectionMapMaybe';
-
-import SectionDetailsMaybe from '../SectionDetailsMaybe';
-import SectionTextMaybe from '../SectionTextMaybe';
-import SectionMultiEnumMaybe from '../SectionMultiEnumMaybe';
-import SectionYoutubeVideoMaybe from '../SectionYoutubeVideoMaybe';
 
 import css from '../ProfilePage.module.css';
 
 const PRONOUNS_NOT_LISTED = 'not-listed';
 const PREFER_NOT_TO_SAY_PRONOUNS = 'prefer-not-to-say';
 
-const CustomUserFields = props => {
-  const { publicData, metadata, userFieldConfig } = props;
-  const shouldPickUserField = fieldConfig => {
-    const userType = USER_TYPES.SELLER;
-    const fieldKey = fieldConfig.key;
-    const isBrandAdmin = false;
-    const enableField = getUserTypeFieldInputs(userType, fieldKey, isBrandAdmin, false, true);
-    const displayInProfile = fieldConfig?.showConfig?.displayInProfile !== false;
-    return displayInProfile && enableField;
-  };
+export const CustomUserFields = props => {
+  const { publicData, metadata, userFieldConfig, intl } = props;
+
+  const shouldPickUserField = fieldConfig =>
+    fieldConfig?.scope === 'public' && fieldConfig?.showConfig?.displayInProfile !== false;
   const propsForCustomFields =
-    pickCustomFieldProps(publicData, metadata, userFieldConfig, 'userType', shouldPickUserField) ||
-    [];
-  const parsedUserFieldConfig = userFieldConfig.filter(shouldPickUserField);
+    pickCustomFieldProps(
+      { publicData, metadata },
+      userFieldConfig,
+      'userType',
+      shouldPickUserField
+    ) || [];
+
+  const pickUserFields = (filteredConfigs, config) => {
+    const { key, schemaType, enumOptions, userTypeConfig = {}, showConfig = {} } = config;
+    const { limitToUserTypeIds, userTypeIds } = userTypeConfig;
+    const userType = publicData.userType;
+    const isTargetUserType = !limitToUserTypeIds || userTypeIds.includes(userType);
+
+    const { label, displayInProfile } = showConfig;
+    const publicDataValue = getFieldValue(publicData, key);
+    const metadataValue = getFieldValue(metadata, key);
+    const value = publicDataValue !== null ? publicDataValue : metadataValue;
+
+    if (displayInProfile && isTargetUserType && value !== null) {
+      const detailValue = getDetailCustomFieldValue(
+        enumOptions,
+        value,
+        schemaType,
+        key,
+        label,
+        intl,
+        'ProfilePage'
+      );
+
+      return detailValue ? filteredConfigs.concat(detailValue) : filteredConfigs;
+    }
+    return filteredConfigs;
+  };
+  const sectionDetailsProps = {
+    ...props,
+    fieldConfigs: userFieldConfig,
+    heading: 'ProfilePage.detailsTitle',
+    rootClassName: css.userFieldSection,
+  };
+
   return (
-    <>
-      <SectionDetailsMaybe {...{ ...props, userFieldConfig: parsedUserFieldConfig }} />
-      {propsForCustomFields.map(customFieldProps => {
-        const { schemaType, ...fieldProps } = customFieldProps;
-        return schemaType === SCHEMA_TYPE_MULTI_ENUM ? (
-          <SectionMultiEnumMaybe {...fieldProps} />
-        ) : schemaType === SCHEMA_TYPE_TEXT ? (
-          <SectionTextMaybe {...fieldProps} />
-        ) : schemaType === SCHEMA_TYPE_YOUTUBE ? (
-          <SectionYoutubeVideoMaybe {...fieldProps} />
-        ) : null;
-      })}
-    </>
+    <CustomExtendedDataSection
+      sectionDetailsProps={sectionDetailsProps}
+      propsForCustomFields={propsForCustomFields}
+      idPrefix="profilePage"
+      pickExtendedDataFields={pickUserFields}
+      rootClassName={css.userFieldSection}
+    />
   );
 };
 

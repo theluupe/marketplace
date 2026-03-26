@@ -40,6 +40,9 @@ const listingTypesBookingDay = [
     },
     unitType: 'day',
     availabilityType: 'oneSeat',
+    defaultListingFields: {
+      description: true,
+    },
   },
 ];
 const listingTypesBookingDayWithSeats = [
@@ -51,6 +54,9 @@ const listingTypesBookingDayWithSeats = [
     },
     unitType: 'day',
     availabilityType: 'multipleSeats',
+    defaultListingFields: {
+      description: true,
+    },
   },
 ];
 const listingTypesBookingNightly = [
@@ -62,6 +68,9 @@ const listingTypesBookingNightly = [
     },
     unitType: 'night',
     availabilityType: 'oneSeat',
+    defaultListingFields: {
+      description: true,
+    },
   },
 ];
 const listingTypesBookingHourly = [
@@ -73,6 +82,9 @@ const listingTypesBookingHourly = [
     },
     unitType: 'hour',
     availabilityType: 'oneSeat',
+    defaultListingFields: {
+      description: true,
+    },
   },
 ];
 const listingTypesPurchase = [
@@ -84,6 +96,9 @@ const listingTypesPurchase = [
     },
     unitType: 'item',
     stockType: 'multipleItems',
+    defaultListingFields: {
+      description: true,
+    },
   },
 ];
 
@@ -96,6 +111,33 @@ const listingTypesInquiry = [
       alias: 'default-inquiry/release-1',
     },
     unitType: 'inquiry',
+    defaultListingFields: {
+      description: true,
+    },
+  },
+];
+
+const listingTypesNegotiation = [
+  {
+    id: 'negotiation-offer',
+    label: 'Negotiation Offer',
+    transactionProcess: {
+      name: 'default-negotiation',
+      alias: 'default-negotiation/release-1',
+    },
+    unitType: 'request',
+    defaultListingFields: {
+      availability: false,
+      description: true,
+      images: false,
+      location: false,
+      payoutDetails: false,
+      pickup: false,
+      price: false,
+      shipping: false,
+      stock: false,
+      title: true,
+    },
   },
 ];
 
@@ -316,6 +358,7 @@ describe('EditListingPage', () => {
 
   // Test for new listing flow with categories
   it('Purchase: new listing flow with categories', async () => {
+    const user = userEvent.setup();
     // add category configuration, define above
     const config = getConfig(listingTypesPurchase, listingFieldsPurchase, categoryConfig);
     const routeConfiguration = getRouteConfiguration(config.layout);
@@ -351,13 +394,11 @@ describe('EditListingPage', () => {
     });
 
     // Select parent category
-    await waitFor(() => {
-      // Simulate user selecting options
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Sneakers' })
-      );
-    });
+    // Simulate user selecting options
+    await user.selectOptions(
+      screen.getByRole('combobox'),
+      screen.getByRole('option', { name: 'Sneakers' })
+    );
 
     // Assert that the selected option is as expected
     expect(
@@ -367,10 +408,10 @@ describe('EditListingPage', () => {
     expect(queryAllByText('EditListingDetailsForm.categoryLabel')).toHaveLength(2);
 
     // Simulate user selecting subcategory
-    await waitFor(() => {
-      const selectSubcategory = screen.getAllByRole('combobox')[1];
-      userEvent.selectOptions(selectSubcategory, screen.getByRole('option', { name: 'Adidas' }));
-    });
+    // first combobox is location searc, second the first category, third the subcategory
+    const selectSubcategory = screen.getAllByRole('combobox')[2];
+    await user.selectOptions(selectSubcategory, screen.getByRole('option', { name: 'Adidas' }));
+
     expect(getByRole('option', { name: 'Adidas' }).selected).toBe(true);
 
     // Assert the presence of the default listing fields after selecting both categories
@@ -445,6 +486,7 @@ describe('EditListingPage', () => {
   });
 
   it('Purchase: edit existing listings that has no predefined categories', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesPurchase, listingFieldsPurchase, categoryConfig);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-item', {
@@ -485,12 +527,10 @@ describe('EditListingPage', () => {
     });
 
     // Simulate user interaction and select parent level category
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Sneakers' })
-      );
-    });
+    await user.selectOptions(
+      screen.getByRole('combobox'),
+      screen.getByRole('option', { name: 'Sneakers' })
+    );
 
     expect(
       queryAllByRole('option', { name: 'EditListingDetailsForm.categoryPlaceholder' })[0].selected
@@ -499,10 +539,10 @@ describe('EditListingPage', () => {
     expect(queryAllByText('EditListingDetailsForm.categoryLabel')).toHaveLength(2);
 
     // Simulate user interaction and select sub level category
-    await waitFor(() => {
-      const selectSubcategory = screen.getAllByRole('combobox')[1];
-      userEvent.selectOptions(selectSubcategory, screen.getByRole('option', { name: 'Adidas' }));
-    });
+    // first combobox is location searc, second the first category, third the subcategory
+    const selectSubcategory = screen.getAllByRole('combobox')[2];
+    await user.selectOptions(selectSubcategory, screen.getByRole('option', { name: 'Adidas' }));
+
     expect(getByRole('option', { name: 'Adidas' }).selected).toBe(true);
     expect(
       getByRole('textbox', { name: 'EditListingDetailsForm.description' })
@@ -517,6 +557,7 @@ describe('EditListingPage', () => {
   });
 
   it('Purchase: Create new listing with only a parent-level category', async () => {
+    const user = userEvent.setup();
     // add category configuration, define above
     const config = getConfig(
       listingTypesPurchase,
@@ -553,12 +594,10 @@ describe('EditListingPage', () => {
     });
 
     // Simulate user interaction and select parent level category
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Sneakers' })
-      );
-    });
+    await user.selectOptions(
+      screen.getByRole('combobox'),
+      screen.getByRole('option', { name: 'Sneakers' })
+    );
 
     expect(
       queryAllByRole('option', { name: 'EditListingDetailsForm.categoryPlaceholder' })[0].selected
@@ -586,6 +625,7 @@ describe('EditListingPage', () => {
   });
 
   it('Purchase: edit flow on details tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesPurchase, listingFieldsPurchase);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-item', {
@@ -645,12 +685,11 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Cat 1' })
-      );
-    });
+    await user.selectOptions(
+      screen.getByRole('combobox'),
+      screen.getByRole('option', { name: 'Cat 1' })
+    );
+
     expect(
       getByRole('option', { name: 'CustomExtendedDataField.placeholderSingleSelect' }).selected
     ).toBe(false);
@@ -658,6 +697,7 @@ describe('EditListingPage', () => {
   });
 
   it('Purchase: edit flow on pricing-and-stock tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesPurchase, listingFieldsPurchase);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing(
@@ -718,14 +758,14 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(() => {
-      userEvent.clear(screen.getByRole('spinbutton'));
-      userEvent.type(screen.getByRole('spinbutton'), '10');
-    });
+    await user.clear(screen.getByRole('spinbutton'));
+    await user.type(screen.getByRole('spinbutton'), '10');
+
     expect(screen.getByRole('spinbutton')).toHaveValue(10);
   });
 
   it('Purchase: edit flow on delivery tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesPurchase, listingFieldsPurchase);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing(
@@ -799,9 +839,8 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(() => {
-      userEvent.click(getByRole('checkbox', { name: /EditListingDeliveryForm.shippingLabel/i }));
-    });
+    await user.click(getByRole('checkbox', { name: /EditListingDeliveryForm.shippingLabel/i }));
+
     expect(getByRole('checkbox', { name: /EditListingDeliveryForm.shippingLabel/i })).toBeChecked();
     expect(
       getByRole('textbox', { name: 'EditListingDeliveryForm.shippingOneItemLabel' })
@@ -866,6 +905,7 @@ describe('EditListingPage', () => {
   });
 
   it('Purchase: edit flow with infinity on pricing-and-stock tab', async () => {
+    const user = userEvent.setup();
     const listingTypePurchase = listingTypesPurchase[0];
     const purchaseWithInfinityStock = {
       ...listingTypePurchase,
@@ -932,11 +972,10 @@ describe('EditListingPage', () => {
       expect(saveButton).toBeDisabled();
     });
     // Test intercation
-    await waitFor(() => {
-      userEvent.click(
-        getByRole('checkbox', { name: /EditListingPricingAndStockForm.updateToInfinite/i })
-      );
-    });
+    await user.click(
+      getByRole('checkbox', { name: /EditListingPricingAndStockForm.updateToInfinite/i })
+    );
+
     const saveButton = getByRole('button', { name: 'EditListingWizard.edit.savePricingAndStock' });
     expect(saveButton).not.toBeDisabled();
   });
@@ -1133,7 +1172,57 @@ describe('EditListingPage', () => {
     });
   });
 
+  it('Purchase: edit flow with no description', async () => {
+    const listingTypesPurchaseNoDescription = [
+      {
+        ...listingTypesPurchase[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+    const config = getConfig(listingTypesPurchaseNoDescription, listingFieldsPurchase);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing(
+      'listing-item',
+      {
+        title: 'the listing',
+        description: 'Lorem ipsum',
+        publicData: {
+          listingType: 'sell-bicycles',
+          transactionProcessAlias: 'default-purchase/release-1',
+          unitType: 'item',
+        },
+      },
+      {
+        currentStock: createStock('stock-id', { quantity: 5 }),
+      }
+    );
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
+
   it('Booking (day): edit flow on details tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDay, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1191,14 +1280,14 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(() => {
-      userEvent.click(getByRole('checkbox', { name: /Dog 1/i }));
-    });
+    await user.click(getByRole('checkbox', { name: /Dog 1/i }));
+
     expect(getByRole('checkbox', { name: /Dog 1/i })).toBeChecked();
     expect(getByRole('checkbox', { name: /Dog 2/i })).not.toBeChecked();
   });
 
   it('Booking (day): edit flow on location tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDay, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1257,16 +1346,15 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(async () => {
-      await userEvent.clear(getByLabelText('EditListingLocationForm.building'));
-      userEvent.type(getByLabelText('EditListingLocationForm.building'), 'B 2');
-    });
+    await user.clear(getByLabelText('EditListingLocationForm.building'));
+    await user.type(getByLabelText('EditListingLocationForm.building'), 'B 2');
 
     // Tab/form: existing building
     expect(getByLabelText('EditListingLocationForm.building')).toHaveValue('B 2');
   });
 
   it('Booking (day): edit flow on pricing tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDay, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1323,16 +1411,9 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(async () => {
-      await userEvent.clear(
-        getByRole('textbox', { name: 'EditListingPricingForm.pricePerProduct' })
-      );
-      userEvent.type(
-        getByRole('textbox', { name: 'EditListingPricingForm.pricePerProduct' }),
-        '12'
-      );
-      userEvent.click(queryAllByRole('heading')[0]); // create blur event
-    });
+    await user.clear(getByRole('textbox', { name: 'EditListingPricingForm.pricePerProduct' }));
+    await user.type(getByRole('textbox', { name: 'EditListingPricingForm.pricePerProduct' }), '12');
+    await user.click(queryAllByRole('heading')[0]); // create blur event
 
     // Tab/form: existing building
     expect(getByLabelText('EditListingPricingForm.pricePerProduct')).toHaveValue('$12.00');
@@ -1424,6 +1505,7 @@ describe('EditListingPage', () => {
   });
 
   it('Booking (day): edit flow on availability tab (plan modal)', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDay, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1474,11 +1556,9 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation: open plan modal
-    await waitFor(async () => {
-      userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
-      );
-    });
+    await user.click(
+      getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
+    );
 
     expect(getByText('EditListingAvailabilityPlanForm.title')).toBeInTheDocument();
     // time zone picker
@@ -1497,24 +1577,21 @@ describe('EditListingPage', () => {
     ).toBeInTheDocument();
 
     // Test intercation: plan modal form
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
-      );
-    });
+    await user.click(
+      getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
+    );
     expect(
       getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
     ).not.toBeChecked();
 
     // Test intercation: close plan modal
-    await waitFor(async () => {
-      await userEvent.click(getByRole('button', { name: /Modal.close/i }));
-    });
+    await user.click(getByRole('button', { name: /Modal.close/i }));
 
     expect(queryAllByText('EditListingAvailabilityPlanForm.title')).toHaveLength(0);
   }, 10000);
 
   it('Booking (day): edit flow on availability tab (exception modal)', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDay, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1565,11 +1642,8 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation: open availability exception modal
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.addException/i })
-      );
-    });
+    await user.click(getByRole('button', { name: /EditListingAvailabilityPanel.addException/i }));
+
     expect(getByText('EditListingAvailabilityExceptionForm.title')).toBeInTheDocument();
     // mode: available, not-available
     expect(getByText('EditListingAvailabilityExceptionForm.available')).toBeInTheDocument();
@@ -1671,6 +1745,7 @@ describe('EditListingPage', () => {
   });
 
   it('Booking (day): edit flow on availability tab with seats (plan modal)', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDayWithSeats, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1724,11 +1799,9 @@ describe('EditListingPage', () => {
     );
 
     // Test intercation: open plan modal
-    await waitFor(async () => {
-      userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
-      );
-    });
+    await user.click(
+      getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
+    );
 
     expect(getByText('EditListingAvailabilityPlanForm.title')).toBeInTheDocument();
     // time zone picker
@@ -1749,24 +1822,22 @@ describe('EditListingPage', () => {
     ).toBeInTheDocument();
 
     // Test intercation: plan modal form
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
-      );
-    });
+    await user.click(
+      getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
+    );
+
     expect(
       getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
     ).not.toBeChecked();
 
     // Test intercation: close plan modal
-    await waitFor(async () => {
-      await userEvent.click(getByRole('button', { name: /Modal.close/i }));
-    });
+    await user.click(getByRole('button', { name: /Modal.close/i }));
 
     expect(queryAllByText('EditListingAvailabilityPlanForm.title')).toHaveLength(0);
   }, 10000);
 
   it('Booking (day): edit flow on availability tab with seats (exception modal)', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingDayWithSeats, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-day', {
@@ -1820,11 +1891,7 @@ describe('EditListingPage', () => {
     );
 
     // Test intercation: open availability exception modal
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.addException/i })
-      );
-    });
+    await user.click(getByRole('button', { name: /EditListingAvailabilityPanel.addException/i }));
     expect(getByText('EditListingAvailabilityExceptionForm.title')).toBeInTheDocument();
 
     // Nothing from single seat selector: available, not-available
@@ -1849,6 +1916,7 @@ describe('EditListingPage', () => {
   }, 10000);
 
   it('Booking (night): edit flow on availability tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingNightly, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-night', {
@@ -1933,11 +2001,10 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation: open plan modal
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
-      );
-    });
+    await user.click(
+      getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
+    );
+
     expect(getByText('EditListingAvailabilityPlanForm.title')).toBeInTheDocument();
     // time zone picker
     expect(getByText('EditListingAvailabilityPlanForm.timezonePickerTitle')).toBeInTheDocument();
@@ -1955,27 +2022,22 @@ describe('EditListingPage', () => {
     ).toBeInTheDocument();
 
     // Test intercation: plan modal form
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
-      );
-    });
+    await user.click(
+      getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
+    );
+
     expect(
       getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
     ).not.toBeChecked();
 
     // Test intercation: close plan modal
-    await waitFor(async () => {
-      await userEvent.click(getByRole('button', { name: /Modal.close/i }));
-    });
+    await user.click(getByRole('button', { name: /Modal.close/i }));
+
     expect(queryAllByText('EditListingAvailabilityPlanForm.title')).toHaveLength(0);
 
     // Test intercation: open availability exception modal
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.addException/i })
-      );
-    });
+    await user.click(getByRole('button', { name: /EditListingAvailabilityPanel.addException/i }));
+
     expect(getByText('EditListingAvailabilityExceptionForm.title')).toBeInTheDocument();
     // mode: available, not-available
     expect(getByText('EditListingAvailabilityExceptionForm.available')).toBeInTheDocument();
@@ -1997,6 +2059,7 @@ describe('EditListingPage', () => {
   }, 10000);
 
   it('Booking (hour): edit flow on availability tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesBookingHourly, listingFieldsBooking);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-hour', {
@@ -2081,11 +2144,10 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation: open plan modal
-    await waitFor(async () => {
-      await userEvent.click(
-        getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
-      );
-    });
+    await user.click(
+      getByRole('button', { name: /EditListingAvailabilityPanel.editAvailabilityPlan/i })
+    );
+
     expect(getByText('EditListingAvailabilityPlanForm.title')).toBeInTheDocument();
     // time zone picker
     expect(getByText('EditListingAvailabilityPlanForm.timezonePickerTitle')).toBeInTheDocument();
@@ -2125,11 +2187,10 @@ describe('EditListingPage', () => {
     ).toBeInTheDocument();
 
     // Test intercation: plan modal form
-    await waitFor(async () => {
-      userEvent.click(
-        getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
-      );
-    });
+    await user.click(
+      getByRole('checkbox', { name: /EditListingAvailabilityPlanForm.dayOfWeek.mon/i })
+    );
+
     expect(monday).not.toBeChecked();
     const monDataContainerAfterUncheck = within(monday.parentNode.parentNode.nextElementSibling);
     expect(
@@ -2139,15 +2200,13 @@ describe('EditListingPage', () => {
     ).not.toBeInTheDocument();
 
     // Test intercation: close plan modal
-    await waitFor(async () => {
-      userEvent.click(getByRole('button', { name: /Modal.close/i }));
-    });
+    await user.click(getByRole('button', { name: /Modal.close/i }));
+
     expect(queryAllByText('EditListingAvailabilityPlanForm.title')).toHaveLength(0);
 
     // Test intercation: open availability exception modal
-    await waitFor(async () => {
-      userEvent.click(getByRole('button', { name: /EditListingAvailabilityPanel.addException/i }));
-    });
+    await user.click(getByRole('button', { name: /EditListingAvailabilityPanel.addException/i }));
+
     expect(getByText('EditListingAvailabilityExceptionForm.title')).toBeInTheDocument();
     // mode: available, not-available
     expect(getByText('EditListingAvailabilityExceptionForm.available')).toBeInTheDocument();
@@ -2299,7 +2358,177 @@ describe('EditListingPage', () => {
     });
   });
 
+  it('Booking (day): edit flow with no description', async () => {
+    const listingTypeDailyBookingNoDescription = [
+      {
+        ...listingTypesBookingDay[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+    const config = getConfig(listingTypeDailyBookingNoDescription, listingFieldsBooking);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-day', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      publicData: {
+        listingType: 'rent-bicycles-daily',
+        transactionProcessAlias: 'default-booking/release-1',
+        unitType: 'day',
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('Booking (night): edit flow with no description', async () => {
+    const listingTypeNightlyBookingNoDescription = [
+      {
+        ...listingTypesBookingNightly[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+    const config = getConfig(listingTypeNightlyBookingNoDescription, listingFieldsBooking);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-night', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      price: new Money(1000, 'USD'),
+      availabilityPlan: {
+        type: 'availability-plan/time',
+        timezone: 'Etc/UTC',
+        entries: [
+          { dayOfWeek: 'mon', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'tue', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'wed', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'thu', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'fri', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'sat', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'sun', startTime: '00:00', endTime: '00:00', seats: 0 },
+        ],
+      },
+
+      publicData: {
+        listingType: 'rent-bicycles-nightly',
+        transactionProcessAlias: 'default-booking/release-1',
+        unitType: 'night',
+        amenities: ['dog_1'],
+        location: {
+          address: 'Main Street 123',
+          building: 'A 1',
+        },
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('Booking (hour): edit flow with no description', async () => {
+    const listingTypesBookingHourlyNoDescription = [
+      {
+        ...listingTypesBookingHourly[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+    const config = getConfig(listingTypesBookingHourlyNoDescription, listingFieldsBooking);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-hour', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      price: new Money(1000, 'USD'),
+      availabilityPlan: {
+        type: 'availability-plan/time',
+        timezone: 'Etc/UTC',
+        entries: [
+          { dayOfWeek: 'mon', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'tue', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'wed', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'thu', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'fri', startTime: '00:00', endTime: '00:00', seats: 1 },
+          { dayOfWeek: 'sat', startTime: '00:00', endTime: '00:00', seats: 1 },
+          //{ dayOfWeek: 'sun', startTime: '00:00', endTime: '00:00', seats: 1 },
+        ],
+      },
+
+      publicData: {
+        listingType: 'rent-bicycles-hourly',
+        transactionProcessAlias: 'default-booking/release-1',
+        unitType: 'hour',
+        amenities: ['dog_1'],
+        location: {
+          address: 'Main Street 123',
+          building: 'A 1',
+        },
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
+
   it('Inquiry: edit flow on details tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesInquiry, listingFieldsInquiry);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-inquiry', {
@@ -2359,12 +2588,11 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(() => {
-      userEvent.selectOptions(
-        screen.getByRole('combobox'),
-        screen.getByRole('option', { name: 'Cat 1' })
-      );
-    });
+    await user.selectOptions(
+      screen.getByRole('combobox'),
+      screen.getByRole('option', { name: 'Cat 1' })
+    );
+
     expect(
       getByRole('option', { name: 'CustomExtendedDataField.placeholderSingleSelect' }).selected
     ).toBe(false);
@@ -2454,6 +2682,7 @@ describe('EditListingPage', () => {
   });
 
   it('Inquiry: edit flow on location tab', async () => {
+    const user = userEvent.setup();
     const config = getConfig(listingTypesInquiry, listingFieldsInquiry);
     const routeConfiguration = getRouteConfiguration(config.layout);
     const listing = createOwnListing('listing-item', {
@@ -2513,10 +2742,8 @@ describe('EditListingPage', () => {
     });
 
     // Test intercation
-    await waitFor(async () => {
-      await userEvent.clear(getByLabelText('EditListingLocationForm.building'));
-      userEvent.type(getByLabelText('EditListingLocationForm.building'), 'B 2');
-    });
+    await user.clear(getByLabelText('EditListingLocationForm.building'));
+    await user.type(getByLabelText('EditListingLocationForm.building'), 'B 2');
 
     // Tab/form: existing building
     expect(getByLabelText('EditListingLocationForm.building')).toHaveValue('B 2');
@@ -2627,10 +2854,248 @@ describe('EditListingPage', () => {
       expect(getByText('EditListingWizard.edit.savePhotos')).toBeInTheDocument();
     });
   });
+
+  it('Inquiry: edit flow with no description', async () => {
+    const listingTypesInquiryNoDescription = [
+      {
+        ...listingTypesInquiry[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+
+    const config = getConfig(listingTypesInquiryNoDescription, listingFieldsInquiry);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-inquiry', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      publicData: {
+        listingType: 'inquiry',
+        transactionProcessAlias: 'default-inquiry/release-1',
+        unitType: 'inquiry',
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('Negotiation: edit flow with only details and style panels', async () => {
+    const user = userEvent.setup();
+    const config = getConfig(listingTypesNegotiation, []);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-negotiation', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      publicData: {
+        listingType: 'negotiation-offer',
+        transactionProcessAlias: 'default-negotiation/release-1',
+        unitType: 'request',
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { getByText, queryByText, getByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    await waitFor(() => {
+      // Navigation to tab
+      const tabLabel = 'EditListingWizard.tabLabelDetails';
+      expect(getByText(tabLabel)).toBeInTheDocument();
+
+      // Tab: panel title
+      expect(getByText('EditListingDetailsPanel.title')).toBeInTheDocument();
+
+      // Tab/form: form title
+      expect(getByRole('textbox', { name: 'EditListingDetailsForm.title' })).toHaveValue(
+        'the listing'
+      );
+
+      // Tab/form: description
+      expect(getByRole('textbox', { name: 'EditListingDetailsForm.description' })).toHaveValue(
+        'Lorem ipsum'
+      );
+
+      // Tab/form: save button
+      expect(
+        getByRole('button', { name: 'EditListingWizard.edit.saveDetails' })
+      ).toBeInTheDocument();
+    });
+
+    // Check that only details and photos tabs are available
+    // Details tab should be visible (current tab)
+    expect(getByText('EditListingWizard.tabLabelDetails')).toBeInTheDocument();
+
+    // Style tab should be visible (style panel)
+    expect(getByText('EditListingWizard.tabLabelStyle')).toBeInTheDocument();
+
+    // Other tabs should NOT be visible due to defaultListingFields configuration
+    const tabLabelLocation = 'EditListingWizard.tabLabelLocation';
+    expect(queryByText(tabLabelLocation)).not.toBeInTheDocument();
+
+    const tabLabelPricing = 'EditListingWizard.tabLabelPricing';
+    expect(queryByText(tabLabelPricing)).not.toBeInTheDocument();
+
+    const tabLabelPricingAndStock = 'EditListingWizard.tabLabelPricingAndStock';
+    expect(queryByText(tabLabelPricingAndStock)).not.toBeInTheDocument();
+
+    const tabLabelAvailability = 'EditListingWizard.tabLabelAvailability';
+    expect(queryByText(tabLabelAvailability)).not.toBeInTheDocument();
+
+    const tabLabelDelivery = 'EditListingWizard.tabLabelDelivery';
+    expect(queryByText(tabLabelDelivery)).not.toBeInTheDocument();
+
+    const tabLabelPhotos = 'EditListingWizard.tabLabelPhotos';
+    expect(queryByText(tabLabelPhotos)).not.toBeInTheDocument();
+  });
+
+  it('Negotiation: new listing flow with only details and style panels', async () => {
+    const config = getConfig(listingTypesNegotiation, []);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: '00000000-0000-0000-0000-000000000000',
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_NEW,
+        tab: DETAILS,
+      },
+    };
+
+    const { getByText, queryByText, getByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(),
+      config,
+      routeConfiguration,
+    });
+
+    await waitFor(() => {
+      // Navigation to tab
+      const tabLabel = 'EditListingWizard.tabLabelDetails';
+      expect(getByText(tabLabel)).toBeInTheDocument();
+
+      // Tab: panel title
+      expect(getByText('EditListingDetailsPanel.createListingTitle')).toBeInTheDocument();
+
+      // Tab/form: form title
+      expect(getByRole('textbox', { name: 'EditListingDetailsForm.title' })).toBeInTheDocument();
+
+      // Tab/form: description
+      expect(
+        getByRole('textbox', { name: 'EditListingDetailsForm.description' })
+      ).toBeInTheDocument();
+
+      // Tab/form: save button
+      expect(
+        getByRole('button', { name: 'EditListingWizard.default-negotiation.new.saveDetails' })
+      ).toBeInTheDocument();
+    });
+
+    // Check that only details and photos tabs are available
+    // Details tab should be visible (current tab)
+    expect(getByText('EditListingWizard.tabLabelDetails')).toBeInTheDocument();
+
+    // Photos tab should be visible (style panel)
+    expect(getByText('EditListingWizard.tabLabelStyle')).toBeInTheDocument();
+
+    // Other tabs should NOT be visible due to defaultListingFields configuration
+    const tabLabelLocation = 'EditListingWizard.tabLabelLocation';
+    expect(queryByText(tabLabelLocation)).not.toBeInTheDocument();
+
+    const tabLabelPricing = 'EditListingWizard.tabLabelPricing';
+    expect(queryByText(tabLabelPricing)).not.toBeInTheDocument();
+
+    const tabLabelPricingAndStock = 'EditListingWizard.tabLabelPricingAndStock';
+    expect(queryByText(tabLabelPricingAndStock)).not.toBeInTheDocument();
+
+    const tabLabelAvailability = 'EditListingWizard.tabLabelAvailability';
+    expect(queryByText(tabLabelAvailability)).not.toBeInTheDocument();
+
+    const tabLabelDelivery = 'EditListingWizard.tabLabelDelivery';
+    expect(queryByText(tabLabelDelivery)).not.toBeInTheDocument();
+
+    const tabLabelPhotos = 'EditListingWizard.tabLabelPhotos';
+    expect(queryByText(tabLabelPhotos)).not.toBeInTheDocument();
+  });
+
+  it('Negotiation: edit flow with no description', async () => {
+    const listingTypesNegotiationNoDescription = [
+      {
+        ...listingTypesNegotiation[0],
+        defaultListingFields: {
+          description: false,
+        },
+      },
+    ];
+    const config = getConfig(listingTypesNegotiationNoDescription, []);
+    const routeConfiguration = getRouteConfiguration(config.layout);
+    const listing = createOwnListing('listing-negotiation', {
+      title: 'the listing',
+      description: 'Lorem ipsum',
+      publicData: {
+        listingType: 'negotiation-offer',
+        transactionProcessAlias: 'default-negotiation/release-1',
+        unitType: 'request',
+      },
+    });
+
+    const props = {
+      ...commonProps,
+      params: {
+        id: listing.id.uuid,
+        slug: 'slug',
+        type: LISTING_PAGE_PARAM_TYPE_EDIT,
+        tab: DETAILS,
+      },
+    };
+
+    const { queryByRole } = render(<EditListingPage {...props} />, {
+      initialState: initialState(listing),
+      config,
+      routeConfiguration,
+    });
+
+    // Description should be hidden based on current listing type
+    expect(
+      queryByRole('textbox', { name: 'EditListingDetailsForm.description' })
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('EditListingPageComponent', () => {
   it('Check that there is correct wizard tabs', async () => {
+    const user = userEvent.setup();
     render(
       <EditListingPageComponent
         params={{ id: 'id', slug: 'slug', type: 'new', tab: 'details' }}
@@ -2679,12 +3144,10 @@ describe('EditListingPageComponent', () => {
     const tabLabelPhotos = 'EditListingWizard.tabLabelPhotos';
     expect(screen.queryByText(tabLabelPhotos)).not.toBeInTheDocument();
 
-    await act(async () => {
-      userEvent.selectOptions(
-        screen.getByLabelText('EditListingDetailsForm.listingTypeLabel'),
-        'product-selling'
-      );
-    });
+    await user.selectOptions(
+      screen.getByLabelText('EditListingDetailsForm.listingTypeLabel'),
+      'product-selling'
+    );
 
     // Tabs not in use
     const tabLabelLocation = 'EditListingWizard.tabLabelLocation';

@@ -67,8 +67,10 @@ exports.deserialize = str => {
   return sharetribeSdk.transit.read(str, { typeHandlers });
 };
 
-exports.handleError = (res, error) => {
-  log.error(error, 'local-api-request-failed', error.data);
+exports.handleError = (res, error, options = {}) => {
+  if (!options?.skipErrorLogging) {
+    log.error(error, 'local-api-request-failed', error.data);
+  }
 
   if (error.status && error.statusText && error.data) {
     const { status, statusText, data } = error;
@@ -82,6 +84,30 @@ exports.handleError = (res, error) => {
         status,
         statusText,
         data,
+      })
+      .end();
+  } else if (
+    error.message == 'Minimum commission amount is greater than the amount of money paid in'
+  ) {
+    res
+      .status(400)
+      .json({
+        name: 'LocalAPIError',
+        message: 'Local API request failed',
+        status: 400,
+        statusText: error.message,
+      })
+      .end();
+  } else if (
+    error.message == 'User has transactions on states that include incomplete payment processing'
+  ) {
+    res
+      .status(409)
+      .json({
+        name: 'LocalAPIError',
+        message: 'Local API request failed',
+        status: 409,
+        statusText: error.message,
       })
       .end();
   } else {

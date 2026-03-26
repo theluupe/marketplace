@@ -1,9 +1,7 @@
 import React from 'react';
-import flow from 'lodash/flow';
-import flatMap from 'lodash/flatMap';
-import map from 'lodash/map';
 
-import { sanitizeUrl } from './sanitize';
+import { flow } from '../util/common';
+import { sanitizeUrl } from '../util/sanitize';
 
 import { ExternalLink } from '../components';
 // NOTE: This file imports components/index.js, which may lead to circular dependency
@@ -161,14 +159,14 @@ export const richText = (text, options) => {
   const { longWordMinLength, longWordClass, linkify = false, linkClass, breakChars } = options;
   const linkOrLongWordClass = linkClass ? linkClass : longWordClass;
   const nonWhiteSpaceSequence = /([^\s]+)/gi;
-  const breakCharsConfig = breakChars != null ? breakChars : '/,';
+  const breakCharsConfig = breakChars != null ? breakChars : '/';
 
   return text.split(nonWhiteSpaceSequence).reduce((acc, nextChild, i) => {
     const parts = flow([
       v =>
-        flatMap(v, w => linkifyOrWrapLinkSplit(w, i, { linkify, linkClass: linkOrLongWordClass })),
-      v => flatMap(v, w => zwspAroundSpecialCharsSplit(w, breakCharsConfig)),
-      v => map(v, (w, j) => wrapLongWord(w, `${i}${j}`, { longWordMinLength, longWordClass })),
+        v.flatMap(w => linkifyOrWrapLinkSplit(w, i, { linkify, linkClass: linkOrLongWordClass })),
+      v => v.flatMap(w => zwspAroundSpecialCharsSplit(w, breakCharsConfig)),
+      v => v.map((w, j) => wrapLongWord(w, `${i}${j}`, { longWordMinLength, longWordClass })),
     ])([nextChild]);
     return acc.concat(parts);
   }, []);

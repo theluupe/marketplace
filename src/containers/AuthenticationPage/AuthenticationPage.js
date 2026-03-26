@@ -9,12 +9,14 @@ import { useConfiguration } from '../../context/configurationContext';
 import { camelize } from '../../util/string';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
-import { ensureCurrentUser } from '../../util/data';
+import { ensureCurrentUser, getFeaturedListingsProps } from '../../util/data';
 import { isTooManyEmailVerificationRequestsError } from '../../util/errors';
 import { isStudioBrand } from '../../util/userHelpers';
 import { authenticationInProgress, signupWithIdp } from '../../ducks/auth.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { sendVerificationEmail } from '../../ducks/user.duck';
+import { fetchFeaturedListings } from '../../ducks/featuredListings.duck';
+import { getListingsById } from '../../ducks/marketplaceData.duck';
 
 import {
   Page,
@@ -96,12 +98,6 @@ const BlankPage = props => {
  * @param {propTypes.error} props.sendVerificationEmailError - The verification email error
  * @param {Function} props.onResendVerificationEmail - The resend verification email function
  * @param {Function} props.onManageDisableScrolling - The manage disable scrolling function
- * @param {object} props.privacyAssetsData - The privacy assets data
- * @param {boolean} props.privacyFetchInProgress - Whether the privacy fetch is in progress
- * @param {propTypes.error} props.privacyFetchError - The privacy fetch error
- * @param {object} props.tosAssetsData - The terms of service assets data
- * @param {boolean} props.tosFetchInProgress - Whether the terms of service fetch is in progress
- * @param {propTypes.error} props.tosFetchError - The terms of service fetch error
  * @param {object} props.location - The location object
  * @param {object} props.params - The path parameters
  * @param {boolean} props.scrollingDisabled - Whether the scrolling is disabled
@@ -144,9 +140,9 @@ export const AuthenticationPageComponent = props => {
     sendVerificationEmailError,
     onResendVerificationEmail,
     onManageDisableScrolling,
-    tosAssetsData,
-    tosFetchInProgress,
-    tosFetchError,
+    pageAssetsData,
+    pageAssetsFetchInProgress,
+    pageAssetsFetchError,
   } = props;
 
   // History API has potentially state tied to this route
@@ -304,12 +300,15 @@ export const AuthenticationPageComponent = props => {
         onClose={() => setTosModalOpen(false)}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={'terms-accepted.tos-and-privacy'}
       >
-        <div className={css.termsWrapper}>
+        <div className={css.termsWrapper} role="complementary">
           <TermsOfServiceContent
-            inProgress={tosFetchInProgress}
-            error={tosFetchError}
-            data={tosAssetsData?.[camelize(TOS_ASSET_NAME)]?.data}
+            inProgress={pageAssetsFetchInProgress}
+            error={pageAssetsFetchError}
+            data={pageAssetsData?.[camelize(TOS_ASSET_NAME)]?.data}
+            featuredListings={getFeaturedListingsProps(camelize(PRIVACY_POLICY_ASSET_NAME), props)}
+            isOpen={tosModalOpen}
           />
         </div>
       </Modal>
@@ -319,12 +318,15 @@ export const AuthenticationPageComponent = props => {
         onClose={() => setPrivacyModalOpen(false)}
         usePortal
         onManageDisableScrolling={onManageDisableScrolling}
+        focusElementId={'terms-accepted.tos-and-privacy'}
       >
-        <div className={css.privacyWrapper}>
+        <div className={css.privacyWrapper} role="complementary">
           <PrivacyPolicyContent
-            inProgress={tosFetchInProgress}
-            error={tosFetchError}
-            data={tosAssetsData?.[camelize(PRIVACY_POLICY_ASSET_NAME)]?.data}
+            inProgress={pageAssetsFetchInProgress}
+            error={pageAssetsFetchError}
+            data={pageAssetsData?.[camelize(PRIVACY_POLICY_ASSET_NAME)]?.data}
+            featuredListings={getFeaturedListingsProps(camelize(PRIVACY_POLICY_ASSET_NAME), props)}
+            isOpen={privacyModalOpen}
           />
         </div>
       </Modal>
@@ -335,13 +337,10 @@ export const AuthenticationPageComponent = props => {
 const mapStateToProps = state => {
   const { isAuthenticated, confirmError } = state.auth;
   const { currentUser, sendVerificationEmailInProgress, sendVerificationEmailError } = state.user;
-  const {
-    pageAssetsData: privacyAssetsData,
-    inProgress: privacyFetchInProgress,
-    error: privacyFetchError,
-  } = state.hostedAssets || {};
-  const { pageAssetsData: tosAssetsData, inProgress: tosFetchInProgress, error: tosFetchError } =
+  const { pageAssetsData, inProgress: pageAssetsFetchInProgress, error: pageAssetsFetchError } =
     state.hostedAssets || {};
+  const featuredListingData = state.featuredListings || {};
+  const getListingEntitiesById = listingIds => getListingsById(state, listingIds);
   return {
     authInProgress: authenticationInProgress(state),
     currentUser,
@@ -350,12 +349,11 @@ const mapStateToProps = state => {
     confirmError,
     sendVerificationEmailInProgress,
     sendVerificationEmailError,
-    privacyAssetsData,
-    privacyFetchInProgress,
-    privacyFetchError,
-    tosAssetsData,
-    tosFetchInProgress,
-    tosFetchError,
+    pageAssetsData,
+    pageAssetsFetchInProgress,
+    pageAssetsFetchError,
+    featuredListingData,
+    getListingEntitiesById,
   };
 };
 
@@ -364,6 +362,8 @@ const mapDispatchToProps = dispatch => ({
   onResendVerificationEmail: () => dispatch(sendVerificationEmail()),
   onManageDisableScrolling: (componentId, disableScrolling) =>
     dispatch(manageDisableScrolling(componentId, disableScrolling)),
+  onFetchFeaturedListings: (sectionId, parentPage, listingImageConfig, allSections) =>
+    dispatch(fetchFeaturedListings({ sectionId, parentPage, listingImageConfig, allSections })),
 });
 
 // Note: it is important that the withRouter HOC is **outside** the

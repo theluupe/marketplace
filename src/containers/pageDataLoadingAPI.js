@@ -14,12 +14,14 @@ import { loadData as EmailVerificationPageLoader } from './EmailVerificationPage
 import { loadData as FavoriteListingsPageLoader } from './FavoriteListingsPage/FavoriteListingsPage.duck';
 import { loadData as InboxPageLoader } from './InboxPage/InboxPage.duck';
 import { loadData as ListingPageLoader } from './ListingPage/ListingPage.duck';
+import { loadData as MakeOfferPageLoader } from './MakeOfferPage/MakeOfferPage.duck';
 import { loadData as ManageListingsPageLoader } from './ManageListingsPage/ManageListingsPage.duck';
 import { loadData as PaymentMethodsPageLoader } from './PaymentMethodsPage/PaymentMethodsPage.duck';
 import { loadData as PrivacyPolicyPageLoader } from './PrivacyPolicyPage/PrivacyPolicyPage.duck';
 import { loadData as ProfilePageLoader } from './ProfilePage/ProfilePage.duck';
 import { loadData as ProfileSettingsPageLoader } from './ProfileSettingsPage/ProfileSettingsPage.duck';
 import { loadData as ReferralProgramPageLoader } from './ReferralProgramPage/ReferralProgramPage.duck';
+import { loadData as RequestQuotePageLoader } from './RequestQuotePage/RequestQuotePage.duck';
 import { loadData as SearchPageLoader } from './SearchPage/SearchPage.duck';
 import { loadData as StripePayoutPageLoader } from './StripePayoutPage/StripePayoutPage.duck';
 import { loadData as TermsOfServicePageLoader } from './TermsOfServicePage/TermsOfServicePage.duck';
@@ -69,6 +71,9 @@ const getPageDataLoadingAPI = () => {
     ListingPage: {
       loadData: ListingPageLoader,
     },
+    MakeOfferPage: {
+      loadData: MakeOfferPageLoader,
+    },
     ManageListingsPage: {
       loadData: ManageListingsPageLoader,
     },
@@ -86,6 +91,9 @@ const getPageDataLoadingAPI = () => {
     },
     ReferralProgramPage: {
       loadData: ReferralProgramPageLoader,
+    },
+    RequestQuotePage: {
+      loadData: RequestQuotePageLoader,
     },
     SearchPage: {
       loadData: SearchPageLoader,

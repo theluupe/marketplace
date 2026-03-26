@@ -13,10 +13,7 @@ import {
 } from '../../util/currency';
 import { LISTING_TYPES } from '../../util/types';
 import { parse } from '../../util/urlHelpers';
-import {
-  RESULT_PAGE_SIZE,
-  queryListingsError,
-} from '../ManageListingsPage/ManageListingsPage.duck';
+import { RESULT_PAGE_SIZE } from '../ManageListingsPage/ManageListingsPage.duck';
 import { storableError } from '../../util/errors';
 import { types as sdkTypes } from '../../util/sdkLoader';
 import {
@@ -165,6 +162,8 @@ export const FETCH_LISTINGS_FOR_EDIT_REQUEST =
   'app/BatchEditListingPage/FETCH_LISTINGS_FOR_EDIT_REQUEST';
 export const FETCH_LISTINGS_FOR_EDIT_REQUEST_SUCCESS =
   'app/BatchEditListingPage/FETCH_LISTINGS_FOR_EDIT_REQUEST_SUCCESS';
+export const FETCH_LISTINGS_FOR_EDIT_REQUEST_ERROR =
+  'app/BatchEditListingPage/FETCH_LISTINGS_FOR_EDIT_REQUEST_ERROR';
 
 export const CSV_UPLOAD_REQUEST = 'app/BatchEditListingPage/CSV_UPLOAD_REQUEST';
 export const CSV_UPLOAD_SUCCESS = 'app/BatchEditListingPage/CSV_UPLOAD_SUCCESS';
@@ -388,6 +387,12 @@ export default function reducer(state = initialState, action = {}) {
         queryInProgress: false,
         queryListingsError: null,
         listings: listingsFromSdkResponse(payload.data, state.listingDefaults),
+      };
+    case FETCH_LISTINGS_FOR_EDIT_REQUEST_ERROR:
+      return {
+        ...state,
+        queryInProgress: false,
+        queryListingsError: payload,
       };
     case CSV_UPLOAD_REQUEST:
       return { ...state, csvUploadInProgress: true, csvUploadError: null };
@@ -888,7 +893,10 @@ export const queryOwnListings = queryParams => (dispatch, getState, sdk) => {
       return response;
     })
     .catch(e => {
-      dispatch(queryListingsError(storableError(e)));
+      dispatch({
+        type: FETCH_LISTINGS_FOR_EDIT_REQUEST_ERROR,
+        payload: storableError(e),
+      });
       throw e;
     });
 };

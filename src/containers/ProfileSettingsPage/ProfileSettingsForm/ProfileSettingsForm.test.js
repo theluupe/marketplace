@@ -365,4 +365,65 @@ describe('ProfileSettingsForm', () => {
     expect(screen.queryByText('Long Field')).toBeNull();
     expect(screen.queryByDisplayValue(123)).toBeNull();
   });
+
+  it('enables Save button when required fields are filled', async () => {
+    const user = userEvent.setup();
+    const currentUser = createCurrentUser('userId');
+    const u1 = {
+      ...currentUser,
+      attributes: {
+        ...currentUser.attributes,
+        profile: {
+          ...currentUser.attributes.profile,
+          ...attributes.profile,
+        },
+      },
+    };
+
+    const { firstName, lastName, publicData } = u1.attributes.profile;
+    render(
+      <ProfileSettingsForm
+        intl={fakeIntl}
+        onSubmit={noop}
+        uploadInProgress={false}
+        updateInProgress={false}
+        currentUser={u1}
+        profileImage={{}}
+        userFields={userFieldConfig}
+        userTypeConfig={userTypeConfigE}
+        initialValues={{
+          firstName,
+          lastName,
+          ...initialValuesForUserFields(publicData, 'public', 'e', userFieldConfig),
+        }}
+      />
+    );
+
+    // Save button should be disabled before changes.
+    expect(screen.getByRole('button', { name: 'ProfileSettingsForm.saveChanges' })).toBeDisabled();
+
+    // Expect the initial values to be in the document before any changes
+    expect(screen.getByText('ProfileSettingsForm.firstNameLabel')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(firstName)).toBeInTheDocument();
+    expect(screen.getByText('ProfileSettingsForm.lastNameLabel')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(lastName)).toBeInTheDocument();
+    expect(screen.getByText('Multi-enum Field')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'ml1' }).checked).toBe(true);
+    expect(screen.getByRole('checkbox', { name: 'ml2' }).checked).toBe(true);
+
+    // Two required fields missing, textField and textField2.
+    // First, enter text into textField and check that the save button remains
+    // disabled, since another required field is still empty
+    const textInput1 = screen.getByRole('textbox', { name: 'Text Field' });
+    await user.type(textInput1, 'Text 1 value');
+    expect(textInput1).toHaveValue('Text 1 value');
+    expect(screen.getByRole('button', { name: 'ProfileSettingsForm.saveChanges' })).toBeDisabled();
+
+    // Enter text into the other required text field, and check that the
+    // save button is now enabled, since all required fields have values.
+    const textInput2 = screen.getByRole('textbox', { name: 'Text Field 2' });
+    await user.type(textInput2, 'Text 2 value');
+    expect(textInput2).toHaveValue('Text 2 value');
+    expect(screen.getByRole('button', { name: 'ProfileSettingsForm.saveChanges' })).toBeEnabled();
+  });
 });

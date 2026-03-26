@@ -1,3 +1,4 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
 import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoader';
@@ -9,33 +10,184 @@ import {
   isUserAuthorized,
   isCreativeSellerApproved,
 } from '../../util/userHelpers';
-import { LISTING_TAB_TYPES } from '../../util/types';
+import { LISTING_GRID_DEFAULTS, LISTING_GRID_ROLE, LISTING_TAB_TYPES } from '../../util/types';
 import { RESULT_PAGE_SIZE } from '../ManageListingsPage/ManageListingsPage.duck';
 
 const { UUID } = sdkTypes;
+
 const isCurrentUser = (userId, cu) => userId?.uuid === cu?.id?.uuid;
 
-// ================ Action types ================ //
+// ================ Async Thunks ================ //
 
-export const SET_INITIAL_STATE = 'app/ProfilePage/SET_INITIAL_STATE';
+//////////////////////
+// Creative profile //
+//////////////////////
 
-export const SHOW_USER_REQUEST = 'app/ProfilePage/SHOW_USER_REQUEST';
-export const SHOW_USER_SUCCESS = 'app/ProfilePage/SHOW_USER_SUCCESS';
-export const SHOW_USER_ERROR = 'app/ProfilePage/SHOW_USER_ERROR';
+const showCreativeProfilePayloadCreator = (
+  { profileListingId, config },
+  { dispatch, rejectWithValue, extra: sdk }
+) => {
+  const params = {
+    id: profileListingId,
+    include: ['author'],
+  };
+  return sdk.listings
+    .show(params)
+    .then(data => {
+      const listingFields = config?.listing?.listingFields;
+      const sanitizeConfig = { listingFields };
+      dispatch(addMarketplaceEntities(data, sanitizeConfig));
+      return data;
+    })
+    .catch(e => {
+      return rejectWithValue(storableError(e));
+    });
+};
 
-export const QUERY_CREATIVE_PROFILE_REQUEST = 'app/ProfilePage/QUERY_CREATIVE_PROFILE_REQUEST';
-export const QUERY_CREATIVE_PROFILE_SUCCESS = 'app/ProfilePage/QUERY_CREATIVE_PROFILE_SUCCESS';
-export const QUERY_CREATIVE_PROFILE_ERROR = 'app/ProfilePage/QUERY_CREATIVE_PROFILE_ERROR';
+export const showCreativeProfileThunk = createAsyncThunk(
+  'ProfilePage/showCreativeProfile',
+  showCreativeProfilePayloadCreator
+);
 
-export const QUERY_LISTINGS_REQUEST = 'app/ProfilePage/QUERY_LISTINGS_REQUEST';
-export const QUERY_LISTINGS_SUCCESS = 'app/ProfilePage/QUERY_LISTINGS_SUCCESS';
-export const QUERY_LISTINGS_ERROR = 'app/ProfilePage/QUERY_LISTINGS_ERROR';
+///////////////
+// Show User //
+///////////////
 
-export const QUERY_REVIEWS_REQUEST = 'app/ProfilePage/QUERY_REVIEWS_REQUEST';
-export const QUERY_REVIEWS_SUCCESS = 'app/ProfilePage/QUERY_REVIEWS_SUCCESS';
-export const QUERY_REVIEWS_ERROR = 'app/ProfilePage/QUERY_REVIEWS_ERROR';
+const showUserPayloadCreator = ({ userId, config }, { dispatch, rejectWithValue, extra: sdk }) => {
+  return sdk.users
+    .show({
+      id: userId,
+      include: ['profileImage'],
+      'fields.image': ['variants.square-small', 'variants.square-small2x'],
+    })
+    .then(response => {
+      const userProfile = response?.data?.data?.attributes?.profile || {};
+      const { metadata } = userProfile;
+      const profileListingId = metadata?.profileListingId;
+      const withCreativeProfile = isCreativeSellerApproved(userProfile);
+      if (withCreativeProfile && profileListingId) {
+        dispatch(showCreativeProfileThunk({ profileListingId, config }));
+      }
+      const userFields = config?.user?.userFields;
+      const sanitizeConfig = { userFields };
+      dispatch(addMarketplaceEntities(response, sanitizeConfig));
+      return response;
+    })
+    .catch(e => {
+      return rejectWithValue(storableError(e));
+    });
+};
 
-// ================ Reducer ================ //
+export const showUserThunk = createAsyncThunk('ProfilePage/showUser', showUserPayloadCreator);
+
+// Backward compatible wrapper for the thunk
+export const showUser = (userId, config) => dispatch => {
+  return dispatch(showUserThunk({ userId, config }));
+};
+
+/////////////////////////
+// Query User Listings //
+/////////////////////////
+
+const queryUserListingsShouldRun = queryParams => {
+  const listingType = queryParams.pub_listingType;
+  const validListingType = !!listingType && listingType !== LISTING_TAB_TYPES.REVIEWS;
+  const validCategoryType = !!queryParams.pub_categoryLevel1;
+  return validListingType || validCategoryType;
+};
+
+const queryUserListingsPayloadCreator = (
+  { userId, queryParams, config, ownProfileOnly = false },
+  { dispatch, rejectWithValue, extra: sdk }
+) => {
+  if (!queryUserListingsShouldRun(queryParams)) {
+    return Promise.resolve({ listingRefs: [], meta: null, response: null });
+  }
+
+  const { perPage, pub_listingId, ...rest } = queryParams;
+  const listingType = queryParams.pub_listingType;
+  const withImageLimit = listingType !== LISTING_TAB_TYPES.PORTFOLIO;
+  const params = { ...rest, perPage, ...(withImageLimit ? { 'limit.images': 1 } : {}) };
+
+  const listingsPromise = ownProfileOnly
+    ? sdk.ownListings.query({
+        states: ['published'],
+        ...params,
+      })
+    : sdk.listings.query({
+        author_id: userId,
+        ...params,
+      });
+
+  return listingsPromise
+    .then(response => {
+      const meta = response.data.meta;
+      const listings = response.data.data;
+      const listingRefs = listings
+        .filter(l => l && !l.attributes.deleted && l.attributes.state === 'published')
+        .map(({ id, type }) => ({ id, type }));
+      dispatch(addMarketplaceEntities(response));
+      return { listingRefs, meta, response };
+    })
+    .catch(e => {
+      return rejectWithValue(storableError(e));
+    });
+};
+
+export const queryUserListingsThunk = createAsyncThunk(
+  'ProfilePage/queryUserListings',
+  queryUserListingsPayloadCreator
+);
+
+// Backward compatible wrapper
+export const queryUserListings = (
+  userId,
+  initQueryParams,
+  config,
+  ownProfileOnly = false
+) => dispatch => {
+  return dispatch(
+    queryUserListingsThunk({ userId, queryParams: initQueryParams, config, ownProfileOnly })
+  ).then(action => {
+    if (queryUserListingsThunk.fulfilled.match(action)) {
+      return action.payload.response;
+    }
+    return Promise.reject(action.payload ?? action.error);
+  });
+};
+
+//////////////////////////
+// Query User's Reviews //
+//////////////////////////
+
+const queryUserReviewsPayloadCreator = ({ userId }, { rejectWithValue, extra: sdk }) => {
+  return sdk.reviews
+    .query({
+      subject_id: userId,
+      state: 'public',
+      include: ['author', 'author.profileImage'],
+      'fields.image': ['variants.square-small', 'variants.square-small2x'],
+    })
+    .then(response => {
+      const reviews = denormalisedResponseEntities(response);
+      return reviews;
+    })
+    .catch(e => {
+      return rejectWithValue(storableError(e));
+    });
+};
+
+export const queryUserReviewsThunk = createAsyncThunk(
+  'ProfilePage/queryUserReviews',
+  queryUserReviewsPayloadCreator
+);
+
+// Backward compatible wrapper for the thunk
+export const queryUserReviews = userId => dispatch => {
+  return dispatch(queryUserReviewsThunk({ userId }));
+};
+
+// ================ Slice ================ //
 
 const initialState = {
   userId: null,
@@ -54,267 +206,78 @@ const initialState = {
   reviews: [],
 };
 
-export default function profilePageReducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case SET_INITIAL_STATE:
-      return { ...initialState };
-
-    case SHOW_USER_REQUEST:
-      return {
-        ...state,
-        userShowInProgress: true,
-        userShowError: null,
-      };
-    case SHOW_USER_SUCCESS:
-      return {
-        ...state,
-        userId: payload.userId,
-        userShowInProgress: false,
-      };
-    case SHOW_USER_ERROR:
-      return { ...state, userShowInProgress: false, userShowError: payload };
-
-    case QUERY_CREATIVE_PROFILE_REQUEST:
-      return {
-        ...state,
-        queryCreativeProfileInProgress: true,
-        queryCreativeProfileError: null,
-      };
-    case QUERY_CREATIVE_PROFILE_SUCCESS:
-      return {
-        ...state,
-        creativeProfileListingId: payload.data.data.id,
-        queryCreativeProfileInProgress: false,
-      };
-    case QUERY_CREATIVE_PROFILE_ERROR:
-      return {
-        ...state,
-        queryCreativeProfileInProgress: false,
-        queryCreativeProfileError: payload,
-      };
-
-    case QUERY_LISTINGS_REQUEST:
-      return {
-        ...state,
-        currentPageResultIds: [],
-        queryParams: payload.queryParams,
-        queryInProgress: true,
-        queryListingsError: null,
-      };
-    case QUERY_LISTINGS_SUCCESS:
-      return {
-        ...state,
-        currentPageResultIds: payload.listingRefs,
-        pagination: payload.meta,
-        queryInProgress: false,
-      };
-    case QUERY_LISTINGS_ERROR:
-      return { ...state, queryInProgress: false, queryListingsError: payload };
-
-    case QUERY_REVIEWS_REQUEST:
-      return {
-        ...state,
-        queryReviewsInProgress: true,
-        queryReviewsError: null,
-        reviews: [],
-      };
-    case QUERY_REVIEWS_SUCCESS:
-      return {
-        ...state,
-        reviews: payload,
-        queryReviewsInProgress: false,
-      };
-    case QUERY_REVIEWS_ERROR:
-      return { ...state, queryReviewsInProgress: false, queryReviewsError: payload };
-
-    default:
-      return state;
-  }
-}
-
-// ================ Action creators ================ //
-
-export const setInitialState = () => ({
-  type: SET_INITIAL_STATE,
-});
-
-export const showUserRequest = () => ({
-  type: SHOW_USER_REQUEST,
-});
-export const showUserSuccess = userId => ({
-  type: SHOW_USER_SUCCESS,
-  payload: { userId },
-});
-export const showUserError = e => ({
-  type: SHOW_USER_ERROR,
-  error: true,
-  payload: e,
-});
-
-export const queryCreativeProfileRequest = () => ({
-  type: QUERY_CREATIVE_PROFILE_REQUEST,
-});
-export const queryCreativeProfileSuccess = data => ({
-  type: QUERY_CREATIVE_PROFILE_SUCCESS,
-  payload: data,
-});
-export const queryCreativeProfileError = e => ({
-  type: QUERY_CREATIVE_PROFILE_ERROR,
-  error: true,
-  payload: e,
-});
-
-export const queryListingsRequest = queryParams => ({
-  type: QUERY_LISTINGS_REQUEST,
-  payload: { queryParams },
-});
-export const queryListingsSuccess = data => ({
-  type: QUERY_LISTINGS_SUCCESS,
-  payload: data,
-});
-export const queryListingsError = e => ({
-  type: QUERY_LISTINGS_ERROR,
-  error: true,
-  payload: e,
-});
-
-export const queryReviewsRequest = () => ({
-  type: QUERY_REVIEWS_REQUEST,
-});
-export const queryReviewsSuccess = reviews => ({
-  type: QUERY_REVIEWS_SUCCESS,
-  payload: reviews,
-});
-export const queryReviewsError = e => ({
-  type: QUERY_REVIEWS_ERROR,
-  error: true,
-  payload: e,
-});
-
-// ================ Thunks ================ //
-
-export const queryUserListings = (userId, initQueryParams, config, ownProfileOnly = false) => (
-  dispatch,
-  getState,
-  sdk
-) => {
-  const {
-    aspectWidth = 1,
-    aspectHeight = 1,
-    variantPrefix = 'listing-card',
-  } = config.layout.listingImage;
-  const aspectRatio = aspectHeight / aspectWidth;
-  const queryParams = {
-    ...initQueryParams,
-    include: ['author', 'images'],
-    'fields.image': [
-      // Scaled variants for large images
-      'variants.scaled-xlarge',
-      'variants.scaled-medium',
-
-      // Cropped variants for listing thumbnail images
-      `variants.${variantPrefix}`,
-      `variants.${variantPrefix}-2x`,
-    ],
-    ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
-    ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
-  };
-  dispatch(queryListingsRequest(queryParams));
-  const { perPage, pub_listingId, ...rest } = queryParams;
-  const listingType = queryParams.pub_listingType;
-  const validListingType = !!listingType && listingType !== LISTING_TAB_TYPES.REVIEWS;
-  const validCategoryType = !!queryParams.pub_categoryLevel1;
-  const validRequestParams = validListingType || validCategoryType;
-  const withImageLimit = listingType !== LISTING_TAB_TYPES.PORTFOLIO;
-  const params = { ...rest, perPage, ...(withImageLimit ? { 'limit.images': 1 } : {}) };
-
-  if (!validRequestParams) return;
-  const listingsPromise = ownProfileOnly
-    ? sdk.ownListings.query({
-        states: ['published'],
-        ...params,
+const profilePageSlice = createSlice({
+  name: 'ProfilePage',
+  initialState,
+  reducers: {
+    setInitialState: () => initialState,
+    setUserId: (state, action) => {
+      state.userId = action.payload;
+    },
+  },
+  extraReducers: builder => {
+    builder
+      .addCase(showCreativeProfileThunk.pending, state => {
+        state.queryCreativeProfileInProgress = true;
+        state.queryCreativeProfileError = null;
       })
-    : sdk.listings.query({
-        author_id: userId,
-        ...params,
-      });
-  return listingsPromise
-    .then(response => {
-      const meta = response.data.meta;
-      // Pick only the id and type properties from the response listings
-      const listings = response.data.data;
-      const listingRefs = listings
-        .filter(l => l => !l.attributes.deleted && l.attributes.state === 'published')
-        .map(({ id, type }) => ({ id, type }));
-      dispatch(addMarketplaceEntities(response));
-      dispatch(queryListingsSuccess({ meta, listingRefs }));
-      return response;
-    })
-    .catch(e => dispatch(queryListingsError(storableError(e))));
-};
-
-export const queryUserReviews = userId => (dispatch, getState, sdk) => {
-  sdk.reviews
-    .query({
-      subject_id: userId,
-      state: 'public',
-      include: ['author', 'author.profileImage'],
-      'fields.image': ['variants.square-small', 'variants.square-small2x'],
-    })
-    .then(response => {
-      const reviews = denormalisedResponseEntities(response);
-      dispatch(queryReviewsSuccess(reviews));
-    })
-    .catch(e => dispatch(queryReviewsError(e)));
-};
-
-export const showUser = (userId, config) => (dispatch, getState, sdk) => {
-  dispatch(showUserRequest());
-  return sdk.users
-    .show({
-      id: userId,
-      include: ['profileImage'],
-      'fields.image': ['variants.square-small', 'variants.square-small2x'],
-    })
-    .then(response => {
-      const userProfile = response?.data?.data?.attributes?.profile || {};
-      const { metadata } = userProfile;
-      const profileListingId = metadata?.profileListingId;
-      const withCreativeProfile = isCreativeSellerApproved(userProfile);
-      if (withCreativeProfile) {
-        dispatch(requestShowCreativeProfile(profileListingId, config));
-      }
-      const userFields = config?.user?.userFields;
-      const sanitizeConfig = { userFields };
-      dispatch(addMarketplaceEntities(response, sanitizeConfig));
-      dispatch(showUserSuccess(userId));
-      return response;
-    })
-    .catch(e => dispatch(showUserError(storableError(e))));
-};
-
-export function requestShowCreativeProfile(creativeProfileListingId, config) {
-  return (dispatch, getState, sdk) => {
-    dispatch(queryCreativeProfileRequest());
-    const params = {
-      id: creativeProfileListingId,
-      include: ['author'],
-    };
-    return sdk.listings
-      .show(params)
-      .then(data => {
-        const listingFields = config?.listing?.listingFields;
-        const sanitizeConfig = { listingFields };
-        dispatch(addMarketplaceEntities(data, sanitizeConfig));
-        dispatch(queryCreativeProfileSuccess(data));
-        return data;
+      .addCase(showCreativeProfileThunk.fulfilled, (state, action) => {
+        state.creativeProfileListingId = action.payload.data.data.id;
+        state.queryCreativeProfileInProgress = false;
       })
-      .catch(e => {
-        dispatch(queryCreativeProfileError(storableError(e)));
+      .addCase(showCreativeProfileThunk.rejected, (state, action) => {
+        state.queryCreativeProfileInProgress = false;
+        state.queryCreativeProfileError = action.payload;
+      })
+      .addCase(showUserThunk.pending, state => {
+        state.userShowInProgress = true;
+        state.userShowError = null;
+      })
+      .addCase(showUserThunk.fulfilled, (state, action) => {
+        state.userId = action.meta.arg.userId;
+        state.userShowInProgress = false;
+      })
+      .addCase(showUserThunk.rejected, (state, action) => {
+        state.userShowInProgress = false;
+        state.userShowError = action.payload;
+      })
+      .addCase(queryUserListingsThunk.pending, (state, action) => {
+        state.currentPageResultIds = [];
+        state.queryParams = action.meta.arg.queryParams;
+        state.queryInProgress = true;
+        state.queryListingsError = null;
+      })
+      .addCase(queryUserListingsThunk.fulfilled, (state, action) => {
+        state.currentPageResultIds = action.payload.listingRefs;
+        state.pagination = action.payload.meta;
+        state.queryInProgress = false;
+      })
+      .addCase(queryUserListingsThunk.rejected, (state, action) => {
+        state.currentPageResultIds = [];
+        state.queryListingsError = action.payload;
+        state.queryInProgress = false;
+      })
+      .addCase(queryUserReviewsThunk.pending, state => {
+        state.queryReviewsInProgress = true;
+        state.queryReviewsError = null;
+        state.reviews = [];
+      })
+      .addCase(queryUserReviewsThunk.fulfilled, (state, action) => {
+        state.reviews = action.payload;
+        state.queryReviewsInProgress = false;
+      })
+      .addCase(queryUserReviewsThunk.rejected, (state, action) => {
+        state.reviews = [];
+        state.queryReviewsInProgress = false;
+        state.queryReviewsError = action.payload;
       });
-  };
-}
+  },
+});
+
+export const { setInitialState, setUserId } = profilePageSlice.actions;
+export default profilePageSlice.reducer;
+
+// ================ Load data ================ //
 
 export const loadData = (params, search, config) => (dispatch, getState, sdk) => {
   const userId = new UUID(params.id);
@@ -324,56 +287,57 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
     updateHasListings: false,
     updateNotifications: false,
   };
+
   const originalQueryParams = parse(search);
   const page = originalQueryParams.page || 1;
+  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.PROFILE);
   const queryParams = {
     ...originalQueryParams,
     page,
     perPage: RESULT_PAGE_SIZE,
+    ...(originalQueryParams.pub_listingType == null &&
+    originalQueryParams.pub_categoryLevel1 == null
+      ? { pub_listingType: defaultListingType }
+      : {}),
   };
+
   dispatch(setInitialState());
+
   if (isPreviewForCurrentUser) {
     return dispatch(fetchCurrentUser(fetchCurrentUserOptions)).then(() => {
       if (isCurrentUser(userId, currentUser) && isUserAuthorized(currentUser)) {
-        // Scenario: 'active' user somehow tries to open a link for "variant" profile
         return Promise.all([
           dispatch(showUser(userId, config)),
           dispatch(queryUserListings(userId, queryParams, config)),
           dispatch(queryUserReviews(userId)),
         ]);
       } else if (isCurrentUser(userId, currentUser)) {
-        // Handle a scenario, where user (in pending-approval state)
-        // tries to see their own profile page.
-        // => just set userId to state
-        return dispatch(showUserRequest(userId));
-      } else {
-        return Promise.resolve({});
+        return dispatch(setUserId(userId));
       }
+      return Promise.resolve({});
     });
   }
-  // Fetch data for plain profile page.
-  // Note 1: returns 404s if user is not 'active'.
-  // Note 2: In private marketplace mode, this page won't fetch data if the user is unauthorized
+
   const isAuthorized = currentUser && isUserAuthorized(currentUser);
   const isPrivateMarketplace = config.accessControl.marketplace.private === true;
   const hasNoViewingRights = currentUser && !hasPermissionToViewData(currentUser);
   const canFetchData = !isPrivateMarketplace || (isPrivateMarketplace && isAuthorized);
-  // On a private marketplace, show active (approved) current user's own page
-  // even if they don't have viewing rights
   const canFetchOwnProfileOnly =
     isPrivateMarketplace &&
     isAuthorized &&
     hasNoViewingRights &&
     isCurrentUser(userId, currentUser);
+
   if (!canFetchData) {
     return Promise.resolve();
   } else if (canFetchOwnProfileOnly) {
     return Promise.all([
       dispatch(fetchCurrentUser(fetchCurrentUserOptions)),
       dispatch(queryUserListings(userId, queryParams, config, canFetchOwnProfileOnly)),
-      dispatch(showUserRequest(userId)),
+      dispatch(setUserId(userId)),
     ]);
   }
+
   return Promise.all([
     dispatch(fetchCurrentUser(fetchCurrentUserOptions)),
     dispatch(showUser(userId, config)),

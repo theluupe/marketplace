@@ -38,6 +38,7 @@ const SearchResultsPanel = props => {
     onUpdateFavorites,
     onFetchCurrentUser,
     listingTypeParam,
+    intl,
   } = props;
   const history = useHistory();
   const location = useLocation();
@@ -53,6 +54,7 @@ const SearchResultsPanel = props => {
         pagePathParams={{ listingType: listingTypeParam }}
         pageSearchParams={search}
         pagination={pagination}
+        aria-label={intl.formatMessage({ id: 'SearchResultsPanel.screenreader.pagination' })}
       />
     ) : null;
 
@@ -92,18 +94,23 @@ const SearchResultsPanel = props => {
         onFetchCurrentUser,
         location,
       });
-      return (
-        <ListingCard
-          className={cssClass}
-          key={listingId}
-          listing={listing}
-          renderSizes={cardRenderSizes(isMapVariant)}
-          setActiveListing={setActiveListing}
-          hidePrice
-          isFavorite={isFavorite}
-          onToggleFavorites={onToggleFavorites}
-          gridLayout={gridLayout}
-        />
+      const isMasonryLayout = gridLayout === GRID_STYLE_MASONRY;
+      const cardProps = {
+        className: cssClass,
+        listing,
+        renderSizes: cardRenderSizes(isMapVariant),
+        setActiveListing,
+        hidePrice,
+        isFavorite,
+        onToggleFavorites,
+        gridLayout,
+      };
+      return isMasonryLayout ? (
+        <ListingCard {...cardProps} key={listingId} />
+      ) : (
+        <li key={listingId} className={css.resultItem}>
+          <ListingCard {...cardProps} />
+        </li>
       );
     });
 
@@ -115,12 +122,11 @@ const SearchResultsPanel = props => {
           {props.children}
         </MasonryGridWrapper>
       ) : (
-        <div className={isMapVariant ? css.listingCardsMapVariant : css.listingCards}>
+        <ul className={isMapVariant ? css.listingCardsMapVariant : css.listingCards}>
           {renderListingCards(css.listingCard)}
           {props.children}
-        </div>
+        </ul>
       )}
-
       {paginationLinks}
     </div>
   );

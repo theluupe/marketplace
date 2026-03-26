@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { useHistory, useLocation } from 'react-router-dom';
-import omit from 'lodash/omit';
 import classNames from 'classnames';
 
 import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 
-import { FormattedMessage, useIntl } from '../../util/reactIntl';
+import { omit } from '../../util/common';
+import { useIntl, FormattedMessage } from '../../util/reactIntl';
 import {
   getQueryParamNames,
   isAnyFilterActive,
@@ -261,7 +261,7 @@ export class SearchPageComponent extends Component {
 
     const currentUserFavorites = currentUser?.attributes?.profile?.privateData?.favorites || {};
     const listingFields = this.getListingFields();
-    const { defaultFilters: defaultFiltersRaw, sortConfig } = config?.search || {};
+    const { defaultFilters: defaultFiltersRaw, sortConfig, mainSearch } = config?.search || {};
 
     // If the search page variant is of type /s/:listingType, this defines the :listingType
     // path parameter used to filter the whole page.
@@ -291,6 +291,7 @@ export class SearchPageComponent extends Component {
       listingCategories,
       activeListingTypes,
       currentPathParams,
+      mainSearch,
     };
 
     // Page transition might initially use values from previous search
@@ -301,6 +302,7 @@ export class SearchPageComponent extends Component {
       searchParams,
       filterConfigs,
       sortConfig,
+      mainSearch,
       isOriginInUse(config)
     );
     const validQueryParams = urlQueryParams;
@@ -362,6 +364,7 @@ export class SearchPageComponent extends Component {
           onSelect={this.handleSortBy}
           showAsPopup
           mode={mode}
+          labelId={`${mode}-search-page-sort-by`}
           contentPlacementOffset={FILTER_DROPDOWN_OFFSET}
         />
       ) : null;
@@ -376,12 +379,18 @@ export class SearchPageComponent extends Component {
       />
     );
 
+    // Parse page heading to be included in the title
+    const pageHeading = searchInProgress
+      ? intl.formatMessage({ id: 'MainPanelHeader.loadingResults' })
+      : intl.formatMessage({ id: 'MainPanelHeader.foundResults' }, { count: totalItems });
+
     const { title, description, schema } = createSearchResultSchema(
       listings,
       searchParamsInURL || {},
       intl,
       routeConfiguration,
-      config
+      config,
+      pageHeading
     );
 
     // Set topbar class based on if a modal is open in
@@ -411,12 +420,14 @@ export class SearchPageComponent extends Component {
                 const key = `SearchFiltersDesktop.${filterConfig.scope || 'built-in'}.${
                   filterConfig.key
                 }`;
+                const filterId = `SearchFiltersDesktop.${filterConfig.key.toLowerCase()}`;
                 return (
                   <FilterComponent
                     key={key}
-                    idPrefix="SearchFiltersDesktop"
+                    id={filterId}
                     className={css.filter}
                     config={filterConfig}
+                    containerId="SearchPageWithGrid_DesktopFilters"
                     listingCategories={listingCategories}
                     marketplaceCurrency={marketplaceCurrency}
                     urlQueryParams={validQueryParams}
@@ -435,7 +446,7 @@ export class SearchPageComponent extends Component {
             </div>
           </aside>
 
-          <div className={css.layoutWrapperMain} role="main">
+          <div id="main-content" className={css.layoutWrapperMain} role="main">
             <div className={css.searchResultContainer}>
               <SearchFiltersMobile
                 className={css.searchFiltersMobileList}
@@ -459,12 +470,14 @@ export class SearchPageComponent extends Component {
                   const key = `SearchFiltersMobile.${filterConfig.scope || 'built-in'}.${
                     filterConfig.key
                   }`;
+                  const filterId = `SearchFiltersMobile.${filterConfig.key.toLowerCase()}`;
 
                   return (
                     <FilterComponent
                       key={key}
-                      idPrefix="SearchFiltersMobile"
+                      id={filterId}
                       config={filterConfig}
+                      containerId="SearchPage_MobileFilters"
                       listingCategories={listingCategories}
                       marketplaceCurrency={marketplaceCurrency}
                       urlQueryParams={validQueryParams}
@@ -517,6 +530,7 @@ export class SearchPageComponent extends Component {
                   onFetchCurrentUser={onFetchCurrentUser}
                   gridLayout={gridLayout}
                   listingTypeParam={listingTypePathParam}
+                  intl={intl}
                 />
               </div>
             </div>

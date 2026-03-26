@@ -4,13 +4,12 @@
 
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import forEach from 'lodash/forEach';
 import { getHostedConfiguration } from './util/testHelpers';
 import { ServerApp } from './app';
 import configureStore from './store';
 
 const render = (url, context) => {
-  const store = configureStore();
+  const store = configureStore({});
 
   const helmetContext = {};
 
@@ -37,9 +36,36 @@ describe('Application - node environment', () => {
     render('/styleguide', {});
   });
 
+  it('server renders redirects for pages that require authentication', () => {
+    const loginPath = '/login';
+    const signupPath = '/signup';
+    const urlRedirects = {
+      '/l/new': signupPath,
+      '/l/listing-title-slug/1234/new/description': signupPath,
+      '/l/listing-title-slug/1234/checkout': signupPath,
+      '/profile-settings': loginPath,
+      '/inbox': loginPath,
+      '/inbox/orders': loginPath,
+      '/inbox/sales': loginPath,
+      '/order/1234': loginPath,
+      '/sale/1234': loginPath,
+      '/listings': loginPath,
+      '/account': loginPath,
+      '/account/contact-details': loginPath,
+      '/account/change-password': loginPath,
+      '/account/payments': loginPath,
+      '/verify-email': loginPath,
+    };
+    Object.entries(urlRedirects).forEach(([url, redirectPath]) => {
+      const context = {};
+      render(url, context);
+      expect(context.url).toEqual(redirectPath);
+    });
+  });
+
   it('redirects to correct URLs', () => {
     const urlRedirects = { '/l': '/', '/u': '/' };
-    forEach(urlRedirects, (redirectPath, url) => {
+    Object.entries(urlRedirects).forEach(([url, redirectPath]) => {
       const context = {};
       render(url, context);
       expect(context.url).toEqual(redirectPath);
