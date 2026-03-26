@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { getSaveListingData, RESET_STATE } from '../../BatchEditListingPage.duck';
+import { getSaveListingData, resetState } from '../../BatchEditListingPage.duck';
 import { createResourceLocatorString } from '../../../../util/routes';
 import { LISTING_TAB_TYPES } from '../../../../util/types';
 import { Button, Result } from 'antd';
@@ -27,7 +27,7 @@ export const BatchEditListingResult = props => {
   useEffect(() => {
     // Reset state when component unmounts
     return () => {
-      dispatch({ type: RESET_STATE });
+      dispatch(resetState());
     };
   }, []);
 
@@ -54,7 +54,7 @@ export const BatchEditListingResult = props => {
   }, [successfulListings, failedListings]);
 
   const redirectTo = (destination = 'ManageListingsPage', params = {}) => {
-    dispatch({ type: RESET_STATE });
+    dispatch(resetState());
     const searchParams = { pub_listingType: LISTING_TAB_TYPES.PRODUCT };
     const to = createResourceLocatorString(destination, routeConfiguration, params, searchParams);
     history.push(to);

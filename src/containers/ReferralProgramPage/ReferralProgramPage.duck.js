@@ -1,93 +1,68 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+
 import { referralProgramOptIn } from '../../util/api';
 import { storableError } from '../../util/errors';
 
 import { fetchCurrentUser } from '../../ducks/user.duck';
 
-// ================ Action types ================ //
+// ================ Async thunks ================ //
 
-export const FETCH_REFERRAL_CODE_REQUEST = 'app/ReferralProgramPage/FETCH_REFERRAL_CODE_REQUEST';
-export const FETCH_REFERRAL_CODE_SUCCESS = 'app/ReferralProgramPage/FETCH_REFERRAL_CODE_SUCCESS';
-export const FETCH_REFERRAL_CODE_ERROR = 'app/ReferralProgramPage/FETCH_REFERRAL_CODE_ERROR';
-
-// ================ Reducer ================ //
-
-const initialState = {
-  queryInProgress: false,
-  queryReferralCodeError: null,
-  referralCode: null,
-};
-
-const favoriteListingsPageReducer = (state = initialState, action = {}) => {
-  const { type, payload } = action;
-  switch (type) {
-    case FETCH_REFERRAL_CODE_REQUEST:
-      return {
-        ...state,
-        queryInProgress: true,
-        queryReferralCodeError: null,
-        referralCode: null,
-      };
-    case FETCH_REFERRAL_CODE_SUCCESS:
-      return {
-        ...state,
-        queryInProgress: false,
-        referralCode: payload,
-      };
-    case FETCH_REFERRAL_CODE_ERROR:
-      // eslint-disable-next-line no-console
-      console.error(payload);
-      return {
-        ...state,
-        queryInProgress: false,
-        queryReferralCodeError: payload,
-      };
-
-    default:
-      return state;
-  }
-};
-export default favoriteListingsPageReducer;
-
-// ================ Action creators ================ //
-
-export const queryFavoritesRequest = () => ({
-  type: FETCH_REFERRAL_CODE_REQUEST,
-});
-
-export const queryFavoritesSuccess = payload => ({
-  type: FETCH_REFERRAL_CODE_SUCCESS,
-  payload,
-});
-
-export const queryReferralCodeError = e => ({
-  type: FETCH_REFERRAL_CODE_ERROR,
-  error: true,
-  payload: e,
-});
-
-// ================ Thunks ================ //
-
-export const queryReferralCode = () => async (dispatch, getState, sdk) => {
-  dispatch(queryFavoritesRequest());
-  try {
-    const { currentUser } = getState().user;
-    const referralCode = currentUser?.attributes?.profile?.privateData?.referralCode || null;
-    const withReferralCode = !!referralCode;
-
-    if (withReferralCode) {
-      dispatch(queryFavoritesSuccess(referralCode));
-      return referralCode;
+export const queryReferralCodeThunk = createAsyncThunk(
+  'app/ReferralProgramPage/queryReferralCode',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { currentUser } = getState().user;
+      const referralCode = currentUser?.attributes?.profile?.privateData?.referralCode || null;
+      if (referralCode) {
+        return referralCode;
+      }
+      const { code } = await referralProgramOptIn({});
+      return code;
+    } catch (e) {
+      return rejectWithValue(storableError(e));
     }
-
-    const { code } = await referralProgramOptIn({});
-    dispatch(queryFavoritesSuccess(code));
-    return code;
-  } catch (error) {
-    dispatch(queryReferralCodeError(storableError(e)));
-    throw e;
   }
-};
+);
 
-export const loadData = () => (dispatch, getState, sdk) => {
+export const queryReferralCode = () => dispatch => dispatch(queryReferralCodeThunk()).unwrap();
+
+// ================ Slice ================ //
+
+const referralProgramPageSlice = createSlice({
+  name: 'ReferralProgramPage',
+  initialState: {
+    queryInProgress: false,
+    queryReferralCodeError: null,
+    referralCode: null,
+  },
+  reducers: {},
+  extraReducers: builder => {
+    builder
+      .addCase(queryReferralCodeThunk.pending, state => {
+        state.queryInProgress = true;
+        state.queryReferralCodeError = null;
+        state.referralCode = null;
+      })
+      .addCase(queryReferralCodeThunk.fulfilled, (state, action) => {
+        state.queryInProgress = false;
+        state.referralCode = action.payload;
+      })
+      .addCase(queryReferralCodeThunk.rejected, (state, action) => {
+        if (action.meta.aborted) {
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error(action.payload || action.error);
+        state.queryInProgress = false;
+        state.queryReferralCodeError = action.payload;
+      });
+  },
+});
+
+export default referralProgramPageSlice.reducer;
+
+// ================ Load data ================ //
+
+export const loadData = () => dispatch => {
   return Promise.all([dispatch(fetchCurrentUser()), dispatch(queryReferralCode())]);
 };

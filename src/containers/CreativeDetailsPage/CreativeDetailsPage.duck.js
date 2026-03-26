@@ -1,3 +1,5 @@
+import { createSlice } from '@reduxjs/toolkit';
+
 import { createImageVariantConfig } from '../../util/sdkLoader';
 import { storableError } from '../../util/errors';
 import * as log from '../../util/log';
@@ -20,24 +22,6 @@ const getImageVariantInfo = listingImageConfig => {
   };
 };
 
-const requestAction = actionType => params => ({ type: actionType, payload: { params } });
-const successAction = actionType => result => ({ type: actionType, payload: result.data });
-const errorAction = actionType => payload => ({ type: actionType, payload, error: true });
-
-// ================ Action types ================ //
-
-export const CLEAR_UPDATED = 'app/CreativeDetailsPage/CLEAR_UPDATED';
-
-export const UPDATE_LISTING_REQUEST = 'app/CreativeDetailsPage/UPDATE_LISTING_REQUEST';
-export const UPDATE_LISTING_SUCCESS = 'app/CreativeDetailsPage/UPDATE_LISTING_SUCCESS';
-export const UPDATE_LISTING_ERROR = 'app/CreativeDetailsPage/UPDATE_LISTING_ERROR';
-
-export const SHOW_LISTINGS_REQUEST = 'app/CreativeDetailsPage/SHOW_LISTINGS_REQUEST';
-export const SHOW_LISTINGS_SUCCESS = 'app/CreativeDetailsPage/SHOW_LISTINGS_SUCCESS';
-export const SHOW_LISTINGS_ERROR = 'app/CreativeDetailsPage/SHOW_LISTINGS_ERROR';
-
-// ================ Reducer ================ //
-
 const initialState = {
   listingId: null,
   updateListingError: null,
@@ -45,60 +29,53 @@ const initialState = {
   updateInProgress: false,
 };
 
-export default function reducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case CLEAR_UPDATED:
-      return { ...state, updateListingError: null };
-
-    case UPDATE_LISTING_REQUEST:
-      return { ...state, updateInProgress: true, updateListingError: null };
-    case UPDATE_LISTING_SUCCESS:
-      return {
-        ...state,
-        updateInProgress: false,
-      };
-    case UPDATE_LISTING_ERROR:
-      return { ...state, updateInProgress: false, updateListingError: payload };
-
-    case SHOW_LISTINGS_REQUEST:
-      return { ...state, showListingsError: null };
-    case SHOW_LISTINGS_SUCCESS: {
-      const listingIdFromPayload = payload.data.id;
-      // If listing stays the same, we trust previously fetched exception data.
-      return { ...initialState, listingId: listingIdFromPayload };
-    }
-    case SHOW_LISTINGS_ERROR:
+const creativeDetailsPageSlice = createSlice({
+  name: 'CreativeDetailsPage',
+  initialState,
+  reducers: {
+    clearUpdated: state => {
+      state.updateListingError = null;
+    },
+    updateListingRequest: state => {
+      state.updateInProgress = true;
+      state.updateListingError = null;
+    },
+    updateListingSuccess: state => {
+      state.updateInProgress = false;
+    },
+    updateListingError: (state, action) => {
+      state.updateInProgress = false;
+      state.updateListingError = action.payload;
+    },
+    showListingsRequest: state => {
+      state.showListingsError = null;
+    },
+    showListingsSuccess: (state, action) => {
+      const listingIdFromPayload = action.payload.data.id;
+      state.listingId = listingIdFromPayload;
+      state.updateListingError = null;
+      state.showListingsError = null;
+      state.updateInProgress = false;
+    },
+    showListingsError: (state, action) => {
       // eslint-disable-next-line no-console
-      console.error(payload);
-      return { ...state, showListingsError: payload };
-
-    default:
-      return state;
-  }
-}
-
-// ================ Selectors ================ //
-
-// ================ Action creators ================ //
-
-export const clearUpdated = () => ({
-  type: CLEAR_UPDATED,
+      console.error(action.payload);
+      state.showListingsError = action.payload;
+    },
+  },
 });
 
-// All the action creators that don't have the {Success, Error} suffix
-// take the params object that the corresponding SDK endpoint method
-// expects.
+export const {
+  clearUpdated,
+  updateListingRequest,
+  updateListingSuccess,
+  updateListingError,
+  showListingsRequest,
+  showListingsSuccess,
+  showListingsError,
+} = creativeDetailsPageSlice.actions;
 
-// SDK method: ownListings.update
-export const updateListingRequest = requestAction(UPDATE_LISTING_REQUEST);
-export const updateListingSuccess = successAction(UPDATE_LISTING_SUCCESS);
-export const updateListingError = errorAction(UPDATE_LISTING_ERROR);
-
-// SDK method: ownListings.show
-export const showListingsRequest = requestAction(SHOW_LISTINGS_REQUEST);
-export const showListingsSuccess = successAction(SHOW_LISTINGS_SUCCESS);
-export const showListingsError = errorAction(SHOW_LISTINGS_ERROR);
+export default creativeDetailsPageSlice.reducer;
 
 // ================ Thunk ================ //
 
@@ -111,14 +88,12 @@ export function requestShowListing(actionPayload, config) {
       ...imageVariantInfo.imageVariants,
     };
 
-    dispatch(showListingsRequest(actionPayload));
+    dispatch(showListingsRequest());
     return sdk.ownListings
       .show({ ...actionPayload, ...queryParams })
       .then(response => {
-        // CreativeDetailsPage fetches new listing data, which also needs to be added to global data
         dispatch(addMarketplaceEntities(response));
-        // In case of success, we'll clear state.CreativeDetailsPage (user will be redirected away)
-        dispatch(showListingsSuccess(response));
+        dispatch(showListingsSuccess(response.data));
         return response;
       })
       .catch(e => dispatch(showListingsError(storableError(e))));
@@ -127,7 +102,7 @@ export function requestShowListing(actionPayload, config) {
 
 export function requestUpdateListing(data, config) {
   return (dispatch, getState, sdk) => {
-    dispatch(updateListingRequest(data));
+    dispatch(updateListingRequest());
     const { id, ...rest } = data;
     const ownListingUpdateValues = { id, ...rest };
     const imageVariantInfo = getImageVariantInfo(config.layout.listingImage);
@@ -140,7 +115,7 @@ export function requestUpdateListing(data, config) {
     return sdk.ownListings
       .update(ownListingUpdateValues, queryParams)
       .then(response => {
-        dispatch(updateListingSuccess(response));
+        dispatch(updateListingSuccess());
         dispatch(addMarketplaceEntities(response));
         return response;
       })
@@ -151,8 +126,6 @@ export function requestUpdateListing(data, config) {
   };
 }
 
-// loadData is run for each tab of the wizard. When editing an
-// existing listing, the listing must be fetched first.
 export const loadData = (params, search, config) => async (dispatch, getState) => {
   dispatch(clearUpdated());
   const fetchCurrentUserOptions = {
@@ -160,7 +133,7 @@ export const loadData = (params, search, config) => async (dispatch, getState) =
   };
   await dispatch(fetchCurrentUser(fetchCurrentUserOptions));
   const currentUser = getState().user.currentUser;
-  const { metadata } = currentUser?.attributes.profile;
+  const { metadata } = currentUser?.attributes.profile || {};
   const profileListingId = metadata?.profileListingId;
   const withCreativeProfile = isCreativeSellerApproved(currentUser?.attributes.profile);
   if (!withCreativeProfile) {

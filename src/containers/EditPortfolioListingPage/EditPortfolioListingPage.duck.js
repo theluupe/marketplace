@@ -1,3 +1,5 @@
+import { createSlice } from '@reduxjs/toolkit';
+
 import { createImageVariantConfig } from '../../util/sdkLoader';
 import { PAGE_MODE_NEW } from '../BatchEditListingPage/constants';
 import { LISTING_TYPES } from '../../util/types';
@@ -5,8 +7,6 @@ import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 
 // Return an array of image ids
 const imageIds = images => {
-  // For newly uploaded image the UUID can be found from "img.imageId"
-  // and for existing listing images the id is "img.id"
   return images ? images.map(img => img.imageId || img.id) : null;
 };
 
@@ -35,39 +35,6 @@ function getSdkRequestParams(config, ignoreImages = false) {
   return queryParams;
 }
 
-// ================ Action types ================ //
-
-export const RESET_PORTFOLIO_STATE = 'app/EditPortfolioListingPage/RESET_PORTFOLIO_STATE';
-
-export const FETCH_PORTFOLIO_REQUEST = 'app/EditPortfolioListingPage/FETCH_PORTFOLIO_REQUEST';
-export const FETCH_PORTFOLIO_SUCCESS = 'app/EditPortfolioListingPage/FETCH_PORTFOLIO_SUCCESS';
-export const FETCH_PORTFOLIO_ERROR = 'app/EditPortfolioListingPage/FETCH_PORTFOLIO_ERROR';
-
-export const DRAFT_PORTFOLIO_REQUEST = 'app/EditPortfolioListingPage/DRAFT_PORTFOLIO_REQUEST';
-export const DRAFT_PORTFOLIO_SUCCESS = 'app/EditPortfolioListingPage/DRAFT_PORTFOLIO_SUCCESS';
-export const DRAFT_PORTFOLIO_ERROR = 'app/EditPortfolioListingPage/DRAFT_PORTFOLIO_ERROR';
-
-export const PUBLISH_LISTING_REQUEST = 'app/EditPortfolioListingPage/PUBLISH_LISTING_REQUEST';
-export const PUBLISH_LISTING_SUCCESS = 'app/EditPortfolioListingPage/PUBLISH_LISTING_SUCCESS';
-export const PUBLISH_LISTING_ERROR = 'app/EditPortfolioListingPage/PUBLISH_LISTING_ERROR';
-
-export const UPDATE_LISTING_MEDIA_REQUEST =
-  'app/EditPortfolioListingPage/UPDATE_LISTING_MEDIA_REQUEST';
-export const UPDATE_LISTING_MEDIA_SUCCESS =
-  'app/EditPortfolioListingPage/UPDATE_LISTING_MEDIA_SUCCESS';
-export const UPDATE_LISTING_MEDIA_ERROR = 'app/EditPortfolioListingPage/UPDATE_LISTING_MEDIA_ERROR';
-
-export const UPLOAD_MEDIA_REQUEST = 'app/EditPortfolioListingPage/UPLOAD_MEDIA_REQUEST';
-export const UPLOAD_MEDIA_SUCCESS = 'app/EditPortfolioListingPage/UPLOAD_MEDIA_SUCCESS';
-export const UPLOAD_MEDIA_ERROR = 'app/EditPortfolioListingPage/UPLOAD_MEDIA_ERROR';
-
-export const ADD_VIDEO_SUCCESS = 'app/EditPortfolioListingPage/ADD_VIDEO_SUCCESS';
-
-export const REMOVE_IMAGE_SUCCESS = 'app/EditPortfolioListingPage/REMOVE_IMAGE_SUCCESS';
-export const REMOVE_VIDEO_SUCCESS = 'app/EditPortfolioListingPage/REMOVE_VIDEO_SUCCESS';
-
-// ================ Reducer ================ //
-
 const initialState = {
   portfolioListing: null,
   images: [],
@@ -84,107 +51,115 @@ const initialState = {
   uploadError: null,
 };
 
-export default function reducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case RESET_PORTFOLIO_STATE:
-      return { ...initialState };
-    case FETCH_PORTFOLIO_REQUEST:
-      return { ...state, loading: true, error: null };
-    case FETCH_PORTFOLIO_SUCCESS:
-      return {
-        ...state,
-        loading: false,
-        portfolioListing: payload.portfolioListing,
-        images: payload.images,
-        videos: payload.videos,
-      };
-    case FETCH_PORTFOLIO_ERROR:
-      return { ...state, loading: false, error: payload };
+const editPortfolioListingPageSlice = createSlice({
+  name: 'EditPortfolioListingPage',
+  initialState,
+  reducers: {
+    resetPortfolioState: () => initialState,
 
-    case DRAFT_PORTFOLIO_REQUEST:
-      return { ...state, saving: true, saveError: null };
-    case DRAFT_PORTFOLIO_SUCCESS:
-      return { ...state, saving: false, portfolioListing: payload };
-    case DRAFT_PORTFOLIO_ERROR:
-      return { ...state, saving: false, saveError: payload };
+    fetchPortfolioRequest: state => {
+      state.loading = true;
+      state.error = null;
+    },
+    fetchPortfolioSuccess: (state, action) => {
+      state.loading = false;
+      state.portfolioListing = action.payload.portfolioListing;
+      state.images = action.payload.images;
+      state.videos = action.payload.videos;
+    },
+    fetchPortfolioError: (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
 
-    case PUBLISH_LISTING_REQUEST:
-      return { ...state, publishing: true, publishError: null };
-    case PUBLISH_LISTING_SUCCESS:
-      return { ...state, publishing: false, portfolioListing: payload };
-    case PUBLISH_LISTING_ERROR:
-      return { ...state, publishing: false, publishError: payload };
+    draftPortfolioRequest: state => {
+      state.saving = true;
+      state.saveError = null;
+    },
+    draftPortfolioSuccess: (state, action) => {
+      state.saving = false;
+      state.portfolioListing = action.payload;
+    },
+    draftPortfolioError: (state, action) => {
+      state.saving = false;
+      state.saveError = action.payload;
+    },
 
-    case UPDATE_LISTING_MEDIA_REQUEST:
-      return { ...state, updating: true, updateError: null };
-    case UPDATE_LISTING_MEDIA_SUCCESS:
-      return { ...state, updating: false, portfolioListing: payload };
-    case UPDATE_LISTING_MEDIA_ERROR:
-      return { ...state, updating: false, updateError: payload };
+    publishListingRequest: state => {
+      state.publishing = true;
+      state.publishError = null;
+    },
+    publishListingSuccess: (state, action) => {
+      state.publishing = false;
+      state.portfolioListing = action.payload;
+    },
+    publishListingError: (state, action) => {
+      state.publishing = false;
+      state.publishError = action.payload;
+    },
 
-    case UPLOAD_MEDIA_REQUEST:
-      return { ...state, uploading: true, uploadError: null };
-    case UPLOAD_MEDIA_SUCCESS:
-      return { ...state, uploading: false, images: [...state.images, payload] };
-    case UPLOAD_MEDIA_ERROR:
-      return { ...state, uploading: false, uploadError: payload };
+    updateListingMediaRequest: state => {
+      state.updating = true;
+      state.updateError = null;
+    },
+    updateListingMediaSuccess: (state, action) => {
+      state.updating = false;
+      state.portfolioListing = action.payload;
+    },
+    updateListingMediaError: (state, action) => {
+      state.updating = false;
+      state.updateError = action.payload;
+    },
 
-    case ADD_VIDEO_SUCCESS:
-      return { ...state, videos: [...state.videos, payload] };
+    uploadMediaRequest: state => {
+      state.uploading = true;
+      state.uploadError = null;
+    },
+    uploadMediaSuccess: (state, action) => {
+      state.uploading = false;
+      state.images.push(action.payload);
+    },
+    uploadMediaError: (state, action) => {
+      state.uploading = false;
+      state.uploadError = action.payload;
+    },
 
-    case REMOVE_IMAGE_SUCCESS:
-      return {
-        ...state,
-        images: state.images.filter(image => image.id !== action.payload),
-      };
-    case REMOVE_VIDEO_SUCCESS:
-      return {
-        ...state,
-        videos: state.videos.filter(video => video.id !== action.payload),
-      };
+    addVideoSuccess: (state, action) => {
+      state.videos.push(action.payload);
+    },
 
-    default:
-      return state;
-  }
-}
-
-// ================ Selectors ================ //
-
-// ================ Action creators ================ //
-
-export const resetPortfolioState = () => ({ type: RESET_PORTFOLIO_STATE });
-
-export const fetchPortfolioRequest = () => ({ type: FETCH_PORTFOLIO_REQUEST });
-export const fetchPortfolioSuccess = payload => ({ type: FETCH_PORTFOLIO_SUCCESS, payload });
-export const fetchPortfolioError = error => ({ type: FETCH_PORTFOLIO_ERROR, payload: error });
-
-export const draftPortfolioRequest = () => ({ type: DRAFT_PORTFOLIO_REQUEST });
-export const draftPortfolioSuccess = payload => ({ type: DRAFT_PORTFOLIO_SUCCESS, payload });
-export const draftPortfolioError = error => ({ type: DRAFT_PORTFOLIO_ERROR, payload: error });
-
-export const publishListingRequest = () => ({ type: PUBLISH_LISTING_REQUEST });
-export const publishListingSuccess = payload => ({ type: PUBLISH_LISTING_SUCCESS, payload });
-export const publishListingError = error => ({ type: PUBLISH_LISTING_ERROR, payload: error });
-
-export const updateListingMediaRequest = () => ({ type: UPDATE_LISTING_MEDIA_REQUEST });
-export const updateListingMediaSuccess = payload => ({
-  type: UPDATE_LISTING_MEDIA_SUCCESS,
-  payload,
-});
-export const updateListingMediaError = error => ({
-  type: UPDATE_LISTING_MEDIA_ERROR,
-  payload: error,
+    removeImageSuccess: (state, action) => {
+      state.images = state.images.filter(image => image.id !== action.payload);
+    },
+    removeVideoSuccess: (state, action) => {
+      state.videos = state.videos.filter(video => video.id !== action.payload);
+    },
+  },
 });
 
-export const uploadMediaRequest = () => ({ type: UPLOAD_MEDIA_REQUEST });
-export const uploadMediaSuccess = media => ({ type: UPLOAD_MEDIA_SUCCESS, payload: media });
-export const uploadMediaError = error => ({ type: UPLOAD_MEDIA_ERROR, payload: error });
+export const {
+  resetPortfolioState,
+  fetchPortfolioRequest,
+  fetchPortfolioSuccess,
+  fetchPortfolioError,
+  draftPortfolioRequest,
+  draftPortfolioSuccess,
+  draftPortfolioError,
+  publishListingRequest,
+  publishListingSuccess,
+  publishListingError,
+  updateListingMediaRequest,
+  updateListingMediaSuccess,
+  updateListingMediaError,
+  uploadMediaRequest,
+  uploadMediaSuccess,
+  uploadMediaError,
+  addVideoSuccess,
+  removeImageSuccess,
+  removeVideoSuccess,
+} = editPortfolioListingPageSlice.actions;
 
-export const addVideoSuccess = video => ({ type: ADD_VIDEO_SUCCESS, payload: video });
-
-export const removeImageSuccess = imageId => ({ type: REMOVE_IMAGE_SUCCESS, payload: imageId });
-export const removeVideoSuccess = videoId => ({ type: REMOVE_VIDEO_SUCCESS, payload: videoId });
+export default editPortfolioListingPageSlice.reducer;
 
 // ================ Thunk ================ //
 
@@ -247,7 +222,7 @@ export const publishPortfolioListing = listingId => (dispatch, getState, sdk) =>
 
 export function updateListingMedia(data, config) {
   return (dispatch, getState, sdk) => {
-    dispatch(updateListingMediaRequest(data));
+    dispatch(updateListingMediaRequest());
     const { id, images, videos } = data;
     const videoProperty = { publicData: { videos } };
     const imageProperty = { images: imageIds(images) };
@@ -303,7 +278,6 @@ export const removeVideoFromListing = videoId => dispatch => {
   dispatch(removeVideoSuccess(videoId));
 };
 
-// Load Data
 export const loadData = (params, search, config) => (dispatch, getState, sdk) => {
   const { id, mode } = params;
   dispatch(resetPortfolioState());

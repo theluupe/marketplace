@@ -6,7 +6,7 @@ import {
   getCreateListingsSuccess,
   getIsQueryInProgress,
   getSaveListingData,
-  SAVE_LISTINGS_ABORTED,
+  saveListingsAborted,
 } from '../BatchEditListingPage.duck';
 import { message } from 'antd';
 
@@ -30,7 +30,7 @@ export const ProductsListingEditMode = () => {
   useEffect(() => {
     if (publishListingsSuccess || hasErrors) {
       showMessage(publishListingsSuccess);
-      dispatch({ type: SAVE_LISTINGS_ABORTED });
+      dispatch(saveListingsAborted());
     }
   }, [publishListingsSuccess, hasErrors, dispatch, messageApi]);
 

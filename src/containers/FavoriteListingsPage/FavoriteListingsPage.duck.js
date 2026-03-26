@@ -1,3 +1,5 @@
+import { createSlice } from '@reduxjs/toolkit';
+
 import { storableError } from '../../util/errors';
 import { createImageVariantConfig } from '../../util/sdkLoader';
 import { parse } from '../../util/urlHelpers';
@@ -6,13 +8,7 @@ import { RESULT_PAGE_SIZE } from '../ManageListingsPage/ManageListingsPage.duck'
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
 
-// ================ Action types ================ //
-
-export const FETCH_LISTINGS_REQUEST = 'app/FavoriteListingsPage/FETCH_LISTINGS_REQUEST';
-export const FETCH_LISTINGS_SUCCESS = 'app/FavoriteListingsPage/FETCH_LISTINGS_SUCCESS';
-export const FETCH_LISTINGS_ERROR = 'app/FavoriteListingsPage/FETCH_LISTINGS_ERROR';
-
-// ================ Reducer ================ //
+const resultIds = data => data.data.map(l => l.id);
 
 const initialState = {
   pagination: null,
@@ -21,57 +17,41 @@ const initialState = {
   queryFavoritesError: null,
   currentPageResultIds: [],
 };
-const resultIds = data => data.data.map(l => l.id);
-const favoriteListingsPageReducer = (state = initialState, action = {}) => {
-  const { type, payload } = action;
-  switch (type) {
-    case FETCH_LISTINGS_REQUEST:
-      return {
-        ...state,
-        queryParams: payload.queryParams,
-        queryInProgress: true,
-        queryFavoritesError: null,
-        currentPageResultIds: [],
-      };
-    case FETCH_LISTINGS_SUCCESS:
-      return {
-        ...state,
-        currentPageResultIds: resultIds(payload.data),
-        pagination: payload.data.meta,
-        queryInProgress: false,
-      };
-    case FETCH_LISTINGS_ERROR:
+
+const favoriteListingsPageSlice = createSlice({
+  name: 'FavoriteListingsPage',
+  initialState,
+  reducers: {
+    fetchListingsRequest: {
+      prepare: queryParams => ({ payload: { queryParams } }),
+      reducer: (state, action) => {
+        state.queryParams = action.payload.queryParams;
+        state.queryInProgress = true;
+        state.queryFavoritesError = null;
+        state.currentPageResultIds = [];
+      },
+    },
+    fetchListingsSuccess: (state, action) => {
+      state.currentPageResultIds = resultIds(action.payload.data);
+      state.pagination = action.payload.data.meta;
+      state.queryInProgress = false;
+    },
+    fetchListingsError: (state, action) => {
       // eslint-disable-next-line no-console
-      console.error(payload);
-      return {
-        ...state,
-        queryInProgress: false,
-        queryFavoritesError: payload,
-      };
-
-    default:
-      return state;
-  }
-};
-export default favoriteListingsPageReducer;
-
-// ================ Action creators ================ //
-
-export const queryFavoritesRequest = queryParams => ({
-  type: FETCH_LISTINGS_REQUEST,
-  payload: { queryParams },
+      console.error(action.payload);
+      state.queryInProgress = false;
+      state.queryFavoritesError = action.payload;
+    },
+  },
 });
 
-export const queryFavoritesSuccess = response => ({
-  type: FETCH_LISTINGS_SUCCESS,
-  payload: { data: response.data },
-});
+export const {
+  fetchListingsRequest,
+  fetchListingsSuccess,
+  fetchListingsError,
+} = favoriteListingsPageSlice.actions;
 
-export const queryFavoritesError = e => ({
-  type: FETCH_LISTINGS_ERROR,
-  error: true,
-  payload: e,
-});
+export default favoriteListingsPageSlice.reducer;
 
 // ================ Thunks ================ //
 
@@ -85,7 +65,7 @@ const createFavoriteBatches = favorites => {
 
 // Throwing error for new (loadData may need that info)
 export const queryFavoriteListings = queryParams => (dispatch, getState, sdk) => {
-  dispatch(queryFavoritesRequest(queryParams));
+  dispatch(fetchListingsRequest(queryParams));
   const { currentUser } = getState().user;
   const favorites = currentUser?.attributes.profile.privateData?.favorites || {};
   const listingType = queryParams.pub_listingType;
@@ -107,14 +87,13 @@ export const queryFavoriteListings = queryParams => (dispatch, getState, sdk) =>
         },
       },
     };
-    dispatch(queryFavoritesSuccess(emptyObject));
+    dispatch(fetchListingsSuccess(emptyObject));
     return emptyObject;
   }
 
   const favoriteBatches = createFavoriteBatches(parsedFavorites);
   const { perPage, page, ...rest } = queryParams;
   const idsBatch = { ids: favoriteBatches[page - 1] };
-  // Overwrite the 'page' value because we're doing a FE pagination mix
   const params = { ...idsBatch, ...rest, perPage, page: 1 };
   return sdk.listings
     .query(params)
@@ -134,11 +113,11 @@ export const queryFavoriteListings = queryParams => (dispatch, getState, sdk) =>
         },
       };
       dispatch(addMarketplaceEntities(result));
-      dispatch(queryFavoritesSuccess(result));
+      dispatch(fetchListingsSuccess(result));
       return result;
     })
     .catch(e => {
-      dispatch(queryFavoritesError(storableError(e)));
+      dispatch(fetchListingsError(storableError(e)));
       throw e;
     });
 };

@@ -6,9 +6,9 @@ import { DownloadOutlined, InfoCircleOutlined, UploadOutlined } from '@ant-desig
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
-  CSV_UPLOAD_ERROR,
-  CSV_UPLOAD_REQUEST,
-  CSV_UPLOAD_SUCCESS,
+  csvUploadError,
+  csvUploadRequest,
+  csvUploadSuccess,
   getListings,
 } from '../../BatchEditListingPage.duck';
 import { BULK_UPLOAD_TEMPLATE_LINK } from '../../constants';
@@ -50,7 +50,7 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
 
   const handleCsvFile = request => {
     const { file } = request;
-    dispatch({ type: CSV_UPLOAD_REQUEST });
+    dispatch(csvUploadRequest());
 
     // noinspection JSUnresolvedReference
     Papa.parse(file, {
@@ -59,11 +59,11 @@ export const CsvUpload = ({ categories, usageOptions, onSaveListing }) => {
       complete: result => {
         setPendingCsvData({ data: result.data, headers: result.meta.fields });
         setShowModal(true);
-        dispatch({ type: CSV_UPLOAD_SUCCESS });
+        dispatch(csvUploadSuccess());
       },
       error: error => {
         message.error(`Error parsing CSV: ${error.message}`);
-        dispatch({ type: CSV_UPLOAD_ERROR, payload: error });
+        dispatch(csvUploadError(error));
       },
     });
     return false;
