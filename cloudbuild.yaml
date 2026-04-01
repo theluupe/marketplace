@@ -1,6 +1,6 @@
 steps:
   - id: 'store-market-secrets'
-    name: 'node:18.20.8'
+    name: 'node:24.13.0'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -11,7 +11,7 @@ steps:
 
   - id: 'debug-secrets'
     waitFor: ['store-market-secrets']
-    name: 'node:18.20.8'
+    name: 'node:24.13.0'
     entrypoint: 'bash'
     args:
       - '-c'
