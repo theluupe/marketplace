@@ -26,6 +26,7 @@ const getSeatsQueryParam = queryParamNames => {
  * @param {string} props.name
  * @param {Array<string>} props.queryParamNames
  * @param {string} props.label
+ * @param {Function} props.getAriaLabel - The function to retrieve the aria label for the component
  * @param {Function} props.onSubmit
  * @param {Object?} props.initialValues
  * @param {string | number} props.initialValues.seats
@@ -43,6 +44,7 @@ const SeatsFilter = props => {
     id,
     name,
     label,
+    getAriaLabel,
     initialValues,
     contentPlacementOffset = 0,
     onSubmit,
@@ -88,9 +90,9 @@ const SeatsFilter = props => {
     <FilterPopup
       className={classes}
       rootClassName={rootClassName}
-      popupClassName={css.popupSize}
       name={name}
       label={labelForPopup}
+      ariaLabel={getAriaLabel(label, initialSeats)}
       isSelected={hasInitialValues}
       id={`${id}.popup`}
       showAsPopup
@@ -101,7 +103,7 @@ const SeatsFilter = props => {
       keepDirtyOnReinitialize
       {...rest}
     >
-      <fieldset className={css.fieldPopup}>
+      <div className={css.fieldPopup}>
         <label className={css.fieldPopupLabel} htmlFor={`${id}-input`}>
           {label}
         </label>
@@ -115,13 +117,14 @@ const SeatsFilter = props => {
           minValue={1}
           maxValue={99}
         />
-      </fieldset>
+      </div>
     </FilterPopup>
   ) : (
     <FilterPlain
       className={className}
       rootClassName={rootClassName}
       label={labelForPlain}
+      ariaLabel={getAriaLabel(label, initialSeats)}
       isSelected={hasInitialValues}
       id={`${id}.plain`}
       liveEdit
@@ -130,7 +133,7 @@ const SeatsFilter = props => {
       initialValues={seatsInitialValue}
       {...rest}
     >
-      <fieldset className={css.fieldPlain}>
+      <div className={css.fieldPlain}>
         <FieldNumber
           className={css.field}
           name={name}
@@ -139,7 +142,7 @@ const SeatsFilter = props => {
           initialValue={initialSeats}
           minValue={1}
         />
-      </fieldset>
+      </div>
     </FilterPlain>
   );
 };

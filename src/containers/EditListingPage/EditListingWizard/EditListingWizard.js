@@ -5,12 +5,14 @@ import classNames from 'classnames';
 import { useConfiguration } from '../../../context/configurationContext';
 import { useRouteConfiguration } from '../../../context/routeConfigurationContext';
 import { FormattedMessage, intlShape, useIntl } from '../../../util/reactIntl';
+import { displayDescription } from '../../../util/configHelpers.js';
 import {
   displayDeliveryPickup,
   displayDeliveryShipping,
   displayLocation,
   displayPrice,
   requirePayoutDetails,
+  requireListingImage,
 } from '../../../util/configHelpers';
 import {
   LISTING_PAGE_PARAM_TYPE_DRAFT,
@@ -32,11 +34,7 @@ import {
   pickCategoryFields,
 } from '../../../util/fieldHelpers';
 import { ensureCurrentUser, ensureListing } from '../../../util/data';
-import {
-  INQUIRY_PROCESS_NAME,
-  isBookingProcess,
-  isPurchaseProcess,
-} from '../../../transactions/transaction';
+import { INQUIRY_PROCESS_NAME, resolveLatestProcessName } from '../../../transactions/transaction';
 
 // Import shared components
 import {
@@ -57,20 +55,13 @@ import EditListingWizardTab, {
   LOCATION,
   AVAILABILITY,
   PHOTOS,
+  STYLE,
 } from './EditListingWizardTab';
 import css from './EditListingWizard.module.css';
 
-// You can reorder these panels.
-// Note 1: You need to change save button translations for new listing flow
-// Note 2: Ensure that draft listing is created after the first panel
-//         and listing publishing happens after last panel.
-// Note 3: The first tab creates a draft listing and title is mandatory attribute for it.
-//         Details tab asks for "title" and is therefore the first tab in the wizard flow.
+// This is the initial tab on editlisting wizard.
+// When listing type is known, other tabs are checked from _tabsForListingType_ function.
 const TABS_DETAILS_ONLY = [DETAILS];
-const TABS_PRODUCT = [DETAILS, PRICING_AND_STOCK, DELIVERY, PHOTOS];
-const TABS_BOOKING = [DETAILS, LOCATION, PRICING, AVAILABILITY, PHOTOS];
-const TABS_INQUIRY = [DETAILS, LOCATION, PRICING, PHOTOS];
-const TABS_ALL = [...TABS_PRODUCT, ...TABS_BOOKING, ...TABS_INQUIRY];
 
 // Tabs are horizontal in small screens
 const MAX_HORIZONTAL_NAV_SCREEN_WIDTH = 1023;
@@ -78,29 +69,40 @@ const MAX_HORIZONTAL_NAV_SCREEN_WIDTH = 1023;
 const STRIPE_ONBOARDING_RETURN_URL_SUCCESS = 'success';
 const STRIPE_ONBOARDING_RETURN_URL_FAILURE = 'failure';
 
-// Pick only allowed tabs from the given list
-const getTabs = (processTabs, disallowedTabs) => {
-  return disallowedTabs.length > 0
-    ? processTabs.filter(tab => !disallowedTabs.includes(tab))
-    : processTabs;
-};
-// Pick only allowed booking tabs (location could be omitted)
-const tabsForBookingProcess = (processTabs, listingTypeConfig) => {
-  const disallowedTabs = !displayLocation(listingTypeConfig) ? [LOCATION] : [];
-  return getTabs(processTabs, disallowedTabs);
-};
-// Pick only allowed purchase tabs (delivery could be omitted)
-const tabsForPurchaseProcess = (processTabs, listingTypeConfig) => {
-  const isDeliveryDisabled =
-    !displayDeliveryPickup(listingTypeConfig) && !displayDeliveryShipping(listingTypeConfig);
-  const disallowedTabs = isDeliveryDisabled ? [DELIVERY] : [];
-  return getTabs(processTabs, disallowedTabs);
-};
-// Pick only allowed inquiry tabs (location and pricing could be omitted)
-const tabsForInquiryProcess = (processTabs, listingTypeConfig) => {
-  const locationMaybe = !displayLocation(listingTypeConfig) ? [LOCATION] : [];
-  const priceMaybe = !displayPrice(listingTypeConfig) ? [PRICING] : [];
-  return getTabs(processTabs, [...locationMaybe, ...priceMaybe]);
+/**
+ * Pick only allowed tabs for the given process and listing type configuration.
+ * - The location tab could be omitted for booking process
+ * - The delivery tab could be omitted for purchase process
+ * - The location and pricing tabs could be omitted for negotiation process
+ * - The location and pricing tabs could be omitted for inquiry process
+ *
+ * @param {string} processName - The name of the process
+ * @param {Object} listingTypeConfig - The listing type configuration
+ * @returns {Array<string>} - The allowed tabs for the given process and listing type configuration
+ */
+const tabsForListingType = (processName, listingTypeConfig) => {
+  const locationMaybe = displayLocation(listingTypeConfig) ? [LOCATION] : [];
+  const pricingMaybe = displayPrice(listingTypeConfig) ? [PRICING] : [];
+  const deliveryMaybe =
+    displayDeliveryPickup(listingTypeConfig) || displayDeliveryShipping(listingTypeConfig)
+      ? [DELIVERY]
+      : [];
+  const styleOrPhotosTab = requireListingImage(listingTypeConfig) ? [PHOTOS] : [STYLE];
+
+  // You can reorder these panels.
+  // Note 1: You need to change save button translations for new listing flow
+  // Note 2: Ensure that draft listing is created after the first panel
+  //         and listing publishing happens after last panel.
+  // Note 3: The first tab creates a draft listing and title is mandatory attribute for it.
+  //         Details tab asks for "title" and is therefore the first tab in the wizard flow.
+  const tabs = {
+    ['default-booking']: [DETAILS, ...locationMaybe, PRICING, AVAILABILITY, ...styleOrPhotosTab],
+    ['default-purchase']: [DETAILS, PRICING_AND_STOCK, ...deliveryMaybe, ...styleOrPhotosTab],
+    ['default-negotiation']: [DETAILS, ...locationMaybe, ...pricingMaybe, ...styleOrPhotosTab],
+    ['default-inquiry']: [DETAILS, ...locationMaybe, ...pricingMaybe, ...styleOrPhotosTab],
+  };
+
+  return tabs[processName] || tabs['default-inquiry'];
 };
 
 /**
@@ -141,6 +143,9 @@ const tabLabelAndSubmit = (intl, tab, isNewListingFlow, isPriceDisabled, process
   } else if (tab === PHOTOS) {
     labelKey = 'EditListingWizard.tabLabelPhotos';
     submitButtonKey = `EditListingWizard.${processNameString}${newOrEdit}.savePhotos`;
+  } else if (tab === STYLE) {
+    labelKey = 'EditListingWizard.tabLabelStyle';
+    submitButtonKey = `EditListingWizard.${processNameString}${newOrEdit}.saveStyle`;
   }
 
   return {
@@ -220,14 +225,27 @@ const tabCompleted = (tab, listing, config) => {
     privateData,
   } = listing.attributes;
   const images = listing.images;
-  const { listingType, transactionProcessAlias, unitType, shippingEnabled, pickupEnabled } =
-    publicData || {};
+  const {
+    listingType,
+    transactionProcessAlias,
+    unitType,
+    shippingEnabled,
+    pickupEnabled,
+    cardStyle,
+  } = publicData || {};
+  const listingTypeConfig = config.listing.listingTypes.find(
+    config => config.listingType === listingType
+  );
+
+  const descriptionRequired = displayDescription(listingTypeConfig);
+  const hasValidDescription = descriptionRequired ? description : true;
+
   const deliveryOptionPicked = publicData && (shippingEnabled || pickupEnabled);
 
   switch (tab) {
     case DETAILS:
       return !!(
-        description &&
+        (!descriptionRequired || hasValidDescription) &&
         title &&
         listingType &&
         transactionProcessAlias &&
@@ -246,6 +264,8 @@ const tabCompleted = (tab, listing, config) => {
       return !!availabilityPlan;
     case PHOTOS:
       return images && images.length > 0;
+    case STYLE:
+      return !!cardStyle;
     default:
       return false;
   }
@@ -478,6 +498,7 @@ class EditListingWizard extends Component {
       currentUser,
       config,
       routeConfiguration,
+      authScopes,
       ...rest
     } = this.props;
 
@@ -522,11 +543,7 @@ class EditListingWizard extends Component {
     const tabs =
       isNewListingFlow && (invalidExistingListingType || !hasListingTypeSelected)
         ? TABS_DETAILS_ONLY
-        : isBookingProcess(processName)
-        ? tabsForBookingProcess(TABS_BOOKING, listingTypeConfig)
-        : isPurchaseProcess(processName)
-        ? tabsForPurchaseProcess(TABS_PRODUCT, listingTypeConfig)
-        : tabsForInquiryProcess(TABS_INQUIRY, listingTypeConfig);
+        : tabsForListingType(processName, listingTypeConfig);
 
     // Check if wizard tab is active / linkable.
     // When creating a new listing, we don't allow users to access next tab until the current one is completed.
@@ -625,6 +642,12 @@ class EditListingWizard extends Component {
     const returnedAbnormallyFromStripe = returnURLType === STRIPE_ONBOARDING_RETURN_URL_FAILURE;
     const showVerificationNeeded = stripeConnected && requirementsMissing;
 
+    // Check if user has limited rights and set button titles accordingly
+    const limitedRights = authScopes?.indexOf('user:limited') >= 0;
+    const stripeButtonTitle = limitedRights
+      ? intl.formatMessage({ id: 'StripePayoutPage.submitButtonText' })
+      : null;
+
     // Redirect from success URL to basic path for StripePayoutPage
     if (returnedNormallyFromStripe && stripeConnected && !requirementsMissing) {
       return <NamedRedirect name="EditListingPage" params={pathParams} />;
@@ -636,6 +659,7 @@ class EditListingWizard extends Component {
           rootClassName={css.tabsContainer}
           navRootClassName={css.nav}
           tabRootClassName={css.tab}
+          ariaLabel={intl.formatMessage({ id: 'EditListingWizard.screenreader.tabNavigation' })}
         >
           {tabs.map(tab => {
             const tabTranslations = tabLabelAndSubmit(
@@ -643,7 +667,7 @@ class EditListingWizard extends Component {
               tab,
               isNewListingFlow,
               isPriceDisabled,
-              processName
+              resolveLatestProcessName(processName)
             );
             return (
               <EditListingWizardTab
@@ -667,6 +691,7 @@ class EditListingWizard extends Component {
                 onManageDisableScrolling={onManageDisableScrolling}
                 config={config}
                 routeConfiguration={routeConfiguration}
+                intl={intl}
               />
             );
           })}
@@ -674,7 +699,15 @@ class EditListingWizard extends Component {
         <Modal
           id="EditListingWizard.payoutModal"
           isOpen={this.state.showPayoutDetails}
-          onClose={this.handlePayoutModalClose}
+          onClose={() => {
+            this.handlePayoutModalClose();
+            const main = document.getElementsByTagName('main')?.[0];
+            const submitButtons = main?.querySelectorAll('button[type="submit"]');
+            const lastSubmitButton = submitButtons?.[submitButtons.length - 1];
+            if (lastSubmitButton) {
+              lastSubmitButton.focus();
+            }
+          }}
           onManageDisableScrolling={onManageDisableScrolling}
           usePortal
         >
@@ -710,6 +743,7 @@ class EditListingWizard extends Component {
                   onChange={onPayoutDetailsChange}
                   onSubmit={rest.onPayoutDetailsSubmit}
                   stripeConnected={stripeConnected}
+                  authScopes={authScopes}
                 >
                   {stripeConnected && !returnedAbnormallyFromStripe && showVerificationNeeded ? (
                     <StripeConnectAccountStatusBox
@@ -718,15 +752,18 @@ class EditListingWizard extends Component {
                       onGetStripeConnectAccountLink={handleGetStripeConnectAccountLink(
                         'custom_account_verification'
                       )}
+                      disabled={limitedRights}
+                      title={stripeButtonTitle}
                     />
                   ) : stripeConnected && savedCountry && !returnedAbnormallyFromStripe ? (
                     <StripeConnectAccountStatusBox
                       type="verificationSuccess"
                       inProgress={getAccountLinkInProgress}
-                      disabled={payoutDetailsSaveInProgress}
+                      disabled={payoutDetailsSaveInProgress || limitedRights}
                       onGetStripeConnectAccountLink={handleGetStripeConnectAccountLink(
                         'custom_account_update'
                       )}
+                      title={stripeButtonTitle}
                     />
                   ) : null}
                 </StripeConnectAccountForm>

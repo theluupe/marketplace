@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormattedMessage } from '../../util/reactIntl';
+import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import classNames from 'classnames';
 import { ACCOUNT_SETTINGS_PAGES } from '../../routing/routeConfiguration';
 import { LinkTabNavHorizontal } from '../../components';
@@ -19,6 +19,7 @@ import css from './UserNav.module.css';
 const UserNav = props => {
   const { className, rootClassName, currentPage } = props;
   const classes = classNames(rootClassName || css.root, className);
+  const intl = useIntl();
 
   const tabs = [
     {
@@ -54,7 +55,13 @@ const UserNav = props => {
   ];
 
   return (
-    <LinkTabNavHorizontal className={classes} tabRootClassName={css.tab} tabs={tabs} skin="dark" />
+    <LinkTabNavHorizontal
+      className={classes}
+      tabRootClassName={css.tab}
+      tabs={tabs}
+      skin="dark"
+      ariaLabel={intl.formatMessage({ id: 'UserNav.screenreader.userNav' })}
+    />
   );
 };
 

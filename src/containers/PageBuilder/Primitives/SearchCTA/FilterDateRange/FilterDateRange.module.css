@@ -17,7 +17,7 @@
   padding-bottom: 16px;
   border-radius: var(--borderRadiusMedium);
   box-shadow: var(--boxShadowPopup);
-  z-index: calc(var(--zIndexPopup) + 1);
+  z-index: 1;
 
   @media (--viewportLarge) {
     top: 51px;
@@ -56,7 +56,7 @@
 
   &:hover {
     .label {
-      color: var(--colorGrey700);
+      color: var(--colorBlack);
     }
   }
 }
@@ -64,10 +64,14 @@
 .label {
   transition: all 0.1s;
   margin-left: 8px;
-  color: var(--colorGrey300);
+  color: var(--colorGrey600);
   white-space: nowrap;
 }
 
 .active {
   color: var(--colorGrey700);
+}
+
+.iconDate {
+  color: var(--colorGrey600);
 }

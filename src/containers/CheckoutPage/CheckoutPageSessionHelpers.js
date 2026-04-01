@@ -4,7 +4,6 @@
  * This data is saved to Session Store which only exists while the browsing session exists -
  * e.g. tab is open. (Session Store is not related to session cookies.)
  */
-import reduce from 'lodash/reduce';
 import Decimal from 'decimal.js';
 
 import { isAfterDate, subtractTime } from '../../util/dates';
@@ -16,16 +15,12 @@ const { UUID, Money } = sdkTypes;
 // Validate that given 'obj' has all the keys of defined by validPropTypes parameter
 // and values must pass related test-value-format function.
 const validateProperties = (obj, validPropTypes) => {
-  return reduce(
-    Object.entries(validPropTypes),
-    (acc, [prop, fn]) => {
-      if (Object.prototype.hasOwnProperty.call(obj, prop) && fn(obj[prop])) {
-        return acc;
-      }
-      return false;
-    },
-    true
-  );
+  return Object.entries(validPropTypes).reduce((acc, [prop, fn]) => {
+    if (Object.prototype.hasOwnProperty.call(obj, prop) && fn(obj[prop])) {
+      return acc;
+    }
+    return false;
+  }, true);
 };
 
 // Validate content of booking dates object received from SessionStore
@@ -40,10 +35,14 @@ export const isValidBookingDates = bookingDates => {
 // Validate content of listing object received from SessionStore.
 // Currently only id & attributes.price are needed.
 export const isValidListing = listing => {
+  const { unitType } = listing?.attributes?.publicData || {};
+  const isNegotiation = ['request', 'offer'].includes(unitType);
   const props = {
     id: id => id instanceof UUID,
     attributes: v => {
-      return typeof v === 'object' && v.price instanceof Money;
+      return (
+        typeof v === 'object' && (isNegotiation || (!isNegotiation && v.price instanceof Money))
+      );
     },
   };
   return validateProperties(listing, props);

@@ -29,7 +29,6 @@ import { isScrollingDisabled } from '../../ducks/ui.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
 import { getMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 import { Page, NamedRedirect } from '../../components';
-
 import NotFoundPage from '../../containers/NotFoundPage/NotFoundPage';
 import { updateProfile } from '../../containers/ProfileSettingsPage/ProfileSettingsPage.duck';
 
@@ -177,6 +176,7 @@ export const ProfilePageComponent = props => {
   const isSeller = isCreativeSellerApproved(userProfile);
   const ProfilePageContent = isSeller ? SellerProfilePage : BasicProfilePage;
 
+  // This is rendering normal profile page (not preview for pending-approval)
   return (
     <Page
       scrollingDisabled={scrollingDisabled}
@@ -184,6 +184,10 @@ export const ProfilePageComponent = props => {
       schema={{
         '@context': 'http://schema.org',
         '@type': 'ProfilePage',
+        mainEntity: {
+          '@type': 'Person',
+          name: profileUser?.attributes?.profile?.displayName,
+        },
         name: schemaTitle,
       }}
     >

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { bool, func, object, string } from 'prop-types';
+import { arrayOf, bool, func, object, string } from 'prop-types';
 import { Form as FinalForm } from 'react-final-form';
 
 // Import contexts and util modules
 import { FormattedMessage, intlShape } from '../../util/reactIntl';
 import { pathByRouteName } from '../../util/routes';
+import { pickTransactionFieldsData } from '../../util/fieldHelpers.js';
 import { propTypes } from '../../util/types';
 import { ensureTransaction } from '../../util/data';
 import { createSlug, parse } from '../../util/urlHelpers';
@@ -12,7 +13,7 @@ import { isTransactionInitiateListingNotFoundError } from '../../util/errors';
 import { getProcess, getTransactionProcessAlias } from '../../transactions/transaction';
 
 // Import shared components
-import { Form, H3, H4, NamedLink, Page, PrimaryButton } from '../../components';
+import { Form, H3, H4, NamedLink, Page, PrimaryButton, TopbarSimplified } from '../../components';
 
 import {
   bookingDatesMaybe,
@@ -24,7 +25,6 @@ import {
 } from './CheckoutPageTransactionHelpers.js';
 import { getErrorMessages } from './ErrorMessages';
 
-import CustomTopbar from './CustomTopbar';
 import DetailsSideCard from './DetailsSideCard';
 import MobileListingImage from './MobileListingImage';
 import LicenseDealValidator from '../../components/LicenseDealValidator/LicenseDealValidator';
@@ -32,7 +32,7 @@ import LicenseDealValidator from '../../components/LicenseDealValidator/LicenseD
 import css from './CheckoutPage.module.css';
 
 /**
- * Load initial data for the page
+ * Prefix the properties of the chosen price variant as first level properties for the protected data of the transaction
  *
  * Since the data for the checkout is not passed in the URL (there
  * might be lots of options in the future), we must pass in the data
@@ -47,23 +47,18 @@ import css from './CheckoutPage.module.css';
  * This function also sets of fetching the speculative transaction
  * based on this initial data.
  */
-export const loadInitialData = ({ pageData, fetchSpeculatedTransaction, config, currentUser }) => {
+export const loadInitialData = ({
+  pageData,
+  fetchSpeculatedTransaction,
+  config,
+  location,
+  currentUser,
+}) => {
   // Fetch speculated transaction for showing price in order breakdown
   // NOTE: if unit type is line-item/item, quantity needs to be added.
   // The way to pass it to checkout page is through pageData.orderData
-  const orderParams = {
-    listingId: pageData?.listing?.id,
-    ...(pageData.orderData?.quantity ? { quantity: pageData.orderData.quantity } : {}),
-    ...(pageData.orderData?.seats ? { seats: pageData.orderData.seats } : {}),
-    ...bookingDatesMaybe(pageData.orderData?.bookingDates),
-    protectedData: {
-      ...getTransactionTypeData(
-        pageData?.listing?.attributes?.publicData?.listingType,
-        pageData?.listing?.attributes?.publicData?.unitType,
-        config
-      ),
-    },
-  };
+  const shippingDetails = {};
+  const orderParams = getOrderParams(pageData, shippingDetails, config, location);
 
   const tx = pageData ? pageData.transaction : null;
   const pageDataListing = pageData.listing;
@@ -105,7 +100,14 @@ export const loadInitialData = ({ pageData, fetchSpeculatedTransaction, config, 
  * @param {Object} config app-wide configs. This contains hosted configs too.
  * @returns orderParams.
  */
-const getOrderParams = (pageData, shippingDetails, config, location) => {
+const getOrderParams = (
+  pageData,
+  shippingDetails,
+  config,
+  location,
+  transactionFieldProtectedData,
+  customerDefaultMessage
+) => {
   const quantity = pageData.orderData?.quantity;
   const quantityMaybe = quantity ? { quantity } : {};
   const seats = pageData.orderData?.seats;
@@ -124,12 +126,15 @@ const getOrderParams = (pageData, shippingDetails, config, location) => {
   const queryParams = location ? parse(location.search) : {};
   const licenseDealId = queryParams.licenseDeal;
   const licenseDealIdMaybe = licenseDealId ? { licenseDealId } : {};
+  const customerDefaultMessageMaybe = customerDefaultMessage ? { customerDefaultMessage } : {};
 
   const protectedDataMaybe = {
     protectedData: {
       ...getTransactionTypeData(listingType, unitType, config),
       ...deliveryMethodMaybe,
       ...shippingDetails,
+      ...transactionFieldProtectedData,
+      ...customerDefaultMessageMaybe,
     },
   };
 
@@ -148,7 +153,7 @@ const getOrderParams = (pageData, shippingDetails, config, location) => {
   return orderParams;
 };
 
-const handleSubmit = (submitting, setSubmitting, props) => values => {
+const handleSubmit = (values, process, props, submitting, setSubmitting) => {
   if (submitting) {
     return;
   }
@@ -162,43 +167,45 @@ const handleSubmit = (submitting, setSubmitting, props) => values => {
     currentUser,
     dispatch,
     onInitiateOrder,
-    onSendMessage,
     onSubmitCallback,
     pageData,
     setPageData,
     sessionStorageKey,
+    transactionFieldConfigs = [],
   } = props;
   const { message, formValues } = values;
-
-  const shippingDetails = getShippingDetailsMaybe(formValues || {});
-
-  // These are the order parameters for the first transition
-  const orderParams = getOrderParams(pageData, shippingDetails, config, location);
+  const transactionFieldsProtectedData = {
+    ...pickTransactionFieldsData(formValues, 'protected', true, transactionFieldConfigs),
+  };
 
   const requestParams = {
     pageData,
-    message,
-    process: props.processName ? getProcess(props.processName) : null,
+    process,
     onInitiateOrder,
-    onSendMessage,
-    setPageData,
     sessionStorageKey,
+    setPageData,
     currentUser,
   };
+  const shippingDetails = getShippingDetailsMaybe(formValues || {});
+  // These are the order parameters for the first transition
+  const orderParams = getOrderParams(
+    pageData,
+    shippingDetails,
+    config,
+    location,
+    transactionFieldsProtectedData,
+    message
+  );
 
   // There are multiple XHR calls that need to be made against Sharetribe Marketplace API on checkout without payments
   processCheckoutWithoutPayment(orderParams, requestParams)
-    .then(response => {
-      const { orderId, messageSuccess } = response;
+    .then(order => {
       setSubmitting(false);
 
-      const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
-        id: orderId.uuid,
+        id: order.id.uuid,
       });
-      const initialValues = {
-        initialMessageFailedToTransaction,
-      };
+      const initialValues = {};
 
       setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
       onSubmitCallback();
@@ -229,11 +236,10 @@ const handleSubmit = (submitting, setSubmitting, props) => values => {
  * @param {string} props.listingTitle - The listing title
  * @param {string} props.title - The title
  * @param {Function} props.onInitiateOrder - The function to initiate the order
- * @param {Function} props.onSendMessage - The function to send a message
  * @param {Function} props.onSubmitCallback - The function to submit the callback
  * @param {propTypes.error} props.initiateOrderError - The error message for the initiate order
  * @param {Object} props.config - The config
- * @param {Object} props.routeConfiguration - The route configuration
+ * @param {Array<Object>} props.routeConfiguration - The route configuration
  * @param {Object} props.history - The history object
  * @param {Object} props.history.push - The push state function of the history object
  * @returns {JSX.Element}
@@ -245,9 +251,10 @@ export const CheckoutPageWithoutPayment = props => {
     scrollingDisabled,
     speculateTransactionError,
     speculatedTransaction: speculatedTransactionMaybe,
-    initiateOrderError,
+    initiateOrderError = null,
     intl,
     currentUser,
+    showListingImage,
     pageData,
     processName,
     listingTitle,
@@ -265,7 +272,7 @@ export const CheckoutPageWithoutPayment = props => {
     isTransactionInitiateListingNotFoundError(speculateTransactionError) ||
     isTransactionInitiateListingNotFoundError(initiateOrderError);
 
-  const { listing, transaction, orderData } = pageData;
+  const { listing, transaction } = pageData;
   const existingTransaction = ensureTransaction(transaction);
   const speculatedTransaction = ensureTransaction(speculatedTransactionMaybe, {}, null);
 
@@ -279,6 +286,7 @@ export const CheckoutPageWithoutPayment = props => {
 
   // Hide order breakdown for no-stripe purchase process
   const breakdown = null;
+  const process = processName ? getProcess(processName) : null;
 
   // Allow showing page when currentUser is still being downloaded,
   // but show form only when user info is loaded.
@@ -311,15 +319,16 @@ export const CheckoutPageWithoutPayment = props => {
 
   return (
     <Page title={title} scrollingDisabled={scrollingDisabled}>
-      <CustomTopbar intl={intl} linkToExternalSite={config?.topbar?.logoLink} />
+      <TopbarSimplified />
       <div className={css.contentContainer}>
         <MobileListingImage
           listingTitle={listingTitle}
           author={listing?.author}
           firstImage={firstImage}
           layoutListingImageConfig={config.layout.listingImage}
+          showListingImage={showListingImage}
         />
-        <div className={css.orderFormContainer}>
+        <main className={css.orderFormContainer}>
           <div className={css.headingContainer}>
             <H3 as="h1" className={css.heading}>
               {title}
@@ -338,7 +347,7 @@ export const CheckoutPageWithoutPayment = props => {
 
             {showForm ? (
               <FinalForm
-                onSubmit={handleSubmit(submitting, setSubmitting, props)}
+                onSubmit={values => handleSubmit(values, process, props, submitting, setSubmitting)}
                 initialValues={{}}
                 render={formRenderProps => {
                   const { handleSubmit: handleFormSubmit } = formRenderProps;
@@ -361,7 +370,7 @@ export const CheckoutPageWithoutPayment = props => {
               />
             ) : null}
           </section>
-        </div>
+        </main>
 
         <DetailsSideCard
           listing={listing}
@@ -374,15 +383,12 @@ export const CheckoutPageWithoutPayment = props => {
           isInquiryProcess={false}
           processName={processName}
           breakdown={breakdown}
+          showListingImage={showListingImage}
           intl={intl}
         />
       </div>
     </Page>
   );
-};
-
-CheckoutPageWithoutPayment.defaultProps = {
-  initiateOrderError: null,
 };
 
 CheckoutPageWithoutPayment.propTypes = {
@@ -396,10 +402,9 @@ CheckoutPageWithoutPayment.propTypes = {
   config: object.isRequired,
   currentUser: propTypes.currentUser,
   onInitiateOrder: func.isRequired,
-  onSendMessage: func.isRequired,
   onSubmitCallback: func.isRequired,
   history: object.isRequired,
-  routeConfiguration: object.isRequired,
+  routeConfiguration: arrayOf(object).isRequired,
   dispatch: func.isRequired,
   setPageData: func.isRequired,
   sessionStorageKey: string.isRequired,

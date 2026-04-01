@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 // Import configs and util modules
 import {
@@ -16,6 +17,7 @@ import EditListingLocationPanel from './EditListingLocationPanel/EditListingLoca
 import EditListingPhotosPanel from './EditListingPhotosPanel/EditListingPhotosPanel';
 import EditListingPricingPanel from './EditListingPricingPanel/EditListingPricingPanel';
 import EditListingPricingAndStockPanel from './EditListingPricingAndStockPanel/EditListingPricingAndStockPanel';
+import EditListingStylePanel from './EditListingStylePanel/EditListingStylePanel';
 
 import css from './EditListingWizardTab.module.css';
 
@@ -26,6 +28,7 @@ export const DELIVERY = 'delivery';
 export const LOCATION = 'location';
 export const AVAILABILITY = 'availability';
 export const PHOTOS = 'photos';
+export const STYLE = 'style';
 
 // EditListingWizardTab component supports these tabs
 export const SUPPORTED_TABS = [
@@ -36,6 +39,7 @@ export const SUPPORTED_TABS = [
   LOCATION,
   AVAILABILITY,
   PHOTOS,
+  STYLE,
 ];
 
 const pathParamsToNextTab = (params, tab, marketplaceTabs) => {
@@ -107,6 +111,8 @@ const EditListingWizardTab = props => {
     tabSubmitButtonText,
     config,
     routeConfiguration,
+    titleId,
+    intl,
   } = props;
 
   const { type } = params;
@@ -178,6 +184,12 @@ const EditListingWizardTab = props => {
       onSubmit: values => {
         return onCompleteEditListingWizardTab(tab, values);
       },
+      intl,
+      updatePageTitle: ({ panelHeading }) => (
+        <Helmet>
+          <title>{intl.formatMessage({ id: titleId }, { panelHeading })}</title>
+        </Helmet>
+      ),
     };
   };
 
@@ -252,6 +264,15 @@ const EditListingWizardTab = props => {
           images={images}
           onImageUpload={onImageUpload}
           onRemoveImage={onRemoveImage}
+        />
+      );
+    }
+    case STYLE: {
+      return (
+        <EditListingStylePanel
+          {...panelProps(STYLE)}
+          listingImageConfig={config.layout.listingImage}
+          images={images}
         />
       );
     }

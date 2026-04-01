@@ -1,11 +1,17 @@
 import React from 'react';
 import { FormattedMessage } from '../../util/reactIntl';
-import { INQUIRY_PROCESS_NAME, resolveLatestProcessName } from '../../transactions/transaction';
+import {
+  isInquiryProcessAlias,
+  isNegotiationProcessAlias,
+  OFFER,
+} from '../../transactions/transaction';
 
 import { Heading } from '../../components';
 import UserCard from './UserCard/UserCard';
 
 import css from './ListingPage.module.css';
+
+const CONTACT_USER_LINK = 'inquiryModalContactUserLink';
 
 const SectionAuthorMaybe = props => {
   const { listing, onContactUser, currentUser } = props;
@@ -15,8 +21,10 @@ const SectionAuthorMaybe = props => {
   }
 
   const transactionProcessAlias = listing?.attributes?.publicData?.transactionProcessAlias || '';
-  const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
-  const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
+  const unitType = listing?.attributes?.publicData?.unitType || '';
+  const isInquiryProcess = isInquiryProcessAlias(transactionProcessAlias);
+  const isNegotiationProcess = isNegotiationProcessAlias(transactionProcessAlias);
+  const showContact = !(isInquiryProcess || (isNegotiationProcess && unitType === OFFER));
 
   return (
     <section id="author" className={css.sectionAuthor}>
@@ -27,7 +35,8 @@ const SectionAuthorMaybe = props => {
         user={listing.author}
         currentUser={currentUser}
         onContactUser={onContactUser}
-        showContact={!isInquiryProcess}
+        showContact={showContact}
+        contactLinkId={CONTACT_USER_LINK}
       />
     </section>
   );

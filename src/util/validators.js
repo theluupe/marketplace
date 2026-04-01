@@ -1,9 +1,11 @@
-import toPairs from 'lodash/toPairs';
 import { types as sdkTypes } from './sdkLoader';
 import { diffInTime } from './dates';
 import { extractYouTubeID } from './string';
 
 const { LatLng, Money } = sdkTypes;
+
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 256;
 
 const isNonEmptyString = val => {
   return typeof val === 'string' && val.trim().length > 0;
@@ -60,19 +62,12 @@ export const uniqueString = (currentIndex, stringArray, getMessage, toSlug) => v
   return isUnique ? VALID : getMessage(value, slug);
 };
 
-export const requiredCheckbox = message => value => {
-  if (!value) {
-    return message;
-  }
-  return VALID;
-};
-
 export const requiredFieldArrayCheckbox = message => value => {
   if (!value) {
     return message;
   }
 
-  const entries = toPairs(value);
+  const entries = Object.entries(value);
   const hasSelectedValues = entries.filter(e => !!e[1]).length > 0;
   return hasSelectedValues ? VALID : message;
 };

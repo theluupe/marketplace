@@ -26,6 +26,19 @@
   border: none;
   padding: 0;
   cursor: pointer;
+
+  &:focus,
+  &:hover {
+    color: var(--marketplaceColor);
+  }
+
+  &:focus {
+    & .label,
+    & .label * {
+      color: var(--colorBlack);
+      color: var(--marketplaceColorDark);
+    }
+  }
 }
 
 .labelButtonContent {
@@ -68,6 +81,10 @@
 .labelSelected {
   color: var(--marketplaceColor);
   margin-left: 5px;
+
+  &:hover {
+    color: var(--marketplaceColorDark);
+  }
 }
 
 .openSign {
@@ -79,7 +96,7 @@
   margin: 0;
   display: block;
   font-weight: var(--fontWeightMedium);
-  color: var(--colorGrey300);
+  color: var(--colorGrey600);
   padding: 2px 0 4px 12px;
 
   /* Override button styles */
@@ -90,7 +107,7 @@
 
   &:focus,
   &:hover {
-    color: var(--colorGrey700);
+    color: var(--colorBlack);
   }
 
   @media (--viewportMedium) {

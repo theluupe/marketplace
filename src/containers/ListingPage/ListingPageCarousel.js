@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
+import classNames from 'classnames';
 
 // Contexts
 import { useConfiguration } from '../../context/configurationContext';
@@ -29,6 +30,7 @@ import {
   isForbiddenError,
 } from '../../util/errors.js';
 import { hasPermissionToViewData, isUserAuthorized } from '../../util/userHelpers.js';
+import { requireListingImage } from '../../util/configHelpers';
 import {
   ensureListing,
   ensureOwnListing,
@@ -38,7 +40,10 @@ import {
 import { handleToggleFavorites } from '../../util/favorites';
 import { richText } from '../../util/richText';
 import {
+  OFFER,
+  REQUEST,
   isBookingProcess,
+  isNegotiationProcess,
   isPurchaseProcess,
   resolveLatestProcessName,
 } from '../../transactions/transaction';
@@ -53,11 +58,13 @@ import { updateProfile } from '../ProfileSettingsPage/ProfileSettingsPage.duck';
 // Shared components
 import {
   H4,
+  H3,
   Page,
   NamedLink,
   NamedRedirect,
   OrderPanel,
   LayoutSingleColumn,
+  SectionText,
 } from '../../components';
 
 // Related components and modules
@@ -73,14 +80,16 @@ import {
   priceData,
   listingImages,
   handleContactUser,
+  handleNavigateToMakeOfferPage,
+  handleNavigateToRequestQuotePage,
   handleSubmit,
   priceForSchemaMaybe,
 } from './ListingPage.shared';
 import ActionBarMaybe from './ActionBarMaybe';
 import SectionCategoriesMaybe from './SectionCategoriesMaybe';
 import SectionKeywordsMaybe from './SectionKeywordsMaybe';
-import SectionTextMaybe from './SectionTextMaybe';
 import SectionReviews from './SectionReviews';
+
 import SectionAuthorMaybe from './SectionAuthorMaybe';
 import SectionMapMaybe from './SectionMapMaybe';
 import SectionGallery from './SectionGallery';
@@ -229,15 +238,29 @@ export const ListingPageComponent = props => {
       <ErrorPage topbar={topbar} scrollingDisabled={scrollingDisabled} intl={intl} invalidListing />
     );
   }
+  const validListingTypes = listingConfig.listingTypes;
+  const foundListingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
+  const showListingImage = requireListingImage(foundListingTypeConfig);
+  const showDescription = foundListingTypeConfig?.defaultListingFields?.description;
+
   const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
   const isBooking = isBookingProcess(processName);
   const isPurchase = isPurchaseProcess(processName);
-  const processType = isBooking ? 'booking' : isPurchase ? 'purchase' : 'inquiry';
+  const isNegotiation = isNegotiationProcess(processName);
+  const processType = isBooking
+    ? 'booking'
+    : isPurchase
+    ? 'purchase'
+    : isNegotiation
+    ? 'negotiation'
+    : 'inquiry';
 
   const currentAuthor = authorAvailable ? currentListing.author : null;
   const ensuredAuthor = ensureUser(currentAuthor);
+  const authorNeedsPayoutDetails =
+    ['booking', 'purchase'].includes(processType) || (isNegotiation && unitType === OFFER);
   const noPayoutDetailsSetWithOwnListing =
-    isOwnListing && processType !== 'inquiry' && !currentUser?.attributes?.stripeConnected;
+    isOwnListing && authorNeedsPayoutDetails && !currentUser?.attributes?.stripeConnected;
   const payoutDetailsWarning = noPayoutDetailsSetWithOwnListing ? (
     <span className={css.payoutDetailsWarning}>
       <FormattedMessage id="ListingPage.payoutDetailsWarning" values={{ processType }} />
@@ -267,6 +290,16 @@ export const ListingPageComponent = props => {
     setInitialValues,
     onRequestToBook,
   });
+  // This is to navigate to MakeOfferPage when InvokeNegotiationForm is submitted
+  const onNavigateToMakeOfferPage = handleNavigateToMakeOfferPage({
+    ...commonParams,
+    getListing,
+  });
+  // This is to navigate to MakeOfferPage when InvokeNegotiationForm is submitted
+  const onNavigateToRequestQuotePage = handleNavigateToRequestQuotePage({
+    ...commonParams,
+    getListing,
+  });
   const onSubmit = handleSubmit({
     ...commonParams,
     currentUser,
@@ -279,6 +312,10 @@ export const ListingPageComponent = props => {
     const isCurrentlyClosed = currentListing.attributes.state === LISTING_STATE_CLOSED;
     if (isOwnListing || isCurrentlyClosed) {
       window.scrollTo(0, 0);
+    } else if (isNegotiation && unitType === REQUEST) {
+      onNavigateToMakeOfferPage(values);
+    } else if (isNegotiation && unitType === OFFER) {
+      onNavigateToRequestQuotePage(values);
     } else {
       onSubmit(values);
     }
@@ -307,6 +344,8 @@ export const ListingPageComponent = props => {
     : 'https://schema.org/OutOfStock';
 
   const availabilityMaybe = schemaAvailability ? { availability: schemaAvailability } : {};
+  const noIndexMaybe =
+    currentListing.attributes.state === LISTING_STATE_CLOSED ? { noIndex: true } : {};
 
   const onToggleFavorites = handleToggleFavorites({
     ...commonParams,
@@ -325,6 +364,7 @@ export const ListingPageComponent = props => {
       description={description}
       facebookImages={facebookImages}
       twitterImages={twitterImages}
+      {...noIndexMaybe}
       schema={{
         '@context': 'http://schema.org',
         '@type': 'Product',
@@ -357,19 +397,27 @@ export const ListingPageComponent = props => {
                 listing={currentListing}
               />
             ) : null}
-
-            <SectionGallery
-              listing={currentListing}
-              variantPrefix={config.layout.listingImage.variantPrefix}
-              currentUser={currentUser}
-            />
-
-            <div className={css.mobileHeading}>
-              <H4 as="h1" className={css.orderPanelTitle}>
-                <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
-              </H4>
+            {showListingImage && (
+              <SectionGallery
+                listing={currentListing}
+                variantPrefix={config.layout.listingImage.variantPrefix}
+                currentUser={currentUser}
+              />
+            )}
+            <div
+              className={showListingImage ? css.mobileHeading : css.noListingImageHeadingProduct}
+            >
+              {showListingImage ? (
+                <H4 as="h1" className={css.orderPanelTitle}>
+                  <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
+                </H4>
+              ) : (
+                <H3 as="h1" className={css.orderPanelTitle}>
+                  <FormattedMessage id="ListingPage.orderTitle" values={{ title: richTitle }} />
+                </H3>
+              )}
             </div>
-            <SectionTextMaybe text={description} showAsIngress />
+            {showDescription && <SectionText text={description} showAsIngress />}
 
             <CustomListingFields
               publicData={publicData}
@@ -402,7 +450,9 @@ export const ListingPageComponent = props => {
 
           <div className={css.orderColumnForProductLayout}>
             <OrderPanel
-              className={css.productOrderPanel}
+              className={classNames(css.productOrderPanel, {
+                [css.imagesEnabled]: showListingImage,
+              })}
               listing={currentListing}
               isOwnListing={isOwnListing}
               onSubmit={handleOrderSubmit}
@@ -433,6 +483,7 @@ export const ListingPageComponent = props => {
               marketplaceName={config.marketplaceName}
               onToggleFavorites={onToggleFavorites}
               currentUser={currentUser}
+              showListingImage={showListingImage}
             />
           </div>
         </div>

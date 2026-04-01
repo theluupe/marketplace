@@ -1,222 +1,192 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import merge from 'lodash/merge';
 import { denormalisedResponseEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
-import { fetchCurrentUser, currentUserShowSuccess } from '../../ducks/user.duck';
+import { fetchCurrentUser, setCurrentUser } from '../../ducks/user.duck';
 
-// ================ Action types ================ //
+// ================ Async thunks ================ //
+// Luupe: password reset was intentionally removed (not exposed from ContactDetailsPage).
 
-export const SAVE_CONTACT_DETAILS_REQUEST = 'app/ContactDetailsPage/SAVE_CONTACT_DETAILS_REQUEST';
-export const SAVE_CONTACT_DETAILS_SUCCESS = 'app/ContactDetailsPage/SAVE_CONTACT_DETAILS_SUCCESS';
-export const SAVE_EMAIL_ERROR = 'app/ContactDetailsPage/SAVE_EMAIL_ERROR';
-export const SAVE_PHONE_NUMBER_ERROR = 'app/ContactDetailsPage/SAVE_PHONE_NUMBER_ERROR';
-
-export const SAVE_CONTACT_DETAILS_CLEAR = 'app/ContactDetailsPage/SAVE_CONTACT_DETAILS_CLEAR';
-
-// ================ Reducer ================ //
-
-const initialState = {
-  saveEmailError: null,
-  savePhoneNumberError: null,
-  saveContactDetailsInProgress: false,
-  contactDetailsChanged: false,
-};
-
-export default function reducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case SAVE_CONTACT_DETAILS_REQUEST:
-      return {
-        ...state,
-        saveContactDetailsInProgress: true,
-        saveEmailError: null,
-        savePhoneNumberError: null,
-        contactDetailsChanged: false,
-      };
-    case SAVE_CONTACT_DETAILS_SUCCESS:
-      return { ...state, saveContactDetailsInProgress: false, contactDetailsChanged: true };
-    case SAVE_EMAIL_ERROR:
-      return { ...state, saveContactDetailsInProgress: false, saveEmailError: payload };
-    case SAVE_PHONE_NUMBER_ERROR:
-      return { ...state, saveContactDetailsInProgress: false, savePhoneNumberError: payload };
-
-    case SAVE_CONTACT_DETAILS_CLEAR:
-      return {
-        ...state,
-        saveContactDetailsInProgress: false,
-        saveEmailError: null,
-        savePhoneNumberError: null,
-        contactDetailsChanged: false,
-      };
-
-    default:
-      return state;
-  }
-}
-
-// ================ Action creators ================ //
-
-export const saveContactDetailsRequest = () => ({ type: SAVE_CONTACT_DETAILS_REQUEST });
-export const saveContactDetailsSuccess = () => ({ type: SAVE_CONTACT_DETAILS_SUCCESS });
-export const saveEmailError = error => ({
-  type: SAVE_EMAIL_ERROR,
-  payload: error,
-  error: true,
-});
-export const savePhoneNumberError = error => ({
-  type: SAVE_PHONE_NUMBER_ERROR,
-  payload: error,
-  error: true,
-});
-
-export const saveContactDetailsClear = () => ({ type: SAVE_CONTACT_DETAILS_CLEAR });
-
-// ================ Thunks ================ //
-
-/**
- * Make a phone number update request to the API and return the current user.
- */
-const requestSavePhoneNumber = params => (dispatch, getState, sdk) => {
-  const phoneNumber = params.phoneNumber;
-
-  return sdk.currentUser
-    .updateProfile(
-      { protectedData: { phoneNumber } },
-      {
-        expand: true,
-        include: ['profileImage'],
-        'fields.image': ['variants.square-small', 'variants.square-small2x'],
-      }
-    )
-    .then(response => {
-      const entities = denormalisedResponseEntities(response);
-      if (entities.length !== 1) {
-        throw new Error('Expected a resource in the sdk.currentUser.updateProfile response');
-      }
-
-      const currentUser = entities[0];
-      return currentUser;
-    })
-    .catch(e => {
-      dispatch(savePhoneNumberError(storableError(e)));
-      // pass the same error so that the SAVE_CONTACT_DETAILS_SUCCESS
-      // action will not be fired
-      throw e;
-    });
-};
-
-/**
- * Make a email update request to the API and return the current user.
- */
-const requestSaveEmail = params => (dispatch, getState, sdk) => {
-  const { email, currentPassword } = params;
-
-  return sdk.currentUser
-    .changeEmail(
-      { email, currentPassword },
-      {
-        expand: true,
-        include: ['profileImage'],
-        'fields.image': ['variants.square-small', 'variants.square-small2x'],
-      }
-    )
-    .then(response => {
-      const entities = denormalisedResponseEntities(response);
-      if (entities.length !== 1) {
-        throw new Error('Expected a resource in the sdk.currentUser.changeEmail response');
-      }
-
-      const currentUser = entities[0];
-      return currentUser;
-    })
-    .catch(e => {
-      dispatch(saveEmailError(storableError(e)));
-      // pass the same error so that the SAVE_CONTACT_DETAILS_SUCCESS
-      // action will not be fired
-      throw e;
-    });
-};
-
-/**
- * Save email and update the current user.
- */
-const saveEmail = params => (dispatch, getState, sdk) => {
-  return (
-    dispatch(requestSaveEmail(params))
-      .then(user => {
-        dispatch(currentUserShowSuccess(user));
-        dispatch(saveContactDetailsSuccess());
+export const savePhoneNumberThunk = createAsyncThunk(
+  'ContactDetailsPage/savePhoneNumber',
+  ({ phoneNumber }, { dispatch, extra: sdk, rejectWithValue }) => {
+    return sdk.currentUser
+      .updateProfile(
+        { protectedData: { phoneNumber } },
+        {
+          expand: true,
+          include: ['profileImage'],
+          'fields.image': ['variants.square-small', 'variants.square-small2x'],
+        }
+      )
+      .then(response => {
+        const entities = denormalisedResponseEntities(response);
+        if (entities.length !== 1) {
+          throw new Error('Expected a resource in the sdk.currentUser.updateProfile response');
+        }
+        dispatch(setCurrentUser(entities[0]));
+        return entities[0];
       })
-      // error action dispatched in requestSaveEmail
-      .catch(e => null)
-  );
-};
-
-/**
- * Save phone number and update the current user.
- */
-const savePhoneNumber = params => (dispatch, getState, sdk) => {
-  return (
-    dispatch(requestSavePhoneNumber(params))
-      .then(user => {
-        dispatch(currentUserShowSuccess(user));
-        dispatch(saveContactDetailsSuccess());
-      })
-      // error action dispatched in requestSavePhoneNumber
-      .catch(e => null)
-  );
-};
-
-/**
- * Save email and phone number and update the current user.
- */
-const saveEmailAndPhoneNumber = params => (dispatch, getState, sdk) => {
-  const { email, phoneNumber, currentPassword } = params;
-
-  // order of promises: 1. email, 2. phone number
-  const promises = [
-    dispatch(requestSaveEmail({ email, currentPassword })),
-    dispatch(requestSavePhoneNumber({ phoneNumber })),
-  ];
-
-  return Promise.all(promises)
-    .then(values => {
-      // Array of two user objects is resolved
-      // the first one is from the email update
-      // the second one is from the phone number update
-
-      const saveEmailUser = values[0];
-      const savePhoneNumberUser = values[1];
-
-      // merge the protected data from the user object returned
-      // by the phone update operation
-      const protectedData = savePhoneNumberUser.attributes.profile.protectedData;
-      const phoneNumberMergeSource = { attributes: { profile: { protectedData } } };
-
-      const currentUser = merge(saveEmailUser, phoneNumberMergeSource);
-      dispatch(currentUserShowSuccess(currentUser));
-      dispatch(saveContactDetailsSuccess());
-    })
-    .catch(e => null);
-};
-
-/**
- * Update contact details, actions depend on which data has changed
- */
-export const saveContactDetails = params => (dispatch, getState, sdk) => {
-  dispatch(saveContactDetailsRequest());
-
-  const { email, currentEmail, phoneNumber, currentPhoneNumber, currentPassword } = params;
-  const emailChanged = email !== currentEmail;
-  const phoneNumberChanged = phoneNumber !== currentPhoneNumber;
-
-  if (emailChanged && phoneNumberChanged) {
-    return dispatch(saveEmailAndPhoneNumber({ email, currentPassword, phoneNumber }));
-  } else if (emailChanged) {
-    return dispatch(saveEmail({ email, currentPassword }));
-  } else if (phoneNumberChanged) {
-    return dispatch(savePhoneNumber({ phoneNumber }));
+      .catch(e => {
+        return rejectWithValue(storableError(e));
+      });
   }
+);
+// Backward compatible wrapper for the requestSavePhoneNumber thunk
+export const savePhoneNumber = params => dispatch => {
+  return dispatch(savePhoneNumberThunk({ phoneNumber: params.phoneNumber })).unwrap();
 };
+
+export const saveEmailThunk = createAsyncThunk(
+  'ContactDetailsPage/requestSaveEmail',
+  ({ email, currentPassword }, { dispatch, extra: sdk, rejectWithValue }) => {
+    return sdk.currentUser
+      .changeEmail(
+        { email, currentPassword },
+        {
+          expand: true,
+          include: ['profileImage'],
+          'fields.image': ['variants.square-small', 'variants.square-small2x'],
+        }
+      )
+      .then(response => {
+        const entities = denormalisedResponseEntities(response);
+        if (entities.length !== 1) {
+          throw new Error('Expected a resource in the sdk.currentUser.changeEmail response');
+        }
+        dispatch(setCurrentUser(entities[0]));
+        return entities[0];
+      })
+      .catch(e => {
+        return rejectWithValue(storableError(e));
+      });
+  }
+);
+// Backward compatible wrapper for the requestSaveEmail thunk
+export const saveEmail = params => dispatch => {
+  return dispatch(
+    saveEmailThunk({ email: params.email, currentPassword: params.currentPassword })
+  ).unwrap();
+};
+
+export const saveEmailAndPhoneNumberThunk = createAsyncThunk(
+  'ContactDetailsPage/saveEmailAndPhoneNumber',
+  ({ email, phoneNumber, currentPassword }, { dispatch, rejectWithValue }) => {
+    const promises = [
+      dispatch(saveEmailThunk({ email, currentPassword })).unwrap(),
+      dispatch(savePhoneNumberThunk({ phoneNumber })).unwrap(),
+    ];
+
+    return Promise.all(promises)
+      .then(values => {
+        const saveEmailUser = values[0];
+        const savePhoneNumberUser = values[1];
+
+        const protectedData = savePhoneNumberUser.attributes.profile.protectedData;
+        const phoneNumberMergeSource = { attributes: { profile: { protectedData } } };
+
+        const currentUser = merge(saveEmailUser, phoneNumberMergeSource);
+        dispatch(setCurrentUser(currentUser));
+        return currentUser;
+      })
+      .catch(e => {
+        return rejectWithValue(e);
+      });
+  }
+);
+// Backward compatible wrapper for the saveEmailAndPhoneNumber thunk
+export const saveEmailAndPhoneNumber = params => dispatch => {
+  return dispatch(
+    saveEmailAndPhoneNumberThunk({
+      email: params.email,
+      currentPassword: params.currentPassword,
+      phoneNumber: params.phoneNumber,
+    })
+  ).unwrap();
+};
+
+export const saveContactDetailsThunk = createAsyncThunk(
+  'ContactDetailsPage/saveContactDetails',
+  (
+    { email, currentEmail, phoneNumber, currentPhoneNumber, currentPassword },
+    { dispatch, rejectWithValue }
+  ) => {
+    const emailChanged = email !== currentEmail;
+    const phoneNumberChanged = phoneNumber !== currentPhoneNumber;
+
+    if (emailChanged && phoneNumberChanged) {
+      return dispatch(saveEmailAndPhoneNumberThunk({ email, currentPassword, phoneNumber }))
+        .unwrap()
+        .catch(e => rejectWithValue(e));
+    } else if (emailChanged) {
+      return dispatch(saveEmailThunk({ email, currentPassword }))
+        .unwrap()
+        .catch(e => rejectWithValue(e));
+    } else if (phoneNumberChanged) {
+      return dispatch(savePhoneNumberThunk({ phoneNumber }))
+        .unwrap()
+        .catch(e => rejectWithValue(e));
+    }
+    return Promise.resolve();
+  }
+);
+// Backward compatible wrapper for the saveContactDetails thunk
+export const saveContactDetails = params => dispatch => {
+  return dispatch(saveContactDetailsThunk(params)).unwrap();
+};
+
+// ================ Slice ================ //
+
+const contactDetailsSlice = createSlice({
+  name: 'ContactDetailsPage',
+  initialState: {
+    saveEmailError: null,
+    savePhoneNumberError: null,
+    saveContactDetailsInProgress: false,
+    contactDetailsChanged: false,
+  },
+  reducers: {
+    saveContactDetailsClear: state => {
+      state.saveContactDetailsInProgress = false;
+      state.saveEmailError = null;
+      state.savePhoneNumberError = null;
+      state.contactDetailsChanged = false;
+    },
+  },
+  extraReducers: builder => {
+    builder
+      // Request save phone number
+      .addCase(savePhoneNumberThunk.rejected, (state, action) => {
+        state.saveContactDetailsInProgress = false;
+        state.savePhoneNumberError = action.payload;
+      })
+      // Request save email
+      .addCase(saveEmailThunk.rejected, (state, action) => {
+        state.saveContactDetailsInProgress = false;
+        state.saveEmailError = action.payload;
+      })
+      // Save contact details
+      .addCase(saveContactDetailsThunk.pending, state => {
+        state.saveContactDetailsInProgress = true;
+        state.saveEmailError = null;
+        state.savePhoneNumberError = null;
+        state.contactDetailsChanged = false;
+      })
+      .addCase(saveContactDetailsThunk.fulfilled, state => {
+        state.saveContactDetailsInProgress = false;
+        state.contactDetailsChanged = true;
+      })
+      .addCase(saveContactDetailsThunk.rejected, (state, action) => {
+        state.saveContactDetailsInProgress = false;
+        // Error details are handled by individual thunks
+      });
+  },
+});
+
+export const { saveContactDetailsClear } = contactDetailsSlice.actions;
+export default contactDetailsSlice.reducer;
+
+// ================ Load data ================ //
 
 export const loadData = () => {
   // Since verify email happens in separate tab, current user's data might be updated

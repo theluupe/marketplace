@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 
 import { useIntl } from '../../../../../util/reactIntl';
@@ -7,6 +7,23 @@ import { OutsideClickHandler, IconDate, FieldDateRangeController } from '../../.
 
 import css from './FilterDateRange.module.css';
 
+const handleKeyDown = (isOpen, setIsOpen) => e => {
+  const toggleButton = e.currentTarget.getElementsByClassName(css.toggleButton)[0];
+  if ((e.target === toggleButton && e.key === 'Enter') || e.key === ' ') {
+    e.preventDefault();
+    setIsOpen(prevState => !prevState);
+    return;
+  } else if (!isOpen && e.key === 'ArrowDown') {
+    e.preventDefault();
+    setIsOpen(true);
+    return;
+  } else if (isOpen && e.key === 'Escape') {
+    e.preventDefault();
+    toggleButton.focus();
+    setIsOpen(false);
+    return;
+  }
+};
 /**
  * FilterDateRange displays a toggleable date range picker.
  *
@@ -20,6 +37,7 @@ import css from './FilterDateRange.module.css';
 const FilterDateRange = props => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDates, setSelectedDates] = useState(null);
+  const toggleButtonRef = useRef(null);
   const { className, rootClassName, config, alignLeft } = props;
   const intl = useIntl();
 
@@ -48,10 +66,28 @@ const FilterDateRange = props => {
     const { startDate, endDate } = value;
     if (startDate && endDate) {
       setSelectedDates(formatDateRange(startDate, endDate));
+      toggleButtonRef.current?.focus();
       setIsOpen(false);
     } else {
       setSelectedDates(null);
     }
+  };
+
+  const handleClick = event => {
+    const el = event.currentTarget;
+    const dropdownHeight = 350; // approximately
+    const toBottom = window.innerHeight - el.getBoundingClientRect().bottom;
+    // If there's not enough space under the toggle button, scroll down to make space for the dropdown.
+    if (!isOpen && toBottom < dropdownHeight) {
+      const topbarOffset = 72;
+      const toTop = el.getBoundingClientRect().top - topbarOffset;
+      const scrollDownNeed = dropdownHeight - toBottom;
+      // Scroll page as little down as possible to get toggle button more space below it - or move it just under the topbar.
+      // This mitigates browsers' own accessibility features that autoscrolls too much.
+      const top = toTop < scrollDownNeed ? toTop : scrollDownNeed;
+      window.scrollBy({ top });
+    }
+    setIsOpen(prevState => !prevState);
   };
 
   const datesFilter = config.search.defaultFilters.find(f => f.key === 'dates');
@@ -64,15 +100,21 @@ const FilterDateRange = props => {
   });
 
   return (
-    <OutsideClickHandler className={classes} onOutsideClick={() => setIsOpen(false)}>
+    <OutsideClickHandler
+      className={classes}
+      onOutsideClick={() => setIsOpen(false)}
+      onKeyDown={handleKeyDown(isOpen, setIsOpen)}
+    >
       <div
         role="button"
+        ref={toggleButtonRef}
         className={css.toggleButton}
-        onClick={() => setIsOpen(prevState => !prevState)}
+        onClick={handleClick}
         tabIndex={0}
-        onKeyDown={() => setIsOpen(prevState => !prevState)}
+        aria-controls={isOpen ? 'dateRange' : ''}
+        aria-expanded={isOpen}
       >
-        <IconDate />
+        <IconDate rootClassName={css.iconDate} />
         <span className={labelClasses}>
           {selectedDates
             ? selectedDates
@@ -87,6 +129,7 @@ const FilterDateRange = props => {
             [css.alignLeft]: alignLeft,
           })}
           name="dateRange"
+          id="dateRange"
           minimumNights={isNightlyMode ? 1 : 0}
         />
       ) : null}

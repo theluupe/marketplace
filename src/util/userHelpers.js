@@ -92,7 +92,6 @@ export const initialValuesForUserFields = (data, targetScope, targetUserType, us
 /**
  * Returns props for custom user fields
  * @param {*} userFieldsConfig Configuration for user fields
- * @param {*} intl
  * @param {*} userType User type to restrict fields to. If none is passed,
  * only user fields applying to all user types are returned.
  * @param {*} isSignup Optional flag to determine whether the target context
@@ -102,7 +101,6 @@ export const initialValuesForUserFields = (data, targetScope, targetUserType, us
  */
 export const getPropsForCustomUserFieldInputs = (
   userFieldsConfig,
-  intl,
   userType = null,
   isSignup = true
 ) => {
@@ -124,9 +122,6 @@ export const getPropsForCustomUserFieldInputs = (
               key: namespacedKey,
               name: namespacedKey,
               fieldConfig: fieldConfig,
-              defaultRequiredMessage: intl.formatMessage({
-                id: 'CustomExtendedDataField.required',
-              }),
             },
           ]
         : pickedFields;
@@ -244,12 +239,15 @@ export const showPaymentDetailsForUser = (config, currentUser) => {
   const { paymentMethods = true, payoutDetails = true } =
     currentUserTypeConfig?.accountLinksVisibility || {};
 
-  return (
-    currentUser && {
-      showPayoutDetails: payoutDetails,
-      showPaymentMethods: paymentMethods,
-    }
-  );
+  return currentUser
+    ? {
+        showPayoutDetails: payoutDetails,
+        showPaymentMethods: paymentMethods,
+      }
+    : {
+        showPayoutDetails: false,
+        showPaymentMethods: false,
+      };
 };
 
 /**
@@ -266,6 +264,24 @@ export const getCurrentUserTypeRoles = (config, currentUser) => {
       provider: true,
     }
   );
+};
+
+/**
+ * Default inbox path segment for /inbox (matches topbar inbox link).
+ * Only provider role → sales; only customer → orders; both → sales if has listings else orders.
+ */
+export const getDefaultInboxTab = (config, currentUser, currentUserHasListings) => {
+  const { customer: isCustomer, provider: isProvider } = getCurrentUserTypeRoles(
+    config,
+    currentUser
+  );
+  if (!isCustomer) {
+    return 'sales';
+  }
+  if (!isProvider) {
+    return 'orders';
+  }
+  return currentUserHasListings ? 'sales' : 'orders';
 };
 
 /**
@@ -315,6 +331,10 @@ export const isStudioUser = profile => {
   }
   return false;
 };
+
+/** Brand admins (studio-brand primary account) may access brand team management in account settings. */
+export const showBrandManagementTab = currentUser =>
+  currentUser?.attributes?.profile?.metadata?.isBrandAdmin === true;
 
 export const getBrandUserFieldInputs = (fieldKey, isBrandAdmin) => {
   if (isBrandAdmin) {

@@ -26,6 +26,7 @@ import css from './LayoutSideNavigation.module.css';
  * @param {string?} props.accountSettingsNavProps.currentPage
  * @param {boolean?} props.accountSettingsNavProps.showPaymentMethods
  * @param {boolean?} props.accountSettingsNavProps.showPayoutDetails
+ * @param {boolean?} props.accountSettingsNavProps.showBrandManagement
  * @returns {JSX.Element} LayoutComposer that expects children to be a function.
  */
 const LayoutSideNavigation = props => {
@@ -43,6 +44,7 @@ const LayoutSideNavigation = props => {
     useProfileSettingsNav,
     withCreativeProfile,
     accountSettingsNavProps,
+    intl,
     ...rest
   } = props;
 
@@ -71,6 +73,9 @@ const LayoutSideNavigation = props => {
                 {useAccountSettingsNav ? (
                   <LayoutWrapperAccountSettingsSideNav
                     accountSettingsNavProps={accountSettingsNavProps}
+                    ariaLabel={intl.formatMessage({
+                      id: 'LayoutSideNavigation.screenreader.accountNavigation',
+                    })}
                   />
                 ) : null}
                 {useProfileSettingsNav ? (
@@ -81,7 +86,9 @@ const LayoutSideNavigation = props => {
                 ) : null}
                 {sideNavContent}
               </aside>
-              <main className={classNames(css.main, mainColumnClassName)}>{children}</main>
+              <main id="main-content" className={classNames(css.main, mainColumnClassName)}>
+                {children}
+              </main>
             </Main>
             <Footer>{footerContent}</Footer>
           </>

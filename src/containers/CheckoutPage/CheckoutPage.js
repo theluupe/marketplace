@@ -19,9 +19,12 @@ import { LISTING_TYPES } from '../../util/types';
 import {
   INQUIRY_PROCESS_NAME,
   PURCHASE_NO_STRIPE_PROCESS_NAME,
+  REQUEST,
   resolveLatestProcessName,
   getTransactionProcessAlias,
+  isNegotiationProcess,
 } from '../../transactions/transaction';
+import { requireListingImage } from '../../util/configHelpers';
 
 // Import global thunk functions
 import { isScrollingDisabled } from '../../ducks/ui.duck';
@@ -29,7 +32,7 @@ import { confirmCardPayment, retrievePaymentIntent } from '../../ducks/stripe.du
 import { savePaymentMethod } from '../../ducks/paymentMethods.duck';
 
 // Import shared components
-import { NamedRedirect, Page } from '../../components';
+import { NamedRedirect, Page, TopbarSimplified } from '../../components';
 
 // Session helpers file needs to be imported before CheckoutPageWithPayment and CheckoutPageWithInquiryProcess
 import { storeData, clearData, handlePageData } from './CheckoutPageSessionHelpers';
@@ -41,11 +44,9 @@ import {
   speculateTransaction,
   stripeCustomer,
   confirmPayment,
-  sendMessage,
   initiateInquiryWithoutPayment,
 } from './CheckoutPage.duck';
 
-import CustomTopbar from './CustomTopbar';
 import CheckoutPageWithPayment, {
   loadInitialDataForStripePayments,
 } from './CheckoutPageWithPayment';
@@ -140,9 +141,11 @@ const EnhancedCheckoutPage = props => {
   const isPortfolioListing = listingType === LISTING_TYPES.PORTFOLIO;
   const isProfileListing = listingType === LISTING_TYPES.PROFILE;
   const isHiddenProductListing = listingType === LISTING_TYPES.HIDDEN_PRODUCT;
+  const unitType = listing?.attributes?.publicData?.unitType;
+  const isRequest = unitType === REQUEST;
   const isOwnListing = currentUser?.id && listing?.author?.id?.uuid === currentUser?.id?.uuid;
   const hasRequiredData = !!(listing?.id && listing?.author?.id && processName);
-  const shouldRedirect = isDataLoaded && !(hasRequiredData && !isOwnListing);
+  const shouldRedirect = isDataLoaded && !(hasRequiredData && (!isOwnListing || isRequest));
   const shouldRedirectUnathorizedUser = isDataLoaded && !isUserAuthorized(currentUser);
   // Redirect if the user has no transaction rights
   const shouldRedirectNoTransactionRightsUser =
@@ -201,6 +204,17 @@ const EnhancedCheckoutPage = props => {
     );
   }
 
+  const validListingTypes = config.listing.listingTypes;
+  const foundListingTypeConfig = validListingTypes.find(
+    conf => conf.listingType === listing?.attributes?.publicData?.listingType
+  );
+  const showListingImage = requireListingImage(foundListingTypeConfig);
+  const transactionFieldConfigs = foundListingTypeConfig?.transactionFields;
+  // We don't show or collect transaction fields on the checkout page for
+  // negotiation processes, because they are collected in earlier steps
+  // of those processes
+  const showTransactionFields = !isNegotiationProcess(processName);
+
   const listingTitle = listing?.attributes?.title;
   const authorDisplayName = userDisplayNameAsString(listing?.author, '');
   const title = processName
@@ -222,6 +236,8 @@ const EnhancedCheckoutPage = props => {
       title={title}
       onInquiryWithoutPayment={onInquiryWithoutPayment}
       onSubmitCallback={onSubmitCallback}
+      showListingImage={showListingImage}
+      transactionFieldConfigs={transactionFieldConfigs}
       {...props}
     />
   ) : processName && isPurchaseNoStripeProcess ? (
@@ -237,6 +253,8 @@ const EnhancedCheckoutPage = props => {
       listingTitle={listingTitle}
       title={title}
       onSubmitCallback={onSubmitCallback}
+      showListingImage={showListingImage}
+      transactionFieldConfigs={transactionFieldConfigs}
       {...props}
     />
   ) : processName &&
@@ -255,11 +273,14 @@ const EnhancedCheckoutPage = props => {
       listingTitle={listingTitle}
       title={title}
       onSubmitCallback={onSubmitCallback}
+      showListingImage={showListingImage}
+      transactionFieldConfigs={transactionFieldConfigs}
+      showTransactionFields={showTransactionFields}
       {...props}
     />
   ) : (
     <Page title={title} scrollingDisabled={scrollingDisabled}>
-      <CustomTopbar intl={intl} linkToExternalSite={config?.topbar?.logoLink} />
+      <TopbarSimplified />
     </Page>
   );
 };
@@ -313,7 +334,6 @@ const mapDispatchToProps = dispatch => ({
   onConfirmCardPayment: params => dispatch(confirmCardPayment(params)),
   onConfirmPayment: (transactionId, transitionName, transitionParams) =>
     dispatch(confirmPayment(transactionId, transitionName, transitionParams)),
-  onSendMessage: params => dispatch(sendMessage(params)),
   onSavePaymentMethod: (stripeCustomer, stripePaymentMethodId) =>
     dispatch(savePaymentMethod(stripeCustomer, stripePaymentMethodId)),
 });

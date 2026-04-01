@@ -171,3 +171,10 @@ export const validateVoucher = body => {
 export const generateImageKeywords = body => {
   return post('/api/phototag-keywords', body);
 };
+
+// Check if user can be deleted and then delete the user. Endpoint logic
+// must be modified to accommodate the transaction processes used in
+// the marketplace.
+export const deleteUserAccount = body => {
+  return post('/api/delete-account', body);
+};

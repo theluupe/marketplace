@@ -18,7 +18,10 @@ const authorizationParams = {
 };
 
 const configParams = {
-  idpLogout: true,
+  // false: local OIDC session clear + redirect to returnTo. true requires issuer.end_session_endpoint;
+  // openid-client throws with Auth0 discovery in some setups ("end_session_endpoint must be configured").
+  // Full IdP sign-out is done by redirecting returnTo to Auth0 /v2/logout (see apiRouter /auth/auth0/logout).
+  idpLogout: false,
   authRequired: false,
   baseURL: baseURL,
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}`,

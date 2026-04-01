@@ -46,6 +46,7 @@ const CustomFieldEnum = props => {
       id={formId ? `${formId}.${name}` : name}
       label={label}
       disabled={disabled}
+      helpText={fieldConfig?.helpText}
       {...validateMaybe}
     >
       <option disabled value="">
@@ -78,6 +79,7 @@ const CustomFieldMultiEnum = props => {
       id={formId ? `${formId}.${name}` : name}
       name={name}
       label={label}
+      helpText={fieldConfig?.helpText}
       options={createFilterOptions(enumOptions)}
       disabled={disabled}
       {...validateMaybe}
@@ -113,6 +115,7 @@ const CustomFieldText = props => {
       name={name}
       {...(notTextArea ? { type: 'text' } : { type: 'textarea' })}
       label={label}
+      helpText={fieldConfig?.helpText}
       placeholder={placeholder}
       disabled={disabled}
       {...validateMaybe}
@@ -151,6 +154,7 @@ const CustomFieldLong = props => {
       name={name}
       type="number"
       step="1"
+      helpText={fieldConfig?.helpText}
       parse={value => {
         const parsed = Number.parseInt(value, 10);
         return Number.isNaN(parsed) ? null : parsed;
@@ -191,6 +195,7 @@ const CustomFieldBoolean = props => {
       id={formId ? `${formId}.${name}` : name}
       name={name}
       label={label}
+      helpText={fieldConfig?.helpText}
       placeholder={placeholder}
       disabled={disabled}
       {...validateMaybe}
@@ -224,6 +229,7 @@ const CustomFieldYoutube = props => {
       name={name}
       type="text"
       label={label}
+      helpText={fieldConfig?.helpText}
       placeholder={placeholder}
       validate={value => validate(value)}
     />
@@ -243,7 +249,12 @@ const CustomFieldYoutube = props => {
 const CustomExtendedDataField = props => {
   const intl = useIntl();
   const { enumOptions = [], schemaType } = props?.fieldConfig || {};
-  const renderFieldComponent = (FieldComponent, props) => <FieldComponent {...props} intl={intl} />;
+  const defaultRequiredMessage = intl.formatMessage({
+    id: 'CustomExtendedDataField.required',
+  });
+  const renderFieldComponent = (FieldComponent, props) => (
+    <FieldComponent {...props} defaultRequiredMessage={defaultRequiredMessage} intl={intl} />
+  );
 
   return schemaType === SCHEMA_TYPE_ENUM && enumOptions
     ? renderFieldComponent(CustomFieldEnum, props)

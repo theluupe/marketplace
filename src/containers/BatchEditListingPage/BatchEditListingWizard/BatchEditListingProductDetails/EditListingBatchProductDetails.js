@@ -15,9 +15,9 @@ import {
   getSelectedRowsKeys,
   requestSaveBatchListings,
   requestUpdateListing,
-  SAVE_LISTINGS_ABORTED,
-  SET_AI_TERMS_ACCEPTED,
-  SET_SELECTED_ROWS,
+  saveListingsAborted,
+  setAiTermsAccepted,
+  setSelectedRows,
 } from '../../BatchEditListingPage.duck';
 import useStickyHeader from '../useStickyHeader';
 import { PAGE_MODE_NEW } from '../../constants';
@@ -54,7 +54,7 @@ export const EditListingBatchProductDetails = props => {
   };
 
   const onSelectChange = newSelectedRowKeys => {
-    dispatch({ type: SET_SELECTED_ROWS, payload: newSelectedRowKeys });
+    dispatch(setSelectedRows(newSelectedRowKeys));
   };
 
   const onSubmit = () => {
@@ -67,21 +67,21 @@ export const EditListingBatchProductDetails = props => {
 
   const handleCancelValidationModal = () => {
     setShowValidationModal(false);
-    dispatch({ type: SAVE_LISTINGS_ABORTED });
+    dispatch(saveListingsAborted());
   };
 
   const handleCancelAiTermsModal = () => {
     setShowAiTermsModal(false);
-    dispatch({ type: SAVE_LISTINGS_ABORTED });
+    dispatch(saveListingsAborted());
   };
 
   const handleOkAiTermsModal = () => {
     if (termsAcceptedCheckbox) {
-      dispatch({ type: SET_AI_TERMS_ACCEPTED });
-      dispatch({ type: SAVE_LISTINGS_ABORTED });
+      dispatch(setAiTermsAccepted());
+      dispatch(saveListingsAborted());
       onSubmit();
     } else {
-      dispatch({ type: SAVE_LISTINGS_ABORTED });
+      dispatch(saveListingsAborted());
     }
 
     setShowAiTermsModal(false);

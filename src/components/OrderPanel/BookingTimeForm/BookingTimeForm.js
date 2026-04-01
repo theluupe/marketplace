@@ -12,6 +12,8 @@ import { Form, H6, PrimaryButton, FieldSelect } from '../../../components';
 import EstimatedCustomerBreakdownMaybe from '../EstimatedCustomerBreakdownMaybe';
 import FieldDateAndTimeInput from './FieldDateAndTimeInput';
 
+import FetchLineItemsError from '../FetchLineItemsError/FetchLineItemsError.js';
+
 import css from './BookingTimeForm.module.css';
 
 // When the values of the form are updated we need to fetch
@@ -130,7 +132,6 @@ export const BookingTimeForm = props => {
           form,
           pristine,
           handleSubmit,
-          isOwnListing,
           listingId,
           values,
           monthlyTimeSlots,
@@ -141,6 +142,8 @@ export const BookingTimeForm = props => {
           fetchLineItemsInProgress,
           fetchLineItemsError,
           payoutDetailsWarning,
+          isOwnListing,
+          finePrintComponent: FinePrint,
         } = formRenderProps;
 
         const startTime = values?.bookingStartTime ? values.bookingStartTime : null;
@@ -252,12 +255,7 @@ export const BookingTimeForm = props => {
                 />
               </div>
             ) : null}
-
-            {fetchLineItemsError ? (
-              <span className={css.sideBarError}>
-                <FormattedMessage id="BookingTimeForm.fetchLineItemsError" />
-              </span>
-            ) : null}
+            <FetchLineItemsError error={fetchLineItemsError} />
 
             <div className={css.submitButton}>
               <PrimaryButton
@@ -268,20 +266,7 @@ export const BookingTimeForm = props => {
                 <FormattedMessage id="BookingTimeForm.requestToBook" />
               </PrimaryButton>
             </div>
-
-            <p className={css.finePrint}>
-              {payoutDetailsWarning ? (
-                payoutDetailsWarning
-              ) : (
-                <FormattedMessage
-                  id={
-                    isOwnListing
-                      ? 'BookingTimeForm.ownListing'
-                      : 'BookingTimeForm.youWontBeChargedInfo'
-                  }
-                />
-              )}
-            </p>
+            <FinePrint payoutDetailsWarning={payoutDetailsWarning} isOwnListing={isOwnListing} />
           </Form>
         );
       }}

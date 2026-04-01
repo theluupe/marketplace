@@ -3,7 +3,12 @@ import classNames from 'classnames';
 
 // Import configs and util modules
 import { FormattedMessage } from '../../../../util/reactIntl';
-import { LISTING_STATE_DRAFT, STOCK_MULTIPLE_ITEMS, propTypes } from '../../../../util/types';
+import {
+  LISTING_STATE_DRAFT,
+  STOCK_INFINITE_MULTIPLE_ITEMS,
+  STOCK_MULTIPLE_ITEMS,
+  propTypes,
+} from '../../../../util/types';
 import { displayDeliveryPickup, displayDeliveryShipping } from '../../../../util/configHelpers';
 import { types as sdkTypes } from '../../../../util/sdkLoader';
 
@@ -108,6 +113,8 @@ const EditListingDeliveryPanel = props => {
     panelUpdated,
     updateInProgress,
     errors,
+    updatePageTitle: UpdatePageTitle,
+    intl,
   } = props;
 
   const classes = classNames(rootClassName || css.root, className);
@@ -115,22 +122,32 @@ const EditListingDeliveryPanel = props => {
   const priceCurrencyValid = listing?.attributes?.price?.currency === marketplaceCurrency;
   const listingType = listing?.attributes?.publicData?.listingType;
   const listingTypeConfig = listingTypes.find(conf => conf.listingType === listingType);
-  const hasStockInUse = listingTypeConfig.stockType === STOCK_MULTIPLE_ITEMS;
+  const allowOrdersOfMultipleItems = [STOCK_MULTIPLE_ITEMS, STOCK_INFINITE_MULTIPLE_ITEMS].includes(
+    listingTypeConfig?.stockType
+  );
+
+  const panelHeadingProps = isPublished
+    ? {
+        id: 'EditListingDeliveryPanel.title',
+        values: { listingTitle: <ListingLink listing={listing} />, lineBreak: <br /> },
+        messageProps: { listingTitle: listing.attributes.title },
+      }
+    : {
+        id: 'EditListingDeliveryPanel.createListingTitle',
+        values: { lineBreak: <br /> },
+        messageProps: {},
+      };
 
   return (
-    <div className={classes}>
-      <H3 as="h1">
-        {isPublished ? (
-          <FormattedMessage
-            id="EditListingDeliveryPanel.title"
-            values={{ listingTitle: <ListingLink listing={listing} />, lineBreak: <br /> }}
-          />
-        ) : (
-          <FormattedMessage
-            id="EditListingDeliveryPanel.createListingTitle"
-            values={{ lineBreak: <br /> }}
-          />
+    <main className={classes}>
+      <UpdatePageTitle
+        panelHeading={intl.formatMessage(
+          { id: panelHeadingProps.id },
+          { ...panelHeadingProps.messageProps }
         )}
+      />
+      <H3 as="h1">
+        <FormattedMessage id={panelHeadingProps.id} values={{ ...panelHeadingProps.values }} />
       </H3>
       {priceCurrencyValid ? (
         <EditListingDeliveryForm
@@ -191,7 +208,7 @@ const EditListingDeliveryPanel = props => {
           }}
           listingTypeConfig={listingTypeConfig}
           marketplaceCurrency={marketplaceCurrency}
-          hasStockInUse={hasStockInUse}
+          allowOrdersOfMultipleItems={allowOrdersOfMultipleItems}
           saveActionMsg={submitButtonText}
           disabled={disabled}
           ready={ready}
@@ -208,7 +225,7 @@ const EditListingDeliveryPanel = props => {
           />
         </div>
       )}
-    </div>
+    </main>
   );
 };
 

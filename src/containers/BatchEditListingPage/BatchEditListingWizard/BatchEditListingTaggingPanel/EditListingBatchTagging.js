@@ -13,7 +13,7 @@ import {
   getAllKeywordsReady,
   getKeywordsGenerationProgress,
   getListingFieldsOptions,
-  SET_SELECTED_ROWS,
+  setSelectedRows,
 } from '../../BatchEditListingPage.duck';
 import useStickyHeader from '../useStickyHeader';
 
@@ -38,7 +38,7 @@ export const EditListingBatchTagging = props => {
   const [showValidationModal, setShowValidationModal] = useState(false);
 
   const onSelectChange = newSelectedRowKeys => {
-    dispatch({ type: SET_SELECTED_ROWS, payload: newSelectedRowKeys });
+    dispatch(setSelectedRows(newSelectedRowKeys));
   };
 
   const handleUpdateListing = updatedData => {

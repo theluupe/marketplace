@@ -65,7 +65,7 @@
 .resetAllButton {
   composes: h5 from global;
   font-weight: var(--fontWeightMedium);
-  color: var(--colorGrey300);
+  color: var(--colorGrey600);
 
   /* Layout */
   display: inline;
@@ -77,14 +77,17 @@
   outline: none;
   text-align: left;
   border: none;
+  cursor: pointer;
 
   &:focus,
   &:hover {
-    color: var(--colorGrey700);
+    color: var(--colorBlack);
   }
 }
 
 .filtersWrapper {
+  display: flex;
+  flex-direction: column;
   /* add bottom margin so that the last filter won't be hidden
    * under the mobile safari bottom bar or the "Show results"
    * button bar */

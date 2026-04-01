@@ -1,5 +1,6 @@
 import { subUnitDivisors } from '../config/settingsCurrency';
 import { getSupportedProcessesInfo, isBookingProcessAlias } from '../transactions/transaction';
+import { sanitizeText } from './sanitize';
 
 // Generic helpers for validating config values
 
@@ -63,6 +64,7 @@ const hasClashWithBuiltInPublicDataKey = listingFields => {
     'categoryLevel1',
     'categoryLevel2',
     'categoryLevel3',
+    'cardStyle',
   ];
   let hasClash = false;
   listingFields.forEach(field => {
@@ -350,6 +352,12 @@ const validLabel = label => {
   const isValid = typeof label === 'string';
   const labelMaybe = isValid ? { label } : {};
   return [isValid, labelMaybe];
+};
+
+const validHelpText = helpText => {
+  const isValid = typeof helpText === 'string';
+  const helpTextMaybe = isValid ? { helpText: sanitizeText(helpText) } : {};
+  return [isValid, helpTextMaybe];
 };
 
 const validKey = (key, allKeys) => {
@@ -768,6 +776,8 @@ const validListingFields = (listingFields, listingTypesInUse, categoriesInUse) =
             ? validShowConfig(value)
             : name === 'saveConfig'
             ? validSaveConfig(value)
+            : name === 'helpText'
+            ? validHelpText(value)
             : [true, { [name]: value }];
 
         const hasFoundValid = !(acc.isValid === false || isValid === false);
@@ -784,6 +794,59 @@ const validListingFields = (listingFields, listingTypesInUse, categoriesInUse) =
       { config: {}, isValid: true }
     );
 
+    if (validationData.isValid) {
+      return [...acc, validationData.config];
+    } else {
+      return acc;
+    }
+  }, []);
+};
+
+const validTransactionFields = transactionFields => {
+  const keys = transactionFields.map(d => d.key);
+  const scopeOptions = ['protected'];
+  const validSchemaTypes = ['enum', 'multi-enum', 'text', 'long', 'boolean', 'youtubeVideoUrl'];
+
+  return transactionFields.reduce((acc, data) => {
+    const schemaType = data.schemaType;
+
+    const validationData = Object.entries(data).reduce(
+      (acc, entry) => {
+        const [name, value] = entry;
+
+        // Validate each property
+        const [isValid, prop] =
+          name === 'key'
+            ? validKey(value, keys)
+            : name === 'scope'
+            ? validEnumString('scope', value, scopeOptions, 'protected')
+            : name === 'numberConfig'
+            ? validNumberConfig(value)
+            : name === 'schemaType'
+            ? validEnumString('schemaType', value, validSchemaTypes)
+            : name === 'enumOptions'
+            ? validSchemaOptions(value, schemaType)
+            : name === 'filterConfig'
+            ? validFilterConfig(value, schemaType)
+            : name === 'showConfig'
+            ? validShowConfig(value)
+            : name === 'saveConfig'
+            ? validSaveConfig(value)
+            : [true, { [name]: value }];
+
+        const hasFoundValid = !(acc.isValid === false || isValid === false);
+        // Let's warn about wrong data in listing extended data config
+        if (isValid === false) {
+          console.warn(
+            `Unsupported transaction extended data configurations detected (${name}) in`,
+            data
+          );
+        }
+
+        return { config: { ...acc.config, ...prop }, isValid: hasFoundValid };
+      },
+      { config: {}, isValid: true }
+    );
     if (validationData.isValid) {
       return [...acc, validationData.config];
     } else {
@@ -831,7 +894,9 @@ const validUserFields = (userFields, userTypesInUse) => {
             ? validUserTypesForUserConfig(value, userTypesInUse)
             : name === 'saveConfig'
             ? validUserSaveConfig(value)
-            : [true, value];
+            : name === 'helpText'
+            ? validHelpText(value)
+            : [true, { [name]: value }];
 
         const hasFoundValid = !(acc.isValid === false || isValid === false);
         // Let's warn about wrong data in listing extended data config
@@ -862,6 +927,7 @@ const validListingTypes = listingTypes => {
       label,
       transactionType,
       priceVariations,
+      transactionFields,
       ...restOfListingType
     } = listingType;
     const { process: processName, alias, unitType, ...restOfTransactionType } = transactionType;
@@ -872,6 +938,13 @@ const validListingTypes = listingTypes => {
 
     const priceVariationTypeMaybe = isBookingProcessAlias(alias)
       ? { priceVariations: { enabled: priceVariations?.enabled } }
+      : {};
+
+    const hasTransactionFields = transactionFields?.length > 0;
+    const restructuredTransactionFields = transactionFields?.map(restructureTransactionFields);
+
+    const validTransactionFieldsMaybe = hasTransactionFields
+      ? { transactionFields: validTransactionFields(restructuredTransactionFields) }
       : {};
 
     if (isSupportedProcessName && isSupportedProcessAlias && isSupportedUnitType) {
@@ -886,6 +959,7 @@ const validListingTypes = listingTypes => {
             unitType,
             ...restOfTransactionType,
           },
+          ...validTransactionFieldsMaybe,
           ...priceVariationTypeMaybe,
           // e.g. stockType, availabilityType,...
           ...restOfListingType,
@@ -897,6 +971,10 @@ const validListingTypes = listingTypes => {
   }, []);
 
   return validTypes;
+};
+
+export const displayDescription = listingTypeConfig => {
+  return listingTypeConfig?.defaultListingFields?.description !== false;
 };
 
 export const displayPrice = listingTypeConfig => {
@@ -915,6 +993,10 @@ export const displayDeliveryShipping = listingTypeConfig => {
   return listingTypeConfig?.defaultListingFields?.shipping !== false;
 };
 
+export const requireListingImage = listingTypeConfig => {
+  return listingTypeConfig?.defaultListingFields?.images !== false;
+};
+
 export const requirePayoutDetails = listingTypeConfig => {
   return listingTypeConfig?.defaultListingFields?.payoutDetails !== false;
 };
@@ -924,6 +1006,14 @@ export const isPriceVariationsEnabled = (publicData, listingTypeConfig) => {
   return publicData?.priceVariationsEnabled != null
     ? publicData?.priceVariationsEnabled
     : listingTypeConfig?.priceVariations?.enabled;
+};
+
+export const allowCustomerCounterOffer = listingTypeConfig => {
+  return listingTypeConfig?.negotiationOptions?.customerCounterOffer === true;
+};
+
+export const allowProviderUpdateOffer = listingTypeConfig => {
+  return listingTypeConfig?.negotiationOptions?.providerUpdateOffer === true;
 };
 
 ///////////////////////////////////////
@@ -997,6 +1087,46 @@ const restructureListingFields = hostedListingFields => {
         : null;
     }) || []
   );
+};
+
+const restructureTransactionFields = transactionField => {
+  const {
+    key,
+    enumOptions,
+    label,
+    numberConfig = {},
+    saveConfig = {},
+    showConfig = {},
+    schemaType,
+    ...rest
+  } = transactionField;
+
+  const defaultLabel = label || key;
+  const enumOptionsMaybe = ['enum', 'multi-enum'].includes(schemaType) ? { enumOptions } : {};
+  const numberConfigMaybe = schemaType === 'long' ? { numberConfig } : {};
+  const { required: isRequired, ...restSaveConfig } = saveConfig;
+
+  return key
+    ? {
+        key,
+        label,
+        scope: 'protected',
+        schemaType,
+        ...enumOptionsMaybe,
+        ...numberConfigMaybe,
+        showConfig: {
+          ...showConfig,
+          unselectedOptions: false,
+          label: showConfig.label || defaultLabel,
+        },
+        saveConfig: {
+          ...restSaveConfig,
+          isRequired,
+          label: saveConfig.label || defaultLabel,
+        },
+        ...rest,
+      }
+    : null;
 };
 
 ///////////////////////////////////////

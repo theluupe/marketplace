@@ -147,12 +147,7 @@ class ProfileSettingsFormComponent extends Component {
           const pristineSinceLastSubmit = submittedOnce && isEqual(values, this.submittedValues);
           const submitDisabled =
             invalid || pristine || pristineSinceLastSubmit || uploadInProgress || submitInProgress;
-          const userFieldProps = getPropsForCustomUserFieldInputs(
-            userFields,
-            intl,
-            userType,
-            false
-          );
+          const userFieldProps = getPropsForCustomUserFieldInputs(userFields, userType, false);
 
           return (
             <Form
@@ -250,9 +245,11 @@ class ProfileSettingsFormComponent extends Component {
                     false
                   );
                   const showField = isCreativeSeller(userType) ? enableField : true;
+                  const { key: extendedDataKey, ...extendedDataFieldProps } = fieldProps;
                   return showField ? (
                     <CustomExtendedDataField
-                      {...fieldProps}
+                      key={extendedDataKey}
+                      {...extendedDataFieldProps}
                       formId={formId}
                       disabled={!enableField}
                     />

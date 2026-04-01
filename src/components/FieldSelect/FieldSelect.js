@@ -1,7 +1,7 @@
 import React from 'react';
 import { Field } from 'react-final-form';
 import classNames from 'classnames';
-import { ValidationError } from '../../components';
+import { ValidationError, HelpText } from '../../components';
 
 import css from './FieldSelect.module.css';
 
@@ -10,8 +10,10 @@ const FieldSelectComponent = props => {
     rootClassName,
     className,
     selectClassName,
+    labelClassName,
     id,
     label,
+    helpText,
     input,
     meta,
     children,
@@ -43,15 +45,21 @@ const FieldSelectComponent = props => {
 
   const selectProps = { className: selectClasses, id, ...input, onChange: handleChange, ...rest };
 
+  const labelClasses = classNames({
+    [css.labelDisabled]: showLabelAsDisabled,
+    [labelClassName]: !!labelClassName,
+  });
+
   const classes = classNames(rootClassName || css.root, className);
   return (
     <div className={classes}>
       {label ? (
-        <label htmlFor={id} className={classNames({ [css.labelDisabled]: showLabelAsDisabled })}>
+        <label htmlFor={id} className={labelClasses}>
           {label}
         </label>
       ) : null}
       <select {...selectProps}>{children}</select>
+      <HelpText helpText={helpText} />
       <ValidationError fieldMeta={meta} />
     </div>
   );

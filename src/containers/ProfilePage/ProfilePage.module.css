@@ -420,3 +420,13 @@
     display: none;
   }
 }
+
+.userFieldSection {
+  padding: 0px;
+  margin-bottom: 24px;
+
+  @media (--viewportMedium) {
+    padding: 0;
+    margin-bottom: 24px;
+  }
+}

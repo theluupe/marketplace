@@ -6,6 +6,7 @@ import { useConfiguration } from '../../../context/configurationContext';
 import { useRouteConfiguration } from '../../../context/routeConfigurationContext';
 import { ensureOwnListing } from '../../../util/data';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
+import { requireListingImage } from '../../../util/configHelpers';
 import {
   GRID_STYLE_SQUARE,
   LISTING_STATE_CLOSED,
@@ -35,6 +36,7 @@ import {
   NamedLink,
   PrimaryButtonInline,
   ResponsiveImage,
+  ListingCardThumbnail,
 } from '../../../components';
 
 import MenuIcon from './MenuIcon';
@@ -100,6 +102,9 @@ const ShowFinishDraftOverlayMaybe = props => {
           className={css.finishListingDraftLink}
           name="EditListingPage"
           params={{ id, slug, type: LISTING_PAGE_PARAM_TYPE_DRAFT, tab: 'photos' }}
+          ariaLabel={`${intl.formatMessage({
+            id: 'ManageListingCard.finishListingDraft',
+          })}: ${title}`}
         >
           <FormattedMessage id="ManageListingCard.finishListingDraft" />
         </NamedLink>
@@ -110,6 +115,7 @@ const ShowFinishDraftOverlayMaybe = props => {
               discardDraftLink: (
                 <InlineTextButton
                   key="discardDraftLink"
+                  id={`discardButton_${currentListingId.uuid}`}
                   rootClassName={css.alternativeActionLink}
                   disabled={!!actionsInProgressListingId}
                   onClick={() => {
@@ -252,6 +258,7 @@ const LinkToStockOrAvailabilityTab = props => {
   const {
     id,
     slug,
+    title,
     editListingLinkType,
     isBookable,
     hasListingType,
@@ -273,6 +280,9 @@ const LinkToStockOrAvailabilityTab = props => {
           className={css.manageLink}
           name="EditListingPage"
           params={{ id, slug, type: editListingLinkType, tab: 'availability' }}
+          ariaLabel={`${intl.formatMessage({
+            id: 'ManageListingCard.manageAvailability',
+          })}: ${title}`}
         >
           <FormattedMessage id="ManageListingCard.manageAvailability" />
         </NamedLink>
@@ -341,12 +351,13 @@ export const ManageListingCard = props => {
   const isClosed = state === LISTING_STATE_CLOSED;
   const isDraft = state === LISTING_STATE_DRAFT;
 
-  const { listingType, transactionProcessAlias } = publicData || {};
+  const { listingType, transactionProcessAlias, cardStyle } = publicData || {};
   const isBookable = isBookingProcessAlias(transactionProcessAlias);
   const isProductOrder = isPurchaseProcessAlias(transactionProcessAlias);
   const hasListingType = !!listingType;
   const validListingTypes = config.listing.listingTypes;
   const foundListingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
+  const showListingImage = requireListingImage(foundListingTypeConfig);
   const listingTypeLabel = foundListingTypeConfig.label;
 
   const currentStock = currentListing.currentStock?.attributes?.quantity;
@@ -410,20 +421,23 @@ export const ManageListingCard = props => {
         onMouseOver={onOverListingLink}
         onTouchStart={onOverListingLink}
       >
-        <AspectRatioWrapperMaybe
-          width={aspectWidth}
-          height={aspectHeight}
-          isSquareLayout={gridLayout === GRID_STYLE_SQUARE}
-        >
-          <ResponsiveImage
-            rootClassName={gridLayout === GRID_STYLE_SQUARE ? css.rootForImage : ''}
-            alt={title}
-            image={firstImage}
-            variants={variants}
-            sizes={renderSizes}
-          />
-        </AspectRatioWrapperMaybe>
-
+        {showListingImage ? (
+          <AspectRatioWrapperMaybe
+            width={aspectWidth}
+            height={aspectHeight}
+            isSquareLayout={gridLayout === GRID_STYLE_SQUARE}
+          >
+            <ResponsiveImage
+              rootClassName={gridLayout === GRID_STYLE_SQUARE ? css.rootForImage : ''}
+              alt={title}
+              image={firstImage}
+              variants={variants}
+              sizes={renderSizes}
+            />
+          </AspectRatioWrapperMaybe>
+        ) : (
+          <ListingCardThumbnail style={cardStyle} width={aspectWidth} height={aspectHeight} />
+        )}
         <div className={classNames(css.menuOverlayWrapper)}>
           <div className={classNames(css.menuOverlay, { [css.menuOverlayOpen]: isMenuOpen })} />
         </div>
@@ -431,7 +445,7 @@ export const ManageListingCard = props => {
           <div className={css.menubarGradient} />
           <div className={css.menubar}>
             <Menu
-              className={classNames(css.menu, { [css.cardIsOpen]: !isClosed })}
+              className={classNames(css.menu, { [css.cardIsOpen]: !(isClosed || isDraft) })}
               contentPlacementOffset={MENU_CONTENT_OFFSET}
               mobileMaxWidth={MOBILE_MAX_WIDTH}
               contentPosition="left"
@@ -443,7 +457,11 @@ export const ManageListingCard = props => {
               isOpen={isMenuOpen}
             >
               <MenuLabel className={css.menuLabel} isOpenClassName={css.listingMenuIsOpen}>
-                <div className={css.iconWrapper}>
+                <div
+                  className={css.iconWrapper}
+                  role="button"
+                  aria-label={intl.formatMessage({ id: 'ManageListingCard.screenreader.menu' })}
+                >
                   <MenuIcon className={css.menuIcon} isActive={isMenuOpen} />
                 </div>
               </MenuLabel>
@@ -526,6 +544,7 @@ export const ManageListingCard = props => {
             <LinkToStockOrAvailabilityTab
               id={id}
               slug={slug}
+              title={title}
               editListingLinkType={editListingLinkType}
               isBookable={isBookable}
               currentStock={currentStock}

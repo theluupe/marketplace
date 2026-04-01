@@ -1,24 +1,13 @@
-import reverse from 'lodash/reverse';
-import sortBy from 'lodash/sortBy';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { storableError } from '../../util/errors';
-import { parse } from '../../util/urlHelpers';
-import { getAllTransitionsForEveryProcess } from '../../transactions/transaction';
+import { parse, getValidInboxSort } from '../../util/urlHelpers';
+import { getSupportedProcessesInfo } from '../../transactions/transaction';
 import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
+import { fetchCurrentUser } from '../../ducks/user.duck';
 
-const sortedTransactions = txs =>
-  reverse(
-    sortBy(txs, tx => {
-      return tx.attributes ? tx.attributes.lastTransitionedAt : null;
-    })
-  );
+const INBOX_PAGE_SIZE = 10;
 
-// ================ Action types ================ //
-
-export const FETCH_ORDERS_OR_SALES_REQUEST = 'app/InboxPage/FETCH_ORDERS_OR_SALES_REQUEST';
-export const FETCH_ORDERS_OR_SALES_SUCCESS = 'app/InboxPage/FETCH_ORDERS_OR_SALES_SUCCESS';
-export const FETCH_ORDERS_OR_SALES_ERROR = 'app/InboxPage/FETCH_ORDERS_OR_SALES_ERROR';
-
-// ================ Reducer ================ //
+// ================ Helper functions ================ //
 
 const entityRefs = entities =>
   entities.map(entity => ({
@@ -26,54 +15,15 @@ const entityRefs = entities =>
     type: entity.type,
   }));
 
-const initialState = {
-  fetchInProgress: false,
-  fetchOrdersOrSalesError: null,
-  pagination: null,
-  transactionRefs: [],
-};
-
-export default function inboxPageReducer(state = initialState, action = {}) {
-  const { type, payload } = action;
-  switch (type) {
-    case FETCH_ORDERS_OR_SALES_REQUEST:
-      return { ...state, fetchInProgress: true, fetchOrdersOrSalesError: null };
-    case FETCH_ORDERS_OR_SALES_SUCCESS: {
-      const transactions = sortedTransactions(payload.data.data);
-      return {
-        ...state,
-        fetchInProgress: false,
-        transactionRefs: entityRefs(transactions),
-        pagination: payload.data.meta,
-      };
-    }
-    case FETCH_ORDERS_OR_SALES_ERROR:
-      console.error(payload); // eslint-disable-line
-      return { ...state, fetchInProgress: false, fetchOrdersOrSalesError: payload };
-
-    default:
-      return state;
+// `/inbox`: finish fetchCurrentUser (and nested has-listings fetch) before redirect.
+const loadInboxBaseDataThunk = createAsyncThunk(
+  'InboxPage/loadInboxBaseData',
+  async (_, { dispatch }) => {
+    await dispatch(fetchCurrentUser());
   }
-}
+);
 
-// ================ Action creators ================ //
-
-const fetchOrdersOrSalesRequest = () => ({ type: FETCH_ORDERS_OR_SALES_REQUEST });
-const fetchOrdersOrSalesSuccess = response => ({
-  type: FETCH_ORDERS_OR_SALES_SUCCESS,
-  payload: response,
-});
-const fetchOrdersOrSalesError = e => ({
-  type: FETCH_ORDERS_OR_SALES_ERROR,
-  error: true,
-  payload: e,
-});
-
-// ================ Thunks ================ //
-
-const INBOX_PAGE_SIZE = 10;
-
-export const loadData = (params, search) => (dispatch, getState, sdk) => {
+const loadDataPayloadCreator = ({ params, search }, { dispatch, rejectWithValue, extra: sdk }) => {
   const { tab } = params;
 
   const onlyFilterValues = {
@@ -86,13 +36,12 @@ export const loadData = (params, search) => (dispatch, getState, sdk) => {
     return Promise.reject(new Error(`Invalid tab for InboxPage: ${tab}`));
   }
 
-  dispatch(fetchOrdersOrSalesRequest());
-
-  const { page = 1 } = parse(search);
+  const { page = 1, sort } = parse(search);
+  const processNames = getSupportedProcessesInfo().map(p => p.name);
 
   const apiQueryParams = {
     only: onlyFilter,
-    lastTransitions: getAllTransitionsForEveryProcess(),
+    processNames,
     include: [
       'listing',
       'provider',
@@ -115,17 +64,70 @@ export const loadData = (params, search) => (dispatch, getState, sdk) => {
     'fields.image': ['variants.square-small', 'variants.square-small2x'],
     page,
     perPage: INBOX_PAGE_SIZE,
+    ...getValidInboxSort(sort),
   };
 
   return sdk.transactions
     .query(apiQueryParams)
     .then(response => {
       dispatch(addMarketplaceEntities(response));
-      dispatch(fetchOrdersOrSalesSuccess(response));
       return response;
     })
     .catch(e => {
-      dispatch(fetchOrdersOrSalesError(storableError(e)));
-      throw e;
+      return rejectWithValue(storableError(e));
     });
+};
+
+export const loadDataThunk = createAsyncThunk('InboxPage/loadData', loadDataPayloadCreator);
+
+// ================ Slice ================ //
+
+const inboxPageSlice = createSlice({
+  name: 'InboxPage',
+  initialState: {
+    fetchInProgress: false,
+    fetchOrdersOrSalesError: null,
+    pagination: null,
+    transactionRefs: [],
+    inboxBaseDataStatus: 'idle',
+  },
+  reducers: {},
+  extraReducers: builder => {
+    builder
+      .addCase(loadInboxBaseDataThunk.pending, state => {
+        state.inboxBaseDataStatus = 'loading';
+      })
+      .addCase(loadInboxBaseDataThunk.fulfilled, state => {
+        state.inboxBaseDataStatus = 'succeeded';
+      })
+      .addCase(loadInboxBaseDataThunk.rejected, state => {
+        state.inboxBaseDataStatus = 'failed';
+      })
+      .addCase(loadDataThunk.pending, state => {
+        state.fetchInProgress = true;
+        state.fetchOrdersOrSalesError = null;
+      })
+      .addCase(loadDataThunk.fulfilled, (state, action) => {
+        const transactions = action.payload.data.data;
+        state.fetchInProgress = false;
+        state.transactionRefs = entityRefs(transactions);
+        state.pagination = action.payload.data.meta;
+      })
+      .addCase(loadDataThunk.rejected, (state, action) => {
+        console.error(action.payload || action.error); // eslint-disable-line
+        state.fetchInProgress = false;
+        state.fetchOrdersOrSalesError = action.payload;
+      });
+  },
+});
+
+export default inboxPageSlice.reducer;
+
+// Backward compatible wrapper for the thunk
+export const loadData = (params, search) => (dispatch, getState, sdk) => {
+  return dispatch(loadDataThunk({ params, search }));
+};
+
+export const loadInboxBaseData = () => (dispatch, getState, sdk) => {
+  return dispatch(loadInboxBaseDataThunk());
 };
