@@ -144,7 +144,7 @@
 
 .transitionDate {
   composes: marketplaceMessageDateFontStyles from global;
-  color: var(--colorGrey600);
+  color: var(--colorGrey400);
   margin: 7px 0 0 0;
 
   @media (--viewportMedium) {

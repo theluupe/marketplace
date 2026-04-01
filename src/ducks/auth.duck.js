@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
+import { apiBaseUrl, createUserWithIdp } from '../util/api';
 import { fetchCurrentUser } from './user.duck';
-import { createUserWithIdp } from '../util/api';
 
 const authenticated = authInfo => authInfo?.isAnonymous === false;
 const loggedInAs = authInfo => authInfo?.isLoggedInAs === true;
@@ -41,28 +41,24 @@ const authInfoThunk = createAsyncThunk('auth/authInfo', (_, thunkAPI) => {
 });
 
 /**
- * Luupe: after SDK logout, redirect to Auth0 logout so the IdP session ends.
- * We do not dispatch clearCurrentUser here — doing so before the Auth0 redirect
- * can send users to the app login screen and skip Auth0 logout (see legacy
- * comment on this flow).
+ * Server handles Sharetribe revoke + OIDC + Auth0 (GET /api/auth/auth0/logout).
+ * After location.replace we return a promise that never settles so logoutThunk.fulfilled does
+ * not run before the document unloads. That mirrors legacy Luupe (only LOGOUT_REQUEST before
+ * redirect). If we fulfilled immediately, root state / isAuthenticated flipped, protected
+ * routes rendered NamedRedirect, and client routing cancelled full-page logout.
  */
 const logoutThunk = createAsyncThunk(
   'auth/logout',
-  (_, thunkAPI) => {
-    const { rejectWithValue, extra: sdk } = thunkAPI;
-
-    return sdk
-      .logout()
-      .then(() => {
-        if (typeof window !== 'undefined') {
-          const AUTH0_DOMAIN = process.env.REACT_APP_AUTH0_DOMAIN;
-          const AUTH0_CLIENT_ID = process.env.REACT_APP_AUTH0_MARKETPLACE_CLIENT_ID;
-          const returnTo = encodeURIComponent(process.env.REACT_APP_MARKETPLACE_ROOT_URL || '');
-          window.location.href = `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${returnTo}`;
-        }
-        return true;
-      })
-      .catch(e => rejectWithValue(storableError(e)));
+  (_, { rejectWithValue }) => {
+    if (typeof window === 'undefined') {
+      return Promise.resolve(true);
+    }
+    try {
+      window.location.replace(`${apiBaseUrl()}/api/auth/auth0/logout`);
+      return new Promise(() => {});
+    } catch (e) {
+      return rejectWithValue(storableError(e));
+    }
   },
   {
     condition: (_, { getState }) => {

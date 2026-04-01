@@ -26,6 +26,7 @@ import css from './LayoutSideNavigation.module.css';
  * @param {string?} props.accountSettingsNavProps.currentPage
  * @param {boolean?} props.accountSettingsNavProps.showPaymentMethods
  * @param {boolean?} props.accountSettingsNavProps.showPayoutDetails
+ * @param {boolean?} props.accountSettingsNavProps.showBrandManagement
  * @returns {JSX.Element} LayoutComposer that expects children to be a function.
  */
 const LayoutSideNavigation = props => {

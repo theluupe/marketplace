@@ -8,7 +8,7 @@ import { createResourceLocatorString } from '../../util/routes';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { ensureCurrentUser } from '../../util/data';
 import { propTypes } from '../../util/types';
-import { showPaymentDetailsForUser } from '../../util/userHelpers';
+import { showPaymentDetailsForUser, showBrandManagementTab } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 import {
   stripeAccountClearError,
@@ -180,6 +180,7 @@ export const StripePayoutPageComponent = props => {
     currentPage: 'StripePayoutPage',
     showPaymentMethods,
     showPayoutDetails,
+    showBrandManagement: showBrandManagementTab(currentUser),
   };
 
   return (

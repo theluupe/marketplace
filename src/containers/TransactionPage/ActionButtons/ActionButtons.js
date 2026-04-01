@@ -5,7 +5,7 @@ import { useIntl } from '../../../util/reactIntl';
 import { getStartOf } from '../../../util/dates';
 import { allowCustomerCounterOffer, allowProviderUpdateOffer } from '../../../util/configHelpers';
 
-import { PrimaryButton, SecondaryButton, Button } from '../../../components';
+import { SecondaryButton, Button } from '../../../components';
 
 import css from './ActionButtons.module.css';
 
@@ -219,14 +219,14 @@ const ActionButtons = props => {
             const { disabled, reason, hidden } = primaryButtonStatus;
             return primaryButtonProps && hasValidData && !hidden ? (
               <div className={css.actionButtonWrapper} key={buttonType}>
-                <PrimaryButton
+                <SecondaryButton
                   id={`${containerId}_${ACTION_BUTTON_1_ID}`}
                   inProgress={primaryButtonProps.inProgress}
                   disabled={buttonsDisabled || disabled}
                   onClick={primaryButtonProps.onAction}
                 >
                   {primaryButtonProps.buttonText}
-                </PrimaryButton>
+                </SecondaryButton>
                 {disabled && <div className={css.finePrint}>{reason}</div>}
               </div>
             ) : null;

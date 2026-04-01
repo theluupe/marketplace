@@ -8,12 +8,7 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { handleToggleFavorites } from '../../util/favorites';
 import { injectIntl, intlShape, FormattedMessage } from '../../util/reactIntl';
 import { createResourceLocatorString } from '../../util/routes';
-import {
-  GRID_STYLE_SQUARE,
-  LISTING_GRID_DEFAULTS,
-  LISTING_GRID_ROLE,
-  propTypes,
-} from '../../util/types';
+import { GRID_STYLE_SQUARE, LISTING_GRID_ROLE, propTypes } from '../../util/types';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
 import { fetchCurrentUser } from '../../ducks/user.duck';
 
@@ -44,24 +39,7 @@ export const FavoriteListingsPageComponent = props => {
   const location = useLocation();
   const routeConfiguration = useRouteConfiguration();
   const title = intl.formatMessage({ id: 'FavoriteListingsPage.title' });
-  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.FAVORITE);
   const currentUserFavorites = currentUser?.attributes?.profile?.privateData?.favorites || {};
-
-  useEffect(() => {
-    const validListingType = !queryParams.pub_listingType;
-    const shouldUpdateRoute = validListingType;
-    if (shouldUpdateRoute) {
-      const pathParams = {};
-      const queryParams = { pub_listingType: defaultListingType };
-      const destination = createResourceLocatorString(
-        'FavoriteListingsPage',
-        routeConfiguration,
-        pathParams,
-        queryParams
-      );
-      history.replace(destination);
-    }
-  }, []);
 
   const onTabChange = key => {
     const pathParams = {};

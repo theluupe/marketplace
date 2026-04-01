@@ -11,6 +11,7 @@ import { ensureCurrentUser } from '../../util/data';
 import {
   showCreateListingLinkForUser,
   showPaymentDetailsForUser,
+  showBrandManagementTab,
   initialValuesForUserFields,
   pickUserFieldsData,
 } from '../../util/userHelpers';
@@ -116,6 +117,7 @@ export const ManageAccountPageComponent = props => {
     currentPage: 'ManageAccountPage',
     showPaymentMethods,
     showPayoutDetails,
+    showBrandManagement: showBrandManagementTab(currentUser),
   };
 
   return (

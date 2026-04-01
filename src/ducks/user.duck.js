@@ -46,7 +46,7 @@ const fetchCurrentUserHasListingsPayloadCreator = (_, thunkAPI) => {
   const params = {
     // Since we are only interested in if the user has published
     // listings, we only need at most one result.
-    states: 'published',
+    states: ['published'],
     page: 1,
     perPage: 1,
   };
@@ -157,12 +157,10 @@ export const fetchCurrentUserNotifications = () => (dispatch, getState, sdk) => 
 const fetchCurrentUserPayloadCreator = (options, thunkAPI) => {
   const { getState, dispatch, extra: sdk, rejectWithValue } = thunkAPI;
   const state = getState();
-  const { currentUserHasListings, currentUserShowTimestamp } = state.user || {};
+  const { currentUserShowTimestamp } = state.user || {};
   const { isAuthenticated } = state.auth;
   const {
     callParams = null,
-    updateHasListings = true,
-    updateNotifications = true,
     afterLogin,
     enforce = false, // Automatic emailVerification might be called too fast
   } = options || {};
@@ -217,22 +215,6 @@ const fetchCurrentUserPayloadCreator = (options, thunkAPI) => {
       return currentUser;
     })
     .then(currentUser => {
-      // If currentUser is not active (e.g. in 'pending-approval' state),
-      // then they don't have listings or transactions that we care about.
-      if (isUserAuthorized(currentUser)) {
-        if (currentUserHasListings === false && updateHasListings !== false) {
-          dispatch(fetchCurrentUserHasListings());
-        }
-
-        if (updateNotifications !== false) {
-          dispatch(fetchCurrentUserNotifications());
-        }
-
-        if (!currentUser.attributes.emailVerified) {
-          dispatch(fetchCurrentUserHasOrders());
-        }
-      }
-
       // Make sure auth info is up to date
       dispatch(authInfo());
       return currentUser;
@@ -260,8 +242,23 @@ export const fetchCurrentUserThunk = createAsyncThunk(
  * @param {boolean} [options.afterLogin]          Fetch is no-op for unauthenticated users except after login() call
  * @param {boolean} [options.enforce]             Enforce the call even if the currentUser entity is freshly fetched.
  */
-export const fetchCurrentUser = options => (dispatch, getState, sdk) => {
-  return dispatch(fetchCurrentUserThunk(options)).unwrap();
+export const fetchCurrentUser = options => async (dispatch, getState, sdk) => {
+  const state = getState();
+  const { currentUserHasListings } = state.user || {};
+  const { updateHasListings = true, updateNotifications = true } = options || {};
+  const currentUser = await dispatch(fetchCurrentUserThunk(options)).unwrap();
+  if (currentUser && isUserAuthorized(currentUser)) {
+    if (currentUserHasListings === false && updateHasListings !== false) {
+      dispatch(fetchCurrentUserHasListings());
+    }
+    if (updateNotifications !== false) {
+      dispatch(fetchCurrentUserNotifications());
+    }
+    if (!currentUser.attributes.emailVerified) {
+      dispatch(fetchCurrentUserHasOrders());
+    }
+  }
+  return currentUser;
 };
 
 /////////////////////////////////////////////

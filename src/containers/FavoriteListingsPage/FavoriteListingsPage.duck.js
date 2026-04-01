@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 import { storableError } from '../../util/errors';
 import { createImageVariantConfig } from '../../util/sdkLoader';
+import { LISTING_GRID_DEFAULTS, LISTING_GRID_ROLE } from '../../util/types';
 import { parse } from '../../util/urlHelpers';
 
 import { RESULT_PAGE_SIZE } from '../ManageListingsPage/ManageListingsPage.duck';
@@ -125,6 +126,8 @@ export const queryFavoriteListings = queryParams => (dispatch, getState, sdk) =>
 export const loadData = (params, search, config) => (dispatch, getState, sdk) => {
   const queryParams = parse(search);
   const page = queryParams.page || 1;
+  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.FAVORITE);
+  const pub_listingType = queryParams.pub_listingType || defaultListingType;
   const {
     aspectWidth = 1,
     aspectHeight = 1,
@@ -137,6 +140,7 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
     dispatch(
       queryFavoriteListings({
         ...queryParams,
+        pub_listingType,
         page,
         perPage: RESULT_PAGE_SIZE,
         include: ['author', 'author.profileImage', 'images'],

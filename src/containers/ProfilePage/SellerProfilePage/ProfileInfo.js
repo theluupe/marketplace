@@ -10,6 +10,7 @@ import {
   getFieldValue,
   pickCustomFieldProps,
 } from '../../../util/fieldHelpers';
+import { getUserTypeFieldInputs } from '../../../util/userHelpers';
 import { isValidURL, stripUrl } from '../../../util/urlHelpers';
 
 import {
@@ -31,10 +32,19 @@ const PRONOUNS_NOT_LISTED = 'not-listed';
 const PREFER_NOT_TO_SAY_PRONOUNS = 'prefer-not-to-say';
 
 export const CustomUserFields = props => {
-  const { publicData, metadata, userFieldConfig, intl } = props;
+  const { publicData, metadata, userFieldConfig, intl, isPublicProfile = true } = props;
+
+  const userType = publicData?.userType;
+  const isBrandAdmin = metadata?.isBrandAdmin || false;
+
+  const isAllowedOnProfile = fieldConfig =>
+    getUserTypeFieldInputs(userType, fieldConfig.key, isBrandAdmin, false, isPublicProfile);
 
   const shouldPickUserField = fieldConfig =>
-    fieldConfig?.scope === 'public' && fieldConfig?.showConfig?.displayInProfile !== false;
+    fieldConfig?.scope === 'public' &&
+    fieldConfig?.showConfig?.displayInProfile !== false &&
+    isAllowedOnProfile(fieldConfig);
+
   const propsForCustomFields =
     pickCustomFieldProps(
       { publicData, metadata },
@@ -46,15 +56,15 @@ export const CustomUserFields = props => {
   const pickUserFields = (filteredConfigs, config) => {
     const { key, schemaType, enumOptions, userTypeConfig = {}, showConfig = {} } = config;
     const { limitToUserTypeIds, userTypeIds } = userTypeConfig;
-    const userType = publicData.userType;
-    const isTargetUserType = !limitToUserTypeIds || userTypeIds.includes(userType);
+    const profileUserType = publicData.userType;
+    const isTargetUserType = !limitToUserTypeIds || userTypeIds.includes(profileUserType);
 
     const { label, displayInProfile } = showConfig;
     const publicDataValue = getFieldValue(publicData, key);
     const metadataValue = getFieldValue(metadata, key);
     const value = publicDataValue !== null ? publicDataValue : metadataValue;
 
-    if (displayInProfile && isTargetUserType && value !== null) {
+    if (displayInProfile && isTargetUserType && value !== null && isAllowedOnProfile(config)) {
       const detailValue = getDetailCustomFieldValue(
         enumOptions,
         value,
@@ -122,6 +132,7 @@ export function UserProfileInfo({ user, config, intl }) {
       metadata={metadata}
       userFieldConfig={userFields}
       intl={intl}
+      isPublicProfile
     />
   );
 }

@@ -24,12 +24,16 @@ const BatchEditListingPage = loadable(() => import(/* webpackChunkName: "BatchEd
 const EmailVerificationPage = loadable(() => import(/* webpackChunkName: "EmailVerificationPage" */ '../containers/EmailVerificationPage/EmailVerificationPage'));
 const FavoriteListingsPage = loadable(() => import(/* webpackChunkName: "FavoriteListingsPage" */ '../containers/FavoriteListingsPage/FavoriteListingsPage'));
 const InboxPage = loadable(() => import(/* webpackChunkName: "InboxPage" */ '../containers/InboxPage/InboxPage'));
+const InboxDefaultRedirect = loadable(() =>
+  import(/* webpackChunkName: "InboxDefaultRedirect" */ '../containers/InboxPage/InboxDefaultRedirect')
+);
 const MakeOfferPage = loadable(() => import(/* webpackChunkName: "MakeOfferPage" */ '../containers/MakeOfferPage/MakeOfferPage'));
 const LandingPage = loadable(() => import(/* webpackChunkName: "LandingPage" */ '../containers/LandingPage/LandingPage'));
 const ListingPageCoverPhoto = loadable(() => import(/* webpackChunkName: "ListingPageCoverPhoto" */ /* webpackPrefetch: true */ '../containers/ListingPage/ListingPageCoverPhoto'));
 const ListingPageCarousel = loadable(() => import(/* webpackChunkName: "ListingPageCarousel" */ /* webpackPrefetch: true */ '../containers/ListingPage/ListingPageCarousel'));
 const ManageListingsPage = loadable(() => import(/* webpackChunkName: "ManageListingsPage" */ '../containers/ManageListingsPage/ManageListingsPage'));
 const ManageAccountPage = loadable(() => import(/* webpackChunkName: "ManageAccountPage" */ '../containers/ManageAccountPage/ManageAccountPage'));
+const BrandManagementPage = loadable(() => import(/* webpackChunkName: "BrandManagementPage" */ '../containers/BrandManagementPage/BrandManagementPage'));
 const PaymentMethodsPage = loadable(() => import(/* webpackChunkName: "PaymentMethodsPage" */ '../containers/PaymentMethodsPage/PaymentMethodsPage'));
 const PrivacyPolicyPage = loadable(() => import(/* webpackChunkName: "PrivacyPolicyPage" */ '../containers/PrivacyPolicyPage/PrivacyPolicyPage'));
 const ProfilePage = loadable(() => import(/* webpackChunkName: "ProfilePage" */ '../containers/ProfilePage/ProfilePage'));
@@ -50,7 +54,8 @@ export const ACCOUNT_SETTINGS_PAGES = [
   'ContactDetailsPage',
   'StripePayoutPage',
   'PaymentMethodsPage',
-  'ManageAccountPage'
+  'ManageAccountPage',
+  'BrandManagementPage',
 ];
 
 // https://en.wikipedia.org/wiki/Universally_unique_identifier#Nil_UUID
@@ -303,6 +308,14 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       loadData: pageDataLoadingAPI.ContactDetailsPage.loadData,
     },
     {
+      path: '/account/brand-management',
+      name: 'BrandManagementPage',
+      auth: true,
+      authPage: 'LoginPage',
+      component: BrandManagementPage,
+      loadData: pageDataLoadingAPI.BrandManagementPage.loadData,
+    },
+    {
       path: '/account/payments',
       name: 'StripePayoutPage',
       auth: true,
@@ -361,10 +374,10 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       extraProps: { tab: 'signup' },
       loadData: pageDataLoadingAPI.AuthenticationPage.loadData,
     },
-    // Add BrandUser to an existing Brand
+    // Add BrandUser to an existing Brand (distinct name so pathByRouteName targets this path, not /signup/:userType)
     {
       path: '/signup/:userType/:brandStudioId',
-      name: 'SignupForUserTypePage',
+      name: 'SignupForBrandUserPage',
       component: AuthenticationPage,
       extraProps: { tab: 'signup' },
       loadData: pageDataLoadingAPI.AuthenticationPage.loadData,
@@ -385,7 +398,8 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       name: 'InboxBasePage',
       auth: true,
       authPage: 'LoginPage',
-      component: () => <NamedRedirect name="InboxPage" params={{ tab: 'sales' }} />,
+      component: InboxDefaultRedirect,
+      loadData: pageDataLoadingAPI.InboxBasePage.loadData,
     },
     {
       path: '/inbox/:tab',

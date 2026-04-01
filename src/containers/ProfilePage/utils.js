@@ -91,11 +91,13 @@ export const getItems = (
     case LISTING_TAB_TYPES.PORTFOLIO: {
       const selectedListing = listings.find(listing => listing.id.uuid === currentCategory);
       const images =
-        selectedListing?.images?.map(image => {
-          const imgWithTitle = { ...image };
-          imgWithTitle.attributes.title = selectedListing?.attributes?.title;
-          return imgWithTitle;
-        }) || [];
+        selectedListing?.images?.map(image => ({
+          ...image,
+          attributes: {
+            ...image.attributes,
+            title: selectedListing?.attributes?.title,
+          },
+        })) || [];
       const videos =
         selectedListing?.attributes?.publicData?.videos?.map(video => {
           const videoWithTitle = { ...video, id: { uuid: video.id }, type: 'video' };

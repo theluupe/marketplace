@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { bool, func, object, string } from 'prop-types';
+import { arrayOf, bool, func, object, string } from 'prop-types';
 import { Form as FinalForm } from 'react-final-form';
 
 // Import contexts and util modules
@@ -58,14 +58,7 @@ export const loadInitialData = ({
   // NOTE: if unit type is line-item/item, quantity needs to be added.
   // The way to pass it to checkout page is through pageData.orderData
   const shippingDetails = {};
-  const optionalPaymentParams = {};
-  const orderParams = getOrderParams(
-    pageData,
-    shippingDetails,
-    optionalPaymentParams,
-    config,
-    location
-  );
+  const orderParams = getOrderParams(pageData, shippingDetails, config, location);
 
   const tx = pageData ? pageData.transaction : null;
   const pageDataListing = pageData.listing;
@@ -206,12 +199,11 @@ const handleSubmit = (values, process, props, submitting, setSubmitting) => {
 
   // There are multiple XHR calls that need to be made against Sharetribe Marketplace API on checkout without payments
   processCheckoutWithoutPayment(orderParams, requestParams)
-    .then(response => {
-      const { orderId } = response;
+    .then(order => {
       setSubmitting(false);
 
       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
-        id: orderId.uuid,
+        id: order.id.uuid,
       });
       const initialValues = {};
 
@@ -247,7 +239,7 @@ const handleSubmit = (values, process, props, submitting, setSubmitting) => {
  * @param {Function} props.onSubmitCallback - The function to submit the callback
  * @param {propTypes.error} props.initiateOrderError - The error message for the initiate order
  * @param {Object} props.config - The config
- * @param {Object} props.routeConfiguration - The route configuration
+ * @param {Array<Object>} props.routeConfiguration - The route configuration
  * @param {Object} props.history - The history object
  * @param {Object} props.history.push - The push state function of the history object
  * @returns {JSX.Element}
@@ -259,7 +251,7 @@ export const CheckoutPageWithoutPayment = props => {
     scrollingDisabled,
     speculateTransactionError,
     speculatedTransaction: speculatedTransactionMaybe,
-    initiateOrderError,
+    initiateOrderError = null,
     intl,
     currentUser,
     showListingImage,
@@ -399,10 +391,6 @@ export const CheckoutPageWithoutPayment = props => {
   );
 };
 
-CheckoutPageWithoutPayment.defaultProps = {
-  initiateOrderError: null,
-};
-
 CheckoutPageWithoutPayment.propTypes = {
   scrollingDisabled: bool.isRequired,
   initiateOrderError: propTypes.error,
@@ -416,7 +404,7 @@ CheckoutPageWithoutPayment.propTypes = {
   onInitiateOrder: func.isRequired,
   onSubmitCallback: func.isRequired,
   history: object.isRequired,
-  routeConfiguration: object.isRequired,
+  routeConfiguration: arrayOf(object).isRequired,
   dispatch: func.isRequired,
   setPageData: func.isRequired,
   sessionStorageKey: string.isRequired,

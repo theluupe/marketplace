@@ -267,6 +267,24 @@ export const getCurrentUserTypeRoles = (config, currentUser) => {
 };
 
 /**
+ * Default inbox path segment for /inbox (matches topbar inbox link).
+ * Only provider role → sales; only customer → orders; both → sales if has listings else orders.
+ */
+export const getDefaultInboxTab = (config, currentUser, currentUserHasListings) => {
+  const { customer: isCustomer, provider: isProvider } = getCurrentUserTypeRoles(
+    config,
+    currentUser
+  );
+  if (!isCustomer) {
+    return 'sales';
+  }
+  if (!isProvider) {
+    return 'orders';
+  }
+  return currentUserHasListings ? 'sales' : 'orders';
+};
+
+/**
  * THE LUUPE CUSTOM HELPERS
  */
 export const isStudioBrand = userType => {
@@ -313,6 +331,10 @@ export const isStudioUser = profile => {
   }
   return false;
 };
+
+/** Brand admins (studio-brand primary account) may access brand team management in account settings. */
+export const showBrandManagementTab = currentUser =>
+  currentUser?.attributes?.profile?.metadata?.isBrandAdmin === true;
 
 export const getBrandUserFieldInputs = (fieldKey, isBrandAdmin) => {
   if (isBrandAdmin) {

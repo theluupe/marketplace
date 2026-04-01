@@ -1,5 +1,4 @@
 import { combineReducers } from '@reduxjs/toolkit';
-import { logoutThunk } from './ducks/auth.duck';
 import * as globalReducers from './ducks';
 import * as pageReducers from './containers/reducers';
 
@@ -17,16 +16,12 @@ const appReducer = combineReducers({
 
 const createReducer = () => {
   return (state, action) => {
-    // Clear state when logout is successful
-    const shouldClearState = action.type === logoutThunk.fulfilled.type;
-    const appState = shouldClearState ? undefined : state;
-
-    // Clear sessionStorage when logging out.
-    if (shouldClearState && typeof window !== 'undefined' && !!window.sessionStorage) {
-      window.sessionStorage.clear();
-    }
-
-    return appReducer(appState, action);
+    // Do not reset the store when logoutThunk fulfills during client logout: the thunk keeps
+    // the logout promise pending until the document unloads so isAuthenticated stays true and
+    // protected routes do not render NamedRedirect (racing full-page /api/auth/auth0/logout). Matches
+    // legacy Luupe: only LOGOUT_REQUEST before redirect, never USER_LOGOUT / store clear:
+    // https://github.com/theluupe/marketplace/blob/dev/src/ducks/auth.duck.js
+    return appReducer(state, action);
   };
 };
 

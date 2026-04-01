@@ -8,10 +8,25 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
-const { deserialize } = require('./api-util/sdk');
+const log = require('./log');
+const { deserialize, getSdk } = require('./api-util/sdk');
 const { authenticateAuth0, authenticateAuth0Callback } = require('./api/auth/auth0');
 const deleteAccount = require('./api/delete-account');
 const createUserWithIdp = require('./api/auth/createUserWithIdp');
+
+const marketplaceRootUrl = process.env.REACT_APP_MARKETPLACE_ROOT_URL || '/';
+
+function auth0V2LogoutRedirectTarget() {
+  const domain = process.env.AUTH0_DOMAIN;
+  const clientId = process.env.AUTH0_MARKETPLACE_CLIENT_ID;
+  if (!domain || !clientId) {
+    return marketplaceRootUrl;
+  }
+  const returnTo = encodeURIComponent(marketplaceRootUrl);
+  return `https://${domain}/v2/logout?client_id=${encodeURIComponent(
+    clientId
+  )}&returnTo=${returnTo}`;
+}
 const initiateLoginAs = require('./api/initiate-login-as');
 const loginAs = require('./api/login-as');
 const transactionLineItems = require('./api/transaction-line-items');
@@ -104,9 +119,9 @@ const useDevApiServer = process.env.NODE_ENV === 'development';
 if (useDevApiServer) {
   router.get('/scrips-retry/productListingCreated/:listingId', retryProductListingCreatedScript);
   router.get('/scrips-retry/userCreated/:userId', retryUserCreatedScript);
-  router.get('/scrips-retry/upgrade-phototag-keywords/:listingId?', upgradePhototagKeywordsScript);
-  router.get('/scrips-retry/normalize-keywords/:listingId?', normalizeKeywordsScript);
-  router.get('/scrips-retry/sanitize-listing-data/:listingId?', sanitizeListingDataScript);
+  router.get('/scrips-retry/upgrade-phototag-keywords{/:listingId}', upgradePhototagKeywordsScript);
+  router.get('/scrips-retry/normalize-keywords{/:listingId}', normalizeKeywordsScript);
+  router.get('/scrips-retry/sanitize-listing-data{/:listingId}', sanitizeListingDataScript);
 }
 
 // Create user with identity provider (e.g. Facebook or Google)
@@ -120,6 +135,22 @@ router.post('/auth/create-user-with-idp', createUserWithIdp);
 
 // This endpoint is called when user wants to initiate authenticaiton with Auth0
 router.get('/auth/auth0/login', authenticateAuth0);
+
+// Revokes Sharetribe token, clears local OIDC session (idpLogout: false), then Auth0 /v2/logout.
+router.get('/auth/auth0/logout', (req, res) => {
+  const sdk = getSdk(req, res);
+  const afterLogout = auth0V2LogoutRedirectTarget();
+  sdk
+    .logout()
+    .catch(() => {})
+    .then(() => res.oidc.logout({ returnTo: afterLogout }))
+    .catch(err => {
+      log.error(err, 'api-auth-logout-failed');
+      if (!res.headersSent) {
+        res.redirect(afterLogout);
+      }
+    });
+});
 
 // This is the route for callback URL the user is redirected after authenticating
 // with Auth0. In this route a custom callback is used for calling

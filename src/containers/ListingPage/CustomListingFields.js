@@ -28,24 +28,29 @@ const CustomListingFields = props => {
   const categoriesObj = pickCategoryFields(publicData, categoryPrefix, 1, listingCategoriesConfig);
   const currentCategories = Object.values(categoriesObj);
 
+  const displayableFieldConfigs =
+    listingFieldConfigs?.filter(
+      fieldConfig => fieldConfig.showConfig?.displayOnListingPage !== false
+    ) ?? [];
+
   const isFieldForSelectedCategories = fieldConfig => {
     const fieldKey = fieldConfig.key;
     const isTargetCategory = isFieldForCategory(currentCategories, fieldConfig);
     const displayInListing = getListingBaseFields(fieldKey);
     return isTargetCategory && displayInListing;
   };
+
   const propsForCustomFields =
     pickCustomFieldProps(
       { publicData, metadata },
-      listingFieldConfigs,
+      displayableFieldConfigs,
       'listingType',
       isFieldForSelectedCategories
     ) || [];
 
   const sectionDetailsProps = {
     ...props,
-    isFieldForCategory: isFieldForSelectedCategories,
-    fieldConfigs: listingFieldConfigs,
+    fieldConfigs: displayableFieldConfigs,
     heading: 'ListingPage.detailsTitle',
   };
 
@@ -53,14 +58,17 @@ const CustomListingFields = props => {
     const { key, schemaType, enumOptions, showConfig = {} } = config;
     const listingType = publicData.listingType;
     const isTargetListingType = isFieldForListingType(listingType, config);
-    const isTargetCategory = isFieldForCategory(config);
-
     const { isDetail, label } = showConfig;
     const publicDataValue = publicData[key];
     const metadataValue = metadata[key];
-    const value = typeof publicDataValue != null ? publicDataValue : metadataValue;
+    const value = publicDataValue != null ? publicDataValue : metadataValue;
 
-    if (isDetail && isTargetListingType && isTargetCategory && typeof value !== 'undefined') {
+    if (
+      isDetail &&
+      isTargetListingType &&
+      isFieldForSelectedCategories(config) &&
+      typeof value !== 'undefined'
+    ) {
       const detailValue = getDetailCustomFieldValue(
         enumOptions,
         value,

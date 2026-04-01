@@ -100,7 +100,7 @@ const SearchResultsPanel = props => {
         listing,
         renderSizes: cardRenderSizes(isMapVariant),
         setActiveListing,
-        hidePrice,
+        hidePrice: true,
         isFavorite,
         onToggleFavorites,
         gridLayout,

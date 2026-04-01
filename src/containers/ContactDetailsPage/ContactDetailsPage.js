@@ -7,7 +7,7 @@ import { useConfiguration } from '../../context/configurationContext';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
 import { ensureCurrentUser } from '../../util/data';
-import { showPaymentDetailsForUser } from '../../util/userHelpers';
+import { showPaymentDetailsForUser, showBrandManagementTab } from '../../util/userHelpers';
 
 import { sendVerificationEmail } from '../../ducks/user.duck';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
@@ -97,6 +97,7 @@ export const ContactDetailsPageComponent = props => {
     currentPage: 'ContactDetailsPage',
     showPaymentMethods,
     showPayoutDetails,
+    showBrandManagement: showBrandManagementTab(currentUser),
   };
 
   return (

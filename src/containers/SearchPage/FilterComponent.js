@@ -121,10 +121,10 @@ const FilterComponent = props => {
     case 'location':
       return (
         <LocationFilter
-          id={componentId}
           label={intl.formatMessage({ id: 'FilterComponent.locationLabel' })}
           name={name}
           onSubmit={getHandleChangedValueFn(useHistoryPush)}
+          getAriaLabel={getAriaLabel}
           {...rest}
         />
       );

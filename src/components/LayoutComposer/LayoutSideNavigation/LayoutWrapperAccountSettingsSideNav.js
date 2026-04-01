@@ -64,6 +64,7 @@ const scrollToTab = (currentPage, scrollLeft, setScrollLeft) => {
  * @param {string?} props.accountSettingsNavProps.currentPage
  * @param {boolean?} props.accountSettingsNavProps.showPaymentMethods
  * @param {boolean?} props.accountSettingsNavProps.showPayoutDetails
+ * @param {boolean?} props.accountSettingsNavProps.showBrandManagement
  * @returns {JSX.Element} Side nav with navigation to different account settings
  */
 const LayoutWrapperAccountSettingsSideNav = props => {
@@ -90,7 +91,12 @@ const LayoutWrapperAccountSettingsSideNav = props => {
     }
   }, [mounted]);
 
-  const { currentPage, showPaymentMethods, showPayoutDetails } = accountSettingsNavProps;
+  const {
+    currentPage,
+    showPaymentMethods,
+    showPayoutDetails,
+    showBrandManagement,
+  } = accountSettingsNavProps;
   const payoutDetailsMaybe = showPayoutDetails
     ? [
         {
@@ -119,6 +125,21 @@ const LayoutWrapperAccountSettingsSideNav = props => {
       ]
     : [];
 
+  const brandManagementMaybe = showBrandManagement
+    ? [
+        {
+          text: (
+            <FormattedMessage id="LayoutWrapperAccountSettingsSideNav.brandManagementTabTitle" />
+          ),
+          selected: currentPage === 'BrandManagementPage',
+          id: 'BrandManagementPageTab',
+          linkProps: {
+            name: 'BrandManagementPage',
+          },
+        },
+      ]
+    : [];
+
   const tabs = [
     {
       text: <FormattedMessage id="LayoutWrapperAccountSettingsSideNav.contactDetailsTabTitle" />,
@@ -128,16 +149,19 @@ const LayoutWrapperAccountSettingsSideNav = props => {
         name: 'ContactDetailsPage',
       },
     },
+    ...brandManagementMaybe,
     ...payoutDetailsMaybe,
     ...paymentMethodsMaybe,
-    {
-      text: <FormattedMessage id="LayoutWrapperAccountSettingsSideNav.manageAccountTabTitle" />,
-      selected: currentPage === 'ManageAccountPage',
-      id: 'ManageAccountPageTab',
-      linkProps: {
-        name: 'ManageAccountPage',
-      },
-    },
+
+    // TODO: Temporarily disabled until we can sync it to the studio
+    // {
+    //   text: <FormattedMessage id="LayoutWrapperAccountSettingsSideNav.manageAccountTabTitle" />,
+    //   selected: currentPage === 'ManageAccountPage',
+    //   id: 'ManageAccountPageTab',
+    //   linkProps: {
+    //     name: 'ManageAccountPage',
+    //   },
+    // },
   ];
 
   return (

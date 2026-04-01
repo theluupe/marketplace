@@ -2,14 +2,13 @@ import { func, string } from 'prop-types';
 import React from 'react';
 import { compose } from 'redux';
 import { withRouter } from 'react-router-dom';
-import { Form as FinalForm, Field } from 'react-final-form';
 
 import { useConfiguration } from '../../../context/configurationContext';
 import { intlShape, injectIntl } from '../../../util/reactIntl';
 import { isOriginInUse } from '../../../util/search';
-import { parse } from '../../../util/urlHelpers';
+import { parse, stringify } from '../../../util/urlHelpers';
 
-import { Form, LocationAutocompleteInput } from '../../../components';
+import { FieldLocationAutocompleteInput } from '../../../components';
 
 import FilterPlain from '../FilterPlain/FilterPlain';
 import css from './LocationFilter.module.css';
@@ -18,125 +17,113 @@ const identity = v => v;
 
 function LocationFilter(props) {
   const config = useConfiguration();
-  const { label, onSubmit, location } = props;
+  const {
+    label,
+    onSubmit,
+    location,
+    name,
+    rootClassName,
+    className,
+    id,
+    intl,
+    getAriaLabel,
+    ...filterPlainRest
+  } = props;
 
   const { address, origin, bounds } = parse(location.search, {
     latlng: ['origin'],
     latlngBounds: ['bounds'],
   });
-  const topbarSearcInitialValues = () => {
-    // Only render current search if full place object is available in the URL params
-    const locationFieldsPresent = isOriginInUse(config)
-      ? address && origin && bounds
-      : address && bounds;
+
+  const locationOk = isOriginInUse(config) ? address && origin && bounds : address && bounds;
+  const initialFieldValue = locationOk
+    ? { search: address, selectedPlace: { address, origin, bounds } }
+    : null;
+
+  const initialValues = { [name]: initialFieldValue };
+  const hasSelection = !!initialFieldValue;
+
+  const labelForPlain = (
+    <span className={hasSelection ? css.labelPlainSelected : css.labelPlain}>{label}</span>
+  );
+
+  const paramsFromUrl = () =>
+    locationOk
+      ? {
+          ...(isOriginInUse(config) ? { origin } : {}),
+          address,
+          bounds,
+        }
+      : { origin: null, address: null, bounds: null };
+
+  const paramsFromFormValues = values => {
+    if (values == null) {
+      return { origin: null, address: null, bounds: null };
+    }
+    const loc = values[name];
+    if (!loc?.selectedPlace) {
+      return null;
+    }
+    const { search, selectedPlace } = loc;
+    const { origin: o, bounds: b } = selectedPlace;
     return {
-      location: locationFieldsPresent
-        ? {
-            search: address,
-            selectedPlace: { address, origin, bounds },
-          }
-        : null,
+      ...(isOriginInUse(config) ? { origin: o } : {}),
+      address: search,
+      bounds: b,
     };
   };
-  const initialValues = topbarSearcInitialValues();
-  const hasInitialValues = !!initialValues?.location;
-  const labelClass = hasInitialValues ? css.labelPlainSelected : css.labelPlain;
-  const labelForPlain = <span className={labelClass}>{label}</span>;
 
-  const handleSubmit = values => {
-    const locationSearchParams = () => {
-      const withLocation = !!values?.location;
-      if (withLocation) {
-        const { search, selectedPlace } = values?.location;
-        const { origin, bounds } = selectedPlace;
-        const originMaybe = isOriginInUse(config) ? { origin } : {};
-        return {
-          ...originMaybe,
-          address: search,
-          bounds,
-        };
+  const handleLiveEdit = values => {
+    if (values == null) {
+      if (!hasSelection) {
+        return;
       }
-      return {
-        origin: null,
-        address: null,
-        bounds: null,
-      };
-    };
-    const params = locationSearchParams();
-    onSubmit(params);
+      onSubmit({ origin: null, address: null, bounds: null });
+      return;
+    }
+    const next = paramsFromFormValues(values);
+    if (next == null) {
+      return;
+    }
+    if (stringify(next) === stringify(paramsFromUrl())) {
+      return;
+    }
+    onSubmit(next);
   };
 
   return (
-    <FinalForm
-      {...props}
-      onSubmit={identity}
+    <FilterPlain
+      className={className}
+      rootClassName={rootClassName}
+      label={labelForPlain}
+      ariaLabel={
+        getAriaLabel
+          ? getAriaLabel(label, hasSelection ? initialFieldValue?.search || '' : null)
+          : undefined
+      }
+      isSelected={hasSelection}
+      id={`${id}.plain`}
+      liveEdit
+      onSubmit={handleLiveEdit}
       initialValues={initialValues}
-      render={fieldRenderProps => {
-        const {
-          rootClassName,
-          className,
-          id,
-          name,
-          label,
-          onSubmit,
-          intl,
-          values,
-          ...rest
-        } = fieldRenderProps;
-        // Location search: allow form submit only when the place has changed
-        const preventFormSubmit = e => e.preventDefault();
-        return (
-          <Form onSubmit={preventFormSubmit}>
-            <Field
-              name={name}
-              format={identity}
-              render={({ input, meta }) => {
-                function onChangeHandler(location) {
-                  input.onChange(location);
-                  const validLocation = !!location?.selectedPlace;
-                  if (validLocation) {
-                    handleSubmit({ location });
-                  }
-                }
-                const handleClear = () => {
-                  input.onChange(undefined);
-                  handleSubmit({ location: undefined });
-                };
-                const fieldProps = { input: { ...input, onChange: onChangeHandler }, meta };
-                return (
-                  <FilterPlain
-                    id={`${id}.plain`}
-                    className={className}
-                    rootClassName={rootClassName}
-                    label={labelForPlain}
-                    onSubmit={identity}
-                    isSelected={hasInitialValues}
-                    onClear={handleClear}
-                    {...rest}
-                    liveEdit
-                    noForm
-                  >
-                    <div className={css.fieldPlain}>
-                      <LocationAutocompleteInput
-                        inputClassName={css.locationAutocompleteInput}
-                        iconClassName={css.locationAutocompleteInputIcon}
-                        predictionsClassName={css.predictionsRoot}
-                        validClassName={css.validLocation}
-                        placeholder={intl.formatMessage({
-                          id: 'ConfirmSignupForm.addressPlaceholder',
-                        })}
-                        useDefaultPredictions={false}
-                        {...fieldProps}
-                      />
-                    </div>
-                  </FilterPlain>
-                );
-              }}
-            />
-          </Form>
-        );
-      }}
-    />
+      keepDirtyOnReinitialize={false}
+      {...filterPlainRest}
+    >
+      <div className={css.fieldPlain}>
+        <FieldLocationAutocompleteInput
+          name={name}
+          format={identity}
+          inputClassName={css.locationAutocompleteInput}
+          iconClassName={css.locationAutocompleteInputIcon}
+          predictionsClassName={css.predictionsRoot}
+          validClassName={css.validLocation}
+          placeholder={intl.formatMessage({
+            id: 'ConfirmSignupForm.addressPlaceholder',
+          })}
+          useDefaultPredictions={false}
+        />
+      </div>
+    </FilterPlain>
   );
 }
 
@@ -147,6 +134,7 @@ LocationFilter.propTypes = {
   name: string.isRequired,
   label: string.isRequired,
   onSubmit: func.isRequired,
+  getAriaLabel: func,
 
   // form injectIntl
   intl: intlShape.isRequired,

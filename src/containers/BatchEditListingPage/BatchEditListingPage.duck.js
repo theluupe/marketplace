@@ -116,6 +116,14 @@ function validateListingPropertiesHandler(tab = PRODUCT_DETAILS) {
   };
 }
 
+/** Table rows store price as a number; currency truncation expects a major-unit string. */
+function listingPriceToTruncatableString(price) {
+  if (price == null || (typeof price === 'number' && Number.isNaN(price))) {
+    return '0';
+  }
+  return String(price);
+}
+
 function getListingCategory(listing) {
   if (listing.isIllustration) return 'illustrations';
   return 'photos';
@@ -397,20 +405,22 @@ export const getAiTermsAccepted = state =>
 
 export const getCreateListingsSuccess = state => state.BatchEditListingPage.createListingsSuccess;
 export const getFailedListings = state => state.BatchEditListingPage.failedListings;
-export const getSaveListingData = state => {
-  const {
+
+const getSuccessfulListings = state => state.BatchEditListingPage.successfulListings;
+const getSaveListingsInProgress = state => state.BatchEditListingPage.saveListingsInProgress;
+
+export const getSaveListingData = createSelector(
+  getFailedListings,
+  getSuccessfulListings,
+  getSelectedRowsKeys,
+  getSaveListingsInProgress,
+  (failedListings, successfulListings, selectedRowsKeys, saveListingsInProgress) => ({
     failedListings,
     successfulListings,
     selectedRowsKeys,
     saveListingsInProgress,
-  } = state.BatchEditListingPage;
-  return {
-    failedListings,
-    successfulListings,
-    selectedRowsKeys,
-    saveListingsInProgress,
-  };
-};
+  })
+);
 export const getListingsDefaults = state => state.BatchEditListingPage.listingDefaults;
 export const getIsQueryInProgress = state => state.BatchEditListingPage.queryInProgress;
 export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThumbnailsReady;
@@ -638,7 +648,10 @@ export function initializeUppy(meta) {
           const listing = getSingleListing(getState(), successfulUpload.id);
           try {
             const { currency, transactionType } = listingsDefaults;
-            const truncatedPrice = truncateToSubUnitPrecision(listing.price, unitDivisor(currency));
+            const truncatedPrice = truncateToSubUnitPrecision(
+              listingPriceToTruncatableString(listing.price),
+              unitDivisor(currency)
+            );
             const price = convertUnitToSubUnit(truncatedPrice, unitDivisor(currency));
             const { previewUrl, originalUrl } = listing;
             const withTempAssets = !!previewUrl && !!originalUrl;
@@ -760,7 +773,10 @@ export function requestSaveBatchListings(pageMode = PAGE_MODE_NEW) {
 
       const listingPromises = listings.map(listing => {
         return new Promise((resolve, reject) => {
-          const truncatedPrice = truncateToSubUnitPrecision(listing.price, unitDivisor(currency));
+          const truncatedPrice = truncateToSubUnitPrecision(
+            listingPriceToTruncatableString(listing.price),
+            unitDivisor(currency)
+          );
           const price = convertUnitToSubUnit(truncatedPrice, unitDivisor(currency));
           const id = new UUID(listing.id);
           sdk.ownListings

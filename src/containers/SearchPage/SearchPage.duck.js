@@ -260,7 +260,7 @@ const searchListingsPayloadCreator = ({ searchParams, config }, thunkAPI) => {
   const datesMaybe = datesSearchParams(dates);
   const stockMaybe = stockFilters(datesMaybe);
   const seatsMaybe = seatsSearchParams(seats, datesMaybe);
-  const creativeDefaultSort = '-createdAt';
+  const creativeDefaultSort = 'createdAt';
   const creativeSearch = restOfParams?.['pub_categoryLevel1'] === 'creatives';
   const withKeywordSearch = !!restOfParams?.['keywords'];
   const sortByRelevance =

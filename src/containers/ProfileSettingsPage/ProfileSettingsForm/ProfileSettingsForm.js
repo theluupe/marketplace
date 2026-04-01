@@ -245,9 +245,11 @@ class ProfileSettingsFormComponent extends Component {
                     false
                   );
                   const showField = isCreativeSeller(userType) ? enableField : true;
+                  const { key: extendedDataKey, ...extendedDataFieldProps } = fieldProps;
                   return showField ? (
                     <CustomExtendedDataField
-                      {...fieldProps}
+                      key={extendedDataKey}
+                      {...extendedDataFieldProps}
                       formId={formId}
                       disabled={!enableField}
                     />

@@ -21,7 +21,8 @@ import { storeData } from './CheckoutPageSessionHelpers';
  * @returns object containing unitType etc. - or an empty object.
  */
 export const getTransactionTypeData = (listingType, unitTypeInPublicData, config) => {
-  const listingTypeConfig = config.listing.listingTypes.find(lt => lt.listingType === listingType);
+  const listingTypes = config?.listing?.listingTypes;
+  const listingTypeConfig = listingTypes?.find(lt => lt.listingType === listingType);
   const { process, alias, unitType, ...rest } = listingTypeConfig?.transactionType || {};
   // Note: we want to rely on unitType written in public data of the listing entity.
   //       The listingType configuration might have changed on the fly.

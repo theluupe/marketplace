@@ -4,6 +4,9 @@ import { extractYouTubeID } from './string';
 
 const { LatLng, Money } = sdkTypes;
 
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 256;
+
 const isNonEmptyString = val => {
   return typeof val === 'string' && val.trim().length > 0;
 };
@@ -57,13 +60,6 @@ export const uniqueString = (currentIndex, stringArray, getMessage, toSlug) => v
   const otherSlugs = stringArray.map(toSlug).filter((_, i) => i !== currentIndex);
   const isUnique = !otherSlugs.includes(slug);
   return isUnique ? VALID : getMessage(value, slug);
-};
-
-export const requiredCheckbox = message => value => {
-  if (!value) {
-    return message;
-  }
-  return VALID;
 };
 
 export const requiredFieldArrayCheckbox = message => value => {

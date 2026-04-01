@@ -103,11 +103,27 @@ const queryUserListingsPayloadCreator = (
   if (!queryUserListingsShouldRun(queryParams)) {
     return Promise.resolve({ listingRefs: [], meta: null, response: null });
   }
-
   const { perPage, pub_listingId, ...rest } = queryParams;
   const listingType = queryParams.pub_listingType;
   const withImageLimit = listingType !== LISTING_TAB_TYPES.PORTFOLIO;
-  const params = { ...rest, perPage, ...(withImageLimit ? { 'limit.images': 1 } : {}) };
+  const { aspectWidth = 1, aspectHeight = 1, variantPrefix = 'listing-card' } =
+    config?.layout?.listingImage || {};
+  const aspectRatio = aspectHeight / aspectWidth;
+  const listingCardImageParams = {
+    include: ['author', 'images'],
+    'fields.image': [
+      // Scaled variants for large images
+      'variants.scaled-small',
+      'variants.scaled-medium',
+      // Cropped variants for listing thumbnail images
+      `variants.${variantPrefix}`,
+      `variants.${variantPrefix}-2x`,
+    ],
+    ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
+    ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
+    ...(withImageLimit ? { 'limit.images': 1 } : {}),
+  };
+  const params = { ...rest, perPage, ...listingCardImageParams };
 
   const listingsPromise = ownProfileOnly
     ? sdk.ownListings.query({
