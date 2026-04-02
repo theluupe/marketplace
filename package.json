@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "10.0.0-theluuupe.3",
+  "version": "10.0.0-theluuupe.4",
   "private": true,
   "license": "Apache-2.0",
   "dependencies": {
