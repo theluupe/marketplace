@@ -1,5 +1,5 @@
 // ⚠️ If you modify the styling of this component and you're using the SectionListings component in your marketplace (featured listings)
-// please reflect those changes in the calculateCarouselHeight function in SectionListing.js to avoid layout issues
+// please reflect those changes in the calculateCarouselHeight function in SectionListings.js to avoid layout issues
 import React from 'react';
 import classNames from 'classnames';
 import { Button as AButton } from 'antd';
@@ -112,6 +112,7 @@ const ListingCardImage = props => {
  * @param {string?} props.isFavorite is it a currentUser's favorite
  * @param {Function?} props.onToggleFavorites
  * @param {Function?} props.setActiveListing
+ * @param {number?} props.imageAreaMaxHeight max image band height (px); tall images clip, centered
  * @returns {JSX.Element} listing card to be used in search result panel etc.
  */
 export const ListingCard = props => {
@@ -132,6 +133,7 @@ export const ListingCard = props => {
     gridLayout,
     showAuthorInfo = true,
     lazyLoadImage = true,
+    imageAreaMaxHeight,
   } = props;
 
   const translations = getListingCardTranslations(listing, hidePrice, config, intl);
@@ -175,23 +177,34 @@ export const ListingCard = props => {
   const toggleFavorites = event => {
     event.preventDefault();
     event.stopPropagation();
-    onToggleFavorites(isFavorite);
+    onToggleFavorites?.(isFavorite);
   };
-  const favoriteButton = isFavorite ? (
-    <AButton
-      type="text"
-      icon={<HeartFilled style={{ fontSize: '30px' }} />}
-      onClick={toggleFavorites}
-      className={css.favoriteButton}
-    />
-  ) : (
-    <AButton
-      type="text"
-      icon={<HeartOutlined style={{ fontSize: '30px' }} />}
-      onClick={toggleFavorites}
-      className={css.favoriteButton}
-    />
-  );
+  const imageAreaShell = (inner, maxHeight) =>
+    maxHeight != null ? (
+      <div className={css.imageAreaHeightCap} style={{ maxHeight }}>
+        {inner}
+      </div>
+    ) : (
+      inner
+    );
+
+  const favoriteButton =
+    onToggleFavorites &&
+    (isFavorite ? (
+      <AButton
+        type="text"
+        icon={<HeartFilled style={{ fontSize: '30px' }} />}
+        onClick={toggleFavorites}
+        className={css.favoriteButton}
+      />
+    ) : (
+      <AButton
+        type="text"
+        icon={<HeartOutlined style={{ fontSize: '30px' }} />}
+        onClick={toggleFavorites}
+        className={css.favoriteButton}
+      />
+    ));
 
   return (
     <NamedLink
@@ -200,34 +213,41 @@ export const ListingCard = props => {
       params={{ id, slug }}
       ariaLabel={cardAriaLabel}
     >
-      {showListingImage ? (
-        <ListingCardImage
-          renderSizes={renderSizes}
-          title={titlePlain}
-          listing={listing}
-          setActivePropsMaybe={setActivePropsMaybe}
-          aspectWidth={aspectWidth}
-          aspectHeight={aspectHeight}
-          variantPrefix={variantPrefix}
-          aspectRatioClassName={aspectRatioClassName}
-          lazyLoadImage={lazyLoadImage}
-          isSquareLayout={isSquareLayout}
-          isCreativeProfile={isCreativeProfile}
-        />
-      ) : (
-        <ListingCardThumbnail
-          style={cardStyle}
-          listingTitle={titlePlain}
-          className={aspectRatioClassName}
-          width={aspectWidth}
-          height={aspectHeight}
-          setActivePropsMaybe={setActivePropsMaybe}
-          isSquareLayout={isSquareLayout}
-        />
-      )}
-      <div className={css.menubarWrapper}>
-        <div className={css.menubarGradient} />
-        <div className={css.menubar}>{favoriteButton}</div>
+      <div className={css.imageArea}>
+        {imageAreaShell(
+          showListingImage ? (
+            <ListingCardImage
+              renderSizes={renderSizes}
+              title={titlePlain}
+              listing={listing}
+              setActivePropsMaybe={setActivePropsMaybe}
+              aspectWidth={aspectWidth}
+              aspectHeight={aspectHeight}
+              variantPrefix={variantPrefix}
+              aspectRatioClassName={aspectRatioClassName}
+              lazyLoadImage={lazyLoadImage}
+              isSquareLayout={isSquareLayout}
+              isCreativeProfile={isCreativeProfile}
+            />
+          ) : (
+            <ListingCardThumbnail
+              style={cardStyle}
+              listingTitle={titlePlain}
+              className={aspectRatioClassName}
+              width={aspectWidth}
+              height={aspectHeight}
+              setActivePropsMaybe={setActivePropsMaybe}
+              isSquareLayout={isSquareLayout}
+            />
+          ),
+          imageAreaMaxHeight
+        )}
+        {favoriteButton ? (
+          <div className={css.menubarWrapper}>
+            <div className={css.menubarGradient} />
+            <div className={css.menubar}>{favoriteButton}</div>
+          </div>
+        ) : null}
       </div>
       <div className={css.info}>
         {showPrice ? (

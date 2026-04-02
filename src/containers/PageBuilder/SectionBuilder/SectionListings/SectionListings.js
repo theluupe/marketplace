@@ -16,6 +16,7 @@ import css from './SectionListings.module.css';
 const KEY_ARROW_LEFT = 'ArrowLeft';
 const KEY_ARROW_RIGHT = 'ArrowRight';
 const MAX_MOBILE_SCREEN_WIDTH = 768;
+const MAX_FEATURED_LISTING_IMAGE_HEIGHT_PX = 496;
 
 // Configuration for supported column layouts
 // Only 3 and 4 columns are supported in this component
@@ -89,38 +90,16 @@ const calculateCarouselHeight = (
     return noListingsFoundHeight;
   }
 
-  const thumbnailAspectRatio = config.layout.listingImage.aspectRatio;
   const paddingHorizontal = 2 * 32; // 2x32px
-  const titleHeightSingleLine = 16;
-  const titleHeightDoubleLine = titleHeightSingleLine * 2;
-  const cardInfoPadding = 14 + 2; // padding-top + padding-bottom
-  const priceHeight = 16 + 4; // height + margin-bottom
-  const authorInfoHeight = 24;
   const contentMaxWidthPages = 1120;
-  const containerPaddingTop = 32;
-  const containerPaddingBottom = 24;
-
-  const priceHeightMobile = 18 + 4; // 18 + margin bottom
-  const authorInfoHeightMobile = 18 + 4 + 4; // 18 + padding top + padding bottom
-  const titleHeightSingleLineMobile = 18;
-  const cardInfoHeightMobile =
-    priceHeightMobile + authorInfoHeightMobile + titleHeightSingleLineMobile + cardInfoPadding;
-
-  const parsedAspectRatio = parseAspectRatio(thumbnailAspectRatio);
-
+  const parsedAspectRatio = parseAspectRatio('2/3');
   const gutters = isMobileBreakpoint ? 0 : numColumns === 3 ? 64 : 96;
-
   const mainColumnWidth = Math.min(contentMaxWidthPages, carouselWidth);
+
   const cardWidth =
     (mainColumnWidth - paddingHorizontal - gutters) / (isMobileBreakpoint ? 1 : numColumns);
   const cardImageHeight = cardWidth / parsedAspectRatio;
-  const cardInfoHeight = priceHeight + titleHeightSingleLine + authorInfoHeight + cardInfoPadding;
-
-  const totalCardHeight =
-    cardImageHeight + (isMobileBreakpoint ? cardInfoHeightMobile : cardInfoHeight);
-  const totalWithPaddings = totalCardHeight + containerPaddingTop + containerPaddingBottom;
-
-  return Math.ceil(totalWithPaddings);
+  return Math.ceil(Math.min(cardImageHeight, MAX_FEATURED_LISTING_IMAGE_HEIGHT_PX));
 };
 
 /**
@@ -187,7 +166,7 @@ const ListingCarouselComponent = props => {
   }
 
   return (
-    <ul className={getColumnCSS(numColumns, false)} ref={sliderRef} role="list">
+    <ul className={getColumnCSS(numColumns)} ref={sliderRef} role="list">
       {listings.map(listing => (
         <li key={listing.id.uuid} className={css.listItem}>
           <ListingCard
@@ -197,6 +176,8 @@ const ListingCarouselComponent = props => {
             darkMode={darkMode}
             renderSizes={getResponsiveImageSizes(numColumns)}
             lazyLoadImage={!isInsideContainer}
+            hidePrice
+            imageAreaMaxHeight={MAX_FEATURED_LISTING_IMAGE_HEIGHT_PX}
           />
         </li>
       ))}
@@ -216,6 +197,7 @@ const LazyListingCarouselComponent = lazyLoadWithDimensions(ListingCarouselCompo
  * @param {Object} props.title - Title field data
  * @param {Object} props.description - Description field data
  * @param {Object} props.callToAction - CTA button field data
+ * @param {number?} props.sectionIndex - Set by SectionBuilder; used with allSections to pad the last listings block
  * @returns {JSX.Element} Complete listings section with header and carousel
  */
 const SectionListings = props => {
@@ -233,7 +215,19 @@ const SectionListings = props => {
     options,
     allSections,
     isInsideContainer,
+    sectionIndex,
   } = props;
+
+  const lastListingsSectionIndex = Array.isArray(allSections)
+    ? allSections.reduce(
+        (lastIdx, sec, idx) => (sec.sectionType === 'listings' ? idx : lastIdx),
+        -1
+      )
+    : -1;
+  const isLastListingsSection =
+    typeof sectionIndex === 'number' &&
+    lastListingsSectionIndex >= 0 &&
+    sectionIndex === lastListingsSectionIndex;
 
   const { featuredListings } = options;
   const {
@@ -336,6 +330,9 @@ const SectionListings = props => {
       className={className}
       rootClassName={rootClassName}
       appearance={appearance}
+      sectionContentClassName={classNames(css.sectionListingsSectionContent, {
+        [css.sectionListingsSectionContentLast]: isLastListingsSection,
+      })}
     >
       {hasHeaderFields ? (
         <header className={defaultClasses.sectionDetails}>

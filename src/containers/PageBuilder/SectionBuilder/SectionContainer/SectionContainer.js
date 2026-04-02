@@ -25,10 +25,21 @@ import css from './SectionContainer.module.css';
  * @param {Object} props.appearance
  * @param {Object} props.options extra options for the section component (e.g. custom fieldComponents)
  * @param {Object<string,FieldComponentConfig>?} props.options.fieldComponents custom fields
+ * @param {string?} props.sectionContentClassName merged after default sectionContent so overlapping rules win here
  * @returns {JSX.Element} containing wrapper that can be used inside Block components.
  */
 const SectionContainer = props => {
-  const { className, rootClassName, id, as, children, appearance, options, ...otherProps } = props;
+  const {
+    className,
+    rootClassName,
+    id,
+    as,
+    children,
+    appearance,
+    options,
+    sectionContentClassName,
+    ...otherProps
+  } = props;
   const Tag = as || 'section';
   const classes = classNames(rootClassName || css.root, className);
 
@@ -42,7 +53,7 @@ const SectionContainer = props => {
         />
       ) : null}
 
-      <div className={css.sectionContent}>{children}</div>
+      <div className={classNames(css.sectionContent, sectionContentClassName)}>{children}</div>
     </Tag>
   );
 };
