@@ -1,11 +1,27 @@
 @import '../../../../styles/customMediaQueries.css';
 
+/* Replaces SectionContainer default vertical padding for featured listings */
+.sectionListingsSectionContent {
+  position: relative;
+  word-break: break-word;
+  padding: 48px 0 0;
+
+  @media (--viewportMedium) {
+    padding: 48px 0 0;
+  }
+}
+
+/* Matching bottom spacing only on the last listings section on the page */
+.sectionListingsSectionContentLast {
+  padding-bottom: 48px;
+}
+
 .carouselContainer {
   display: flex;
   position: relative;
   align-items: center;
   scroll-behavior: smooth;
-  padding: 32px 0 0 0;
+  padding: 0;
 
   &:hover .carouselArrows {
     opacity: 1;
@@ -76,8 +92,6 @@
   display: flex;
   flex-wrap: nowrap;
   width: var(--carouselWidth);
-  padding-top: 32px;
-  padding-bottom: 24px;
   margin: 0;
 
   overflow-x: auto;

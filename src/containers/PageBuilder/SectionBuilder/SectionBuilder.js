@@ -138,6 +138,7 @@ const SectionBuilder = props => {
               options={{ ...otherOption, defaultClasses: DEFAULT_CLASSES }}
               {...section}
               sectionId={sectionId}
+              sectionIndex={index}
               allSections={sections}
             />
           );
