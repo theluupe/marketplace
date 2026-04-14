@@ -51,13 +51,16 @@ export const getLinks = (userId, listings, currentListingType, reviewTabsLabels)
       return [];
     }
     case LISTING_TAB_TYPES.PORTFOLIO: {
-      return listings.map(listing => ({
-        id: listing.id.uuid,
-        name: 'ProfilePage',
-        displayText: listing.attributes.title,
-        to: { search: getSearch(listing.id.uuid, currentListingType) },
-        params: { id: userId },
-      }));
+      return listings
+        .map(listing => ({
+          id: listing.id.uuid,
+          name: 'ProfilePage',
+          displayText: listing.attributes.title,
+          to: { search: getSearch(listing.id.uuid, currentListingType) },
+          params: { id: userId },
+          order: listing.attributes.publicData?.order,
+        }))
+        .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
     }
     case LISTING_TAB_TYPES.PRODUCT:
     default: {
