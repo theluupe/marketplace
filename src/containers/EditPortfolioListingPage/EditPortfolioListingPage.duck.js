@@ -316,8 +316,11 @@ export const savePortfolioListingsOrder = orderedIds => async (dispatch, getStat
       orderedIds.map((id, index) => {
         return sdk.ownListings.update({
           id,
-          privateData: {
+          publicData: {
             order: index + 1,
+          },
+          privateData: {
+            order: null,
           },
         });
       })
