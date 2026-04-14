@@ -41,6 +41,7 @@ const {
   upgradePhototagKeywordsScript,
   normalizeKeywordsScript,
   sanitizeListingDataScript,
+  migratePortfolioOrderScript,
 } = require('./api/scripts-retry');
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
@@ -122,6 +123,7 @@ if (useDevApiServer) {
   router.get('/scrips-retry/upgrade-phototag-keywords{/:listingId}', upgradePhototagKeywordsScript);
   router.get('/scrips-retry/normalize-keywords{/:listingId}', normalizeKeywordsScript);
   router.get('/scrips-retry/sanitize-listing-data{/:listingId}', sanitizeListingDataScript);
+  router.get('/scrips-retry/migrate-portfolio-order{/:listingId}', migratePortfolioOrderScript);
 }
 
 // Create user with identity provider (e.g. Facebook or Google)
