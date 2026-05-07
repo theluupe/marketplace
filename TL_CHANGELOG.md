@@ -4,6 +4,16 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Coupon Feature Removal] — 2026-05-07
+
+- Removed the Voucherify-backed discount-coupon feature in preparation for a future in-house implementation.
+- Buyer-facing input, validation endpoint, redemption hook, and SDK dependency have all been deleted.
+- Cleaned dead voucher Handlebars block from `default-purchase-no-stripe` email templates (always dead — vouchers were Stripe-only).
+- Historical transactions retain their embedded `line-item/voucher-discount` line items; the Stripe email templates and frontend renderer are preserved so past receipts continue to display correctly.
+- Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) are tracked in `spec/disable-coupons.md` §6.
+
+---
+
 ## [Initial Custom Implementation] — Pre-2026
 
 > This entry consolidates all custom features present at the time this changelog was initialized (2026-04-07). Future changes should be logged as individual versioned entries.

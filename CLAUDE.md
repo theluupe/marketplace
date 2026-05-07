@@ -49,7 +49,7 @@ Node version is managed via `.nvmrc` (currently `24.13.0`). Use `nvm use` before
 The app runs two separate Node processes in development:
 
 - **Frontend dev server** (`sharetribe-scripts start`) — Webpack + React, port 3000. Talks to Sharetribe's API via the SDK and proxies `/api/*` requests to the backend.
-- **Backend API server** (`server/apiServer.js`) — Express, port 3500. Handles everything that requires server-side credentials: Stripe, Google Cloud Storage, Auth0, Slack, Phototag, Voucherify, etc.
+- **Backend API server** (`server/apiServer.js`) — Express, port 3500. Handles everything that requires server-side credentials: Stripe, Google Cloud Storage, Auth0, Slack, Phototag, etc.
 
 In production, `server/index.js` serves both SSR rendering and the API routes on a single Express process.
 
@@ -141,10 +141,6 @@ Interactive button responses (approve/reject) are handled at `POST /api/slack/in
 
 Custom per-user price negotiated outside the platform. Stored in `listing.privateData.customLicenseDeals[]`. Validated server-side at `POST /api/validate-license-deal` before checkout.
 
-### Vouchers / discounts
-
-Powered by [Voucherify](https://voucherify.io/). `POST /api/validate-voucher` gets-or-creates a Voucherify customer, validates the code, and returns discount metadata. Only percentage discounts (`APPLY_TO_ORDER`) are supported.
-
 ### Referral program
 
 Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referral-manager` opts users in on first call and stores their referral code in `user.privateData.referralCode`. Qualification is recorded when a purchase is completed.
@@ -189,3 +185,12 @@ Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referra
 - **Styling:** Mobile-first CSS Modules. Breakpoints: `--viewportMedium` (768px), `--viewportLarge` (1024px). 6px baseline below medium, 8px at medium+.
 - **i18n:** All copy must use `<FormattedMessage>` or `intl.formatMessage()`. New keys follow pattern `"ComponentName.key": "text"`.
 - **Prettier:** single quotes, 2 spaces, trailing commas, 100-char line limit.
+
+## Specs
+
+Design documents live in `spec/` and are tracked with their implementation status in [TL_README.md](./TL_README.md) under the "Specs" heading. Keep that list in sync:
+
+- **New spec added** — append a row to the **Pending** table with a one-line summary of what the spec changes. Follow the same format as the existing rows.
+- **Spec implemented** — move its row from **Pending** to **Implemented** when the changes land in the codebase.
+
+> **Marketplace naming:** in this project, `TL_README.md` and `TL_CHANGELOG.md` are TheLuupe's equivalents of what other projects call `README.md` and `CHANGELOG.md`. The upstream Sharetribe `README.md` and `CHANGELOG.md` are left untouched. Spec tracking belongs in `TL_README.md`, not `TL_CHANGELOG.md` and not the upstream `README.md`.

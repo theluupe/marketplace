@@ -2,7 +2,6 @@ const sharetribeSdk = require('sharetribe-flex-sdk');
 const { transactionLineItems } = require('../api-util/lineItems');
 const { isIntentionToMakeOffer } = require('../api-util/negotiation');
 const { hasLicenseDeal } = require('../api-util/lineItemHelpers');
-const { redeemVoucherForUser } = require('../api-util/voucherifyHelper');
 const {
   getSdk,
   getTrustedSdk,
@@ -111,18 +110,11 @@ module.exports = async (req, res) => {
     .then(async ({ processAlias, orderData }) => {
       const listingId = listing.id.uuid;
       const licenseDealId = orderData?.licenseDealId;
-      const voucherCode = orderData?.voucherCode;
       const licenseDeal =
         !isSpeculative && (await hasLicenseDeal(listingId, licenseDealId, currentUserId));
-      const voucherRedemption =
-        !isSpeculative && (await redeemVoucherForUser(currentUser, voucherCode, listingId));
       const licenseDealMaybe = licenseDeal ? { licenseDeal } : {};
-      const voucherRedemptionMaybe = voucherRedemption
-        ? { voucherRedemption: voucherRedemption.redemption }
-        : {};
       const additionalProtectedData = {
         ...licenseDealMaybe,
-        ...voucherRedemptionMaybe,
       };
       const trustedSdk = await getTrustedSdk(req);
       return { processAlias, trustedSdk, additionalProtectedData };

@@ -119,8 +119,6 @@ const getOrderParams = (
   const seatsMaybe = seats ? { seats } : {};
   const deliveryMethod = pageData.orderData?.deliveryMethod;
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
-  const voucherCode = pageData.orderData?.voucherCode;
-  const voucherCodeMaybe = voucherCode ? { voucherCode } : {};
   const { listingType, unitType, priceVariants } = pageData?.listing?.attributes?.publicData || {};
 
   // price variant data for fixed duration bookings
@@ -165,7 +163,6 @@ const getOrderParams = (
     ...protectedDataMaybe,
     ...optionalPaymentParams,
     ...licenseDealIdMaybe,
-    ...voucherCodeMaybe,
   };
   return orderParams;
 };

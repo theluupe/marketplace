@@ -46,7 +46,6 @@ const {
 const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
 const validateLicenseDeal = require('./api/validate-license-deal');
-const validateVoucher = require('./api/validate-voucher');
 const phototagKeywords = require('./api/phototag-keywords');
 
 const router = express.Router();
@@ -107,7 +106,6 @@ router.post('/transition-privileged', transitionPrivileged);
 router.post('/delete-account', deleteAccount);
 router.post('/transloadit-params', transloaditParams);
 router.post('/validate-license-deal', validateLicenseDeal);
-router.post('/validate-voucher', validateVoucher);
 
 // Scripts Retries:
 router.get(
