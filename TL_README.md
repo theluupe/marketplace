@@ -262,3 +262,19 @@ Custom per-user pricing for specific buyers, stored server-side.
 | `studio-brand` | Member of a brand studio |
 
 Seller and community approval status (`APPLIED`, `APPROVED`, `WAITLISTED`) is stored separately in `user.publicData.sellerStatus` and `user.publicData.communityStatus`.
+
+## Specs
+
+Tracking which design documents in `spec/` have been implemented in this codebase. Update an entry's status when the implementation lands.
+
+### Implemented
+
+_None yet._
+
+### Pending
+
+| Spec | Status | Notes |
+| ---- | ------ | ----- |
+| [spec/studio-brand-onboarding-changes.md](./spec/studio-brand-onboarding-changes.md) | 🟡 Pending | Read `isBrandAdmin` from Studio's `POST /brand/:brandId/member` response (currently hardcoded `false` in `notifyUserCreated.js`); validate empty brands via Studio's `GET /api/v1/management/brand/:brandId`; surface in `getBrandData()`. Companion: [studio/spec/v2/marketplace-integration.md](../studio/spec/v2/marketplace-integration.md). |
+| [spec/storage-manager-v2-integration.md](./spec/storage-manager-v2-integration.md) | 🟡 Pending | Switch `notifyProductListingCreated`, `notifyProductListingRejected`, and `digital-product-download` to the new storage-manager `/api/v2/*` API. New marketplace-driven cleanup cron replaces the in-storage-manager Sharetribe SDK call. Companion: [storage-manager/spec/v2/storage-manager-v2.md](../storage-manager/spec/v2/storage-manager-v2.md). |
+| [spec/disable-coupons.md](./spec/disable-coupons.md) | 🟡 Pending | Remove the Voucherify-backed discount-coupon feature ahead of an in-house implementation. Deletes the buyer input UI, the `POST /api/validate-voucher` endpoint, the `redeemVoucherForUser` hook in `initiate-privileged.js`, the `@voucherify/sdk` dependency, voucher-aware branches in `lineItemHelpers.js`, and the dead voucher Handlebars block in the `default-purchase-no-stripe` email templates. Preserves historical-transaction display (Stripe email templates, `LineItemVoucherDiscount`, `LINE_ITEM_VOUCHER_DISCOUNT` constant, email/i18n labels). Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) recorded in §6. |

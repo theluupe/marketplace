@@ -189,3 +189,12 @@ Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referra
 - **Styling:** Mobile-first CSS Modules. Breakpoints: `--viewportMedium` (768px), `--viewportLarge` (1024px). 6px baseline below medium, 8px at medium+.
 - **i18n:** All copy must use `<FormattedMessage>` or `intl.formatMessage()`. New keys follow pattern `"ComponentName.key": "text"`.
 - **Prettier:** single quotes, 2 spaces, trailing commas, 100-char line limit.
+
+## Specs
+
+Design documents live in `spec/` and are tracked with their implementation status in [TL_README.md](./TL_README.md) under the "Specs" heading. Keep that list in sync:
+
+- **New spec added** — append a row to the **Pending** table with a one-line summary of what the spec changes. Follow the same format as the existing rows.
+- **Spec implemented** — move its row from **Pending** to **Implemented** when the changes land in the codebase.
+
+> **Marketplace naming:** in this project, `TL_README.md` and `TL_CHANGELOG.md` are TheLuupe's equivalents of what other projects call `README.md` and `CHANGELOG.md`. The upstream Sharetribe `README.md` and `CHANGELOG.md` are left untouched. Spec tracking belongs in `TL_README.md`, not `TL_CHANGELOG.md` and not the upstream `README.md`.
