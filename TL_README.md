@@ -175,23 +175,6 @@ SLACK_LISTING_MANAGER_CHANNEL_ID
 
 ---
 
-## Voucher / Discount Codes (Voucherify)
-
-Discount codes are validated via [Voucherify](https://voucherify.io/) before checkout.
-
-- Only **percentage discounts** applied to the **entire order** are supported.
-- A Voucherify customer record is auto-created on first validation, linked to the Sharetribe user's email.
-- Endpoint: `POST /api/validate-voucher`
-
-### Required environment variables
-
-```
-VOUCHERIFY_APP_ID
-VOUCHERIFY_SECRET_KEY
-```
-
----
-
 ## Referral Program (Referral Factory)
 
 Users are auto-enrolled in the referral program via [Referral Factory](https://referral-factory.com/).
@@ -269,7 +252,9 @@ Tracking which design documents in `spec/` have been implemented in this codebas
 
 ### Implemented
 
-_None yet._
+| Spec | Status | Notes |
+| ---- | ------ | ----- |
+| [spec/disable-coupons.md](./spec/disable-coupons.md) | ✅ Implemented (2026-05-07) | Voucherify-backed discount-coupon feature removed ahead of an in-house implementation. Deleted the buyer input UI, the `POST /api/validate-voucher` endpoint, the `redeemVoucherForUser` hook in `initiate-privileged.js`, the `@voucherify/sdk` dependency, voucher-aware branches in `lineItemHelpers.js`, and the dead voucher Handlebars block in the `default-purchase-no-stripe` email templates. Historical-transaction display preserved (Stripe email templates, `LineItemVoucherDiscount`, `LINE_ITEM_VOUCHER_DISCOUNT` constant, email/i18n labels). Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) recorded in §6. |
 
 ### Pending
 
@@ -277,4 +262,3 @@ _None yet._
 | ---- | ------ | ----- |
 | [spec/studio-brand-onboarding-changes.md](./spec/studio-brand-onboarding-changes.md) | 🟡 Pending | Read `isBrandAdmin` from Studio's `POST /brand/:brandId/member` response (currently hardcoded `false` in `notifyUserCreated.js`); validate empty brands via Studio's `GET /api/v1/management/brand/:brandId`; surface in `getBrandData()`. Companion: [studio/spec/v2/marketplace-integration.md](../studio/spec/v2/marketplace-integration.md). |
 | [spec/storage-manager-v2-integration.md](./spec/storage-manager-v2-integration.md) | 🟡 Pending | Switch `notifyProductListingCreated`, `notifyProductListingRejected`, and `digital-product-download` to the new storage-manager `/api/v2/*` API. New marketplace-driven cleanup cron replaces the in-storage-manager Sharetribe SDK call. Companion: [storage-manager/spec/v2/storage-manager-v2.md](../storage-manager/spec/v2/storage-manager-v2.md). |
-| [spec/disable-coupons.md](./spec/disable-coupons.md) | 🟡 Pending | Remove the Voucherify-backed discount-coupon feature ahead of an in-house implementation. Deletes the buyer input UI, the `POST /api/validate-voucher` endpoint, the `redeemVoucherForUser` hook in `initiate-privileged.js`, the `@voucherify/sdk` dependency, voucher-aware branches in `lineItemHelpers.js`, and the dead voucher Handlebars block in the `default-purchase-no-stripe` email templates. Preserves historical-transaction display (Stripe email templates, `LineItemVoucherDiscount`, `LINE_ITEM_VOUCHER_DISCOUNT` constant, email/i18n labels). Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) recorded in §6. |

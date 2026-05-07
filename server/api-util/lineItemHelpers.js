@@ -6,7 +6,6 @@ const { Money } = types;
 const { integrationSdkInit } = require('./scriptManager');
 const { getAmountAsDecimalJS, convertDecimalJSToNumber } = require('./currency');
 const { nightsBetween, daysBetween } = require('./dates');
-const { validateVoucherForUser } = require('./voucherifyHelper');
 
 const LINE_ITEM_NIGHT = 'line-item/night';
 const LINE_ITEM_DAY = 'line-item/day';
@@ -380,52 +379,6 @@ exports.getLicenseUpgradeLineItem = (licenseDeal, currency) => {
   return [];
 };
 
-exports.validateVoucher = async (currentUserId, voucherCode) => {
-  if (!voucherCode || !currentUserId) {
-    return { isValid: false };
-  }
-  try {
-    const integrationSdk = integrationSdkInit();
-    const result = await integrationSdk.users.show({ id: currentUserId });
-    const currentUser = result.data.data;
-    const customer = {
-      id: currentUserId,
-      email: currentUser.attributes.email,
-      name: currentUser.attributes.profile.displayName || currentUser.attributes.email,
-    };
-    return await validateVoucherForUser(customer, voucherCode);
-  } catch {
-    return { isValid: false };
-  }
-};
-
-exports.getDiscount = (discount, commission) => {
-  return discount < 0 ? 0 : discount > commission ? commission : discount;
-};
-
-exports.getVoucherDiscountLineItem = (voucherData, baseLineItems, providerCommission) => {
-  if (!voucherData || !voucherData.isValid) {
-    return [];
-  }
-  const percentOff = this.getDiscount(
-    voucherData?.discount?.percent_off,
-    providerCommission.percentage
-  );
-  const baseAmount = this.calculateTotalFromLineItems(baseLineItems);
-  const discount = getNegation(percentOff);
-  const providerCommissionMaybe = this.hasCommissionPercentage(providerCommission)
-    ? [
-        {
-          code: 'line-item/voucher-discount',
-          unitPrice: baseAmount,
-          percentage: discount,
-          includeFor: ['customer', 'provider'],
-        },
-      ]
-    : [];
-  return providerCommissionMaybe;
-};
-
 /**
  * Check if commission object has minimum commission property defined.
  * @param {Object} commission object potentially containing minimum commission property.
@@ -449,12 +402,7 @@ exports.hasMinimumCommission = commission => {
  * @param {Object} priceAttribute object containing listing price information
  * @returns {Array} provider commission line item
  */
-exports.getProviderCommissionMaybe = (
-  providerCommission,
-  baseLineItemsForCommission,
-  currency,
-  voucherData
-) => {
+exports.getProviderCommissionMaybe = (providerCommission, baseLineItemsForCommission, currency) => {
   // Check if either minimum commission or percentage are defined in the commission object
   const hasMinimumCommission = this.hasMinimumCommission(providerCommission);
   const hasCommissionPercentage = this.hasCommissionPercentage(providerCommission);
@@ -476,16 +424,6 @@ exports.getProviderCommissionMaybe = (
     throw new Error('Minimum commission amount is greater than the amount of money paid in');
   }
 
-  const voucherDiscountMaybe = this.getVoucherDiscountLineItem(
-    voucherData,
-    baseLineItemsForCommission,
-    providerCommission
-  );
-  const voucherDiscountPercentage =
-    !voucherData || !voucherData.isValid
-      ? 0
-      : this.getDiscount(voucherData?.discount?.percent_off, providerCommission.percentage);
-
   // Note: extraLineItems for product selling (aka shipping fee)
   // is not included in either customer or provider commission calculation.
 
@@ -505,10 +443,9 @@ exports.getProviderCommissionMaybe = (
         {
           code: 'line-item/provider-commission',
           unitPrice: totalMoneyIn,
-          percentage: getNegation(providerCommission.percentage - voucherDiscountPercentage),
+          percentage: getNegation(providerCommission.percentage),
           includeFor: ['provider'],
         },
-        ...voucherDiscountMaybe,
       ];
 };
 

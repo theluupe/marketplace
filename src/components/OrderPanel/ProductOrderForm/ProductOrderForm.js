@@ -16,7 +16,6 @@ import {
   Form,
   FieldSelect,
   FieldTextInput,
-  FieldVoucherInput,
   InlineTextButton,
   NamedLink,
   PrimaryButton,
@@ -44,7 +43,6 @@ const handleFetchLineItems = ({
   fetchLineItemsInProgress,
   onFetchTransactionLineItems,
   location,
-  voucherCode,
 }) => {
   const stockReservationQuantity = Number.parseInt(quantity, 10);
   const deliveryMethodMaybe = deliveryMethod ? { deliveryMethod } : {};
@@ -58,12 +56,10 @@ const handleFetchLineItems = ({
     const queryParams = parse(location.search);
     const licenseDealId = queryParams.licenseDeal;
     const licenseDealIdMaybe = licenseDealId ? { licenseDealId } : {};
-    const voucherCodeMaybe = voucherCode ? { voucherCode } : {};
     const orderData = {
       stockReservationQuantity,
       ...deliveryMethodMaybe,
       ...licenseDealIdMaybe,
-      ...voucherCodeMaybe,
     };
     onFetchTransactionLineItems({
       orderData,
@@ -156,13 +152,11 @@ const renderForm = formRenderProps => {
     location,
     values,
   } = formRenderProps;
-  const isLoggedIn = !!currentUser?.id?.uuid;
 
   const [mounted, setMounted] = useState(false);
   const [currentValues, setCurrentValues] = useState({
     quantity: values?.quantity,
     deliveryMethod: values?.deliveryMethod,
-    isVoucherApplied: values?.isVoucherApplied,
   });
 
   // Note: don't add custom logic before useEffect
@@ -186,12 +180,10 @@ const renderForm = formRenderProps => {
 
   // If form values change, update line-items for the order breakdown
   const handleOnChange = formValues => {
-    const { quantity, deliveryMethod, isVoucherApplied, voucherCode } = formValues.values;
+    const { quantity, deliveryMethod } = formValues.values;
     const quantityChanged = quantity !== currentValues.quantity;
     const deliveryMethodChanged = deliveryMethod !== currentValues.deliveryMethod;
-    const appliedVoucherChanged = isVoucherApplied !== currentValues.isVoucherApplied;
-    const shouldRecalculate = quantityChanged || deliveryMethodChanged || appliedVoucherChanged;
-    const includeVoucherCode = isVoucherApplied && voucherCode;
+    const shouldRecalculate = quantityChanged || deliveryMethodChanged;
     if (mounted && shouldRecalculate) {
       handleFetchLineItems({
         quantity,
@@ -201,12 +193,10 @@ const renderForm = formRenderProps => {
         fetchLineItemsInProgress,
         onFetchTransactionLineItems,
         location,
-        ...(includeVoucherCode && { voucherCode }),
       });
       setCurrentValues({
         quantity,
         deliveryMethod,
-        isVoucherApplied,
       });
     }
   };
@@ -336,14 +326,6 @@ const renderForm = formRenderProps => {
           />
         </div>
       ) : null}
-      {!withNoPaymentPurchase && (
-        <FieldVoucherInput
-          form={formApi}
-          formId={formId}
-          listingId={listingId.uuid}
-          isLoggedIn={isLoggedIn}
-        />
-      )}
 
       <div className={css.licenseOptions}>
         <div>
@@ -437,7 +419,7 @@ const ProductOrderForm = props => {
       ? { deliveryMethod: 'none' }
       : {};
   const hasMultipleDeliveryMethods = pickupEnabled && shippingEnabled;
-  const initialValues = { ...quantityMaybe, ...deliveryMethodMaybe, isVoucherApplied: false };
+  const initialValues = { ...quantityMaybe, ...deliveryMethodMaybe };
 
   return (
     <FinalForm

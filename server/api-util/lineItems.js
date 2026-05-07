@@ -4,7 +4,6 @@ const {
   calculateShippingFee,
   hasLicenseDeal,
   getLicenseUpgradeLineItem,
-  validateVoucher,
   getProviderCommissionMaybe,
   getCustomerCommissionMaybe,
 } = require('./lineItemHelpers');
@@ -234,13 +233,11 @@ exports.transactionLineItems = async (
 
   const listingId = listing.id.uuid;
   const licenseDealId = orderData?.licenseDealId;
-  const voucherCode = orderData?.voucherCode;
   const licenseDeal = await hasLicenseDeal(listingId, licenseDealId, currentUserId);
   const licenseUpgradeLineItem = getLicenseUpgradeLineItem(licenseDeal, currency);
 
-  // Calculate the base line items that should be included in commission calculations WITHOUT voucher discount
+  // Calculate the base line items that should be included in commission calculations
   const baseLineItemsForCommission = [order, ...licenseUpgradeLineItem];
-  const voucherData = await validateVoucher(currentUserId, voucherCode);
 
   // Note: extraLineItems for product selling (aka shipping fee)
   // is not included in either customer or provider commission calculation.
@@ -251,8 +248,7 @@ exports.transactionLineItems = async (
   const providerCommissionMaybe = getProviderCommissionMaybe(
     providerCommission,
     baseLineItemsForCommission,
-    currency,
-    voucherData
+    currency
   );
 
   // The customer commission is what the customer pays for the transaction, and
@@ -264,7 +260,7 @@ exports.transactionLineItems = async (
     currency
   );
 
-  // Let's keep the base price (order) as first line item, then extra items, then license upgrades, voucher discounts, and commissions as last.
+  // Let's keep the base price (order) as first line item, then extra items, then license upgrades, and commissions as last.
   // Note: the order matters only if OrderBreakdown component doesn't recognize line-item.
   const lineItems = [
     order,

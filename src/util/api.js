@@ -164,10 +164,6 @@ export const validateLicenseDeal = body => {
   return post(`/api/validate-license-deal`, body);
 };
 
-export const validateVoucher = body => {
-  return post(`/api/validate-voucher`, body);
-};
-
 export const generateImageKeywords = body => {
   return post('/api/phototag-keywords', body);
 };

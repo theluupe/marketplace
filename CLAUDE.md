@@ -49,7 +49,7 @@ Node version is managed via `.nvmrc` (currently `24.13.0`). Use `nvm use` before
 The app runs two separate Node processes in development:
 
 - **Frontend dev server** (`sharetribe-scripts start`) — Webpack + React, port 3000. Talks to Sharetribe's API via the SDK and proxies `/api/*` requests to the backend.
-- **Backend API server** (`server/apiServer.js`) — Express, port 3500. Handles everything that requires server-side credentials: Stripe, Google Cloud Storage, Auth0, Slack, Phototag, Voucherify, etc.
+- **Backend API server** (`server/apiServer.js`) — Express, port 3500. Handles everything that requires server-side credentials: Stripe, Google Cloud Storage, Auth0, Slack, Phototag, etc.
 
 In production, `server/index.js` serves both SSR rendering and the API routes on a single Express process.
 
@@ -140,10 +140,6 @@ Interactive button responses (approve/reject) are handled at `POST /api/slack/in
 ### License deals
 
 Custom per-user price negotiated outside the platform. Stored in `listing.privateData.customLicenseDeals[]`. Validated server-side at `POST /api/validate-license-deal` before checkout.
-
-### Vouchers / discounts
-
-Powered by [Voucherify](https://voucherify.io/). `POST /api/validate-voucher` gets-or-creates a Voucherify customer, validates the code, and returns discount metadata. Only percentage discounts (`APPLY_TO_ORDER`) are supported.
 
 ### Referral program
 
