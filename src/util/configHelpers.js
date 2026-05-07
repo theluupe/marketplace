@@ -1,7 +1,9 @@
 import { subUnitDivisors } from '../config/settingsCurrency';
 import { getSupportedProcessesInfo, isBookingProcessAlias } from '../transactions/transaction';
 import { sanitizeText } from './sanitize';
+import { EXTENDED_DATA_SCHEMA_TYPES } from './types';
 
+const isTestEnvironment = process.env.NODE_ENV === 'test';
 // Generic helpers for validating config values
 
 const printErrorIfHostedAssetIsMissing = props => {
@@ -549,30 +551,113 @@ const validFilterConfig = (config, schemaType) => {
   if (isUndefined) {
     return [true, {}];
   }
-  // Validate: indexForSearch, label, filterType, searchMode, group
+  // Validate: indexForSearch, showFilter, label, filterType, searchMode, group
   const [isValidIndexForSearch, indexForSearch] = validBoolean(
     'indexForSearch',
     config.indexForSearch,
     false
   );
+  const [isValidShowFilter, showFilter] = validBoolean('showFilter', config.showFilter, false);
   const [isValidLabel, label] = validLabel(config.label);
   const [isValidFilterType, filterType] = validFilterType(config.filterType, schemaType);
   const [isValidSearchMode, searchMode] = validSearchMode(config.searchMode, schemaType);
   const groupOptions = ['primary', 'secondary'];
   const [isValidGroup, group] = validEnumString('group', config.group, groupOptions, 'primary');
 
+  // Validate sort-related fields (used by numeric public and metadata fields)
+  // Validate: showSorting, sortingOrder and sortingGroup
+  const [isValidShowSorting, showSorting] = validBoolean('showSorting', config.showSorting, false);
+
+  const sortingGroupOptions = ['primary', 'secondary'];
+  const [isValidSortingGroup, sortingGroup] = validEnumString(
+    'sortingGroup',
+    config.sortingGroup,
+    sortingGroupOptions,
+    'primary'
+  );
+
+  const [isValidSortingOrderAsc, { asc: sortingOrderAsc }] = validBoolean(
+    'asc',
+    config.sortingOrder?.asc,
+    false
+  );
+  const [isValidSortingOrderDesc, { desc: sortingOrderDesc }] = validBoolean(
+    'desc',
+    config.sortingOrder?.desc,
+    false
+  );
+  const isValidSortingOrder = isValidSortingOrderAsc && isValidSortingOrderDesc;
+  const sortingOrder = { asc: sortingOrderAsc, desc: sortingOrderDesc };
+
   const isValid =
-    isValidIndexForSearch && isValidLabel && isValidFilterType && isValidSearchMode && isValidGroup;
+    isValidIndexForSearch &&
+    isValidShowFilter &&
+    isValidLabel &&
+    isValidFilterType &&
+    isValidSearchMode &&
+    isValidGroup &&
+    isValidShowSorting &&
+    isValidSortingGroup &&
+    isValidSortingOrder;
+
   const validValue = {
     filterConfig: {
       ...indexForSearch,
+      ...showFilter,
       ...label,
       ...filterType,
       ...searchMode,
       ...group,
+      ...showSorting,
+      ...sortingGroup,
+      sortingOrder,
     },
   };
   return [isValid, validValue];
+};
+
+// Build sort options derived from listing fields that have showSorting enabled.
+// Primary options are inserted before the default sort options and secondary after.
+const getSortOptionsFromListingFields = listingFields => {
+  const primaryOptions = [];
+  const secondaryOptions = [];
+
+  listingFields.forEach(field => {
+    const { key, scope, schemaType, filterConfig } = field;
+    // only add sort options for numeric fields and if showSorting is true
+    if (schemaType !== 'long' || !filterConfig?.showSorting) {
+      return;
+    }
+
+    const prefix = scope === 'metadata' ? 'meta_' : 'pub_';
+    const sortKey = `${prefix}${key}`;
+    const { label, sortingOrder, sortingGroup } = filterConfig;
+
+    const options = [];
+
+    if (sortingOrder.asc) {
+      options.push({
+        key: `-${sortKey}`,
+        labelTranslationKey: 'SortBy.numericSortOption',
+        translationValues: { fieldLabel: label, direction: 'asc' },
+      });
+    }
+    if (sortingOrder.desc) {
+      options.push({
+        key: sortKey,
+        labelTranslationKey: 'SortBy.numericSortOption',
+        translationValues: { fieldLabel: label, direction: 'desc' },
+      });
+    }
+
+    if (sortingGroup === 'secondary') {
+      secondaryOptions.push(...options);
+    } else {
+      primaryOptions.push(...options);
+    }
+  });
+
+  return { primaryOptions, secondaryOptions };
 };
 
 // listingFieldsConfig.showConfig
@@ -585,18 +670,25 @@ const validShowConfig = config => {
   // Validate: label, isDetail.
   const [isValidLabel, label] = validLabel(config.label);
   const [isValidIsDetail, isDetail] = validBoolean('isDetail', config.isDetail, true);
+  const [isValidDisplayOnListingPage, isDisplayOnListingPage] = validBoolean(
+    'displayOnListingPage',
+    config.displayOnListingPage,
+    true
+  );
   const [isValidUnselectedOptions, unselectedOptions] = validBoolean(
     'unselectedOptions',
     config.unselectedOptions,
     true
   );
 
-  const isValid = isValidLabel && isValidIsDetail && isValidUnselectedOptions;
+  const isValid =
+    isValidLabel && isValidIsDetail && isValidUnselectedOptions && isValidDisplayOnListingPage;
   const validValue = {
     showConfig: {
       ...label,
       ...isDetail,
       ...unselectedOptions,
+      ...isDisplayOnListingPage,
     },
   };
   return [isValid, validValue];
@@ -739,8 +831,7 @@ const validUserSaveConfig = config => {
 
 const validListingFields = (listingFields, listingTypesInUse, categoriesInUse) => {
   const keys = listingFields.map(d => d.key);
-  const scopeOptions = ['public', 'private'];
-  const validSchemaTypes = ['enum', 'multi-enum', 'text', 'long', 'boolean', 'youtubeVideoUrl'];
+  const scopeOptions = ['public', 'private', 'metadata'];
 
   return listingFields.reduce((acc, data) => {
     const schemaType = data.schemaType;
@@ -764,7 +855,7 @@ const validListingFields = (listingFields, listingTypesInUse, categoriesInUse) =
             : name === 'categoryConfig'
             ? validListingTypesForCategoryConfig(value, categoriesInUse)
             : name === 'schemaType'
-            ? validEnumString('schemaType', value, validSchemaTypes)
+            ? validEnumString('schemaType', value, EXTENDED_DATA_SCHEMA_TYPES)
             : name === 'enumOptions'
             ? validSchemaOptions(value, schemaType)
             : name === 'filterConfig'
@@ -802,7 +893,6 @@ const validListingFields = (listingFields, listingTypesInUse, categoriesInUse) =
 const validTransactionFields = transactionFields => {
   const keys = transactionFields.map(d => d.key);
   const scopeOptions = ['protected'];
-  const validSchemaTypes = ['enum', 'multi-enum', 'text', 'long', 'boolean', 'youtubeVideoUrl'];
 
   return transactionFields.reduce((acc, data) => {
     const schemaType = data.schemaType;
@@ -820,7 +910,7 @@ const validTransactionFields = transactionFields => {
             : name === 'numberConfig'
             ? validNumberConfig(value)
             : name === 'schemaType'
-            ? validEnumString('schemaType', value, validSchemaTypes)
+            ? validEnumString('schemaType', value, EXTENDED_DATA_SCHEMA_TYPES)
             : name === 'enumOptions'
             ? validSchemaOptions(value, schemaType)
             : name === 'filterConfig'
@@ -864,7 +954,6 @@ const validUserTypes = userTypes => {
 const validUserFields = (userFields, userTypesInUse) => {
   const keys = userFields.map(d => d.key);
   const scopeOptions = ['public', 'private', 'protected', 'metadata'];
-  const validSchemaTypes = ['enum', 'multi-enum', 'text', 'long', 'boolean', 'youtubeVideoUrl'];
 
   return userFields.reduce((acc, data) => {
     const schemaType = data.schemaType;
@@ -882,9 +971,11 @@ const validUserFields = (userFields, userTypesInUse) => {
             : name === 'scope'
             ? validEnumString('scope', value, scopeOptions, 'public')
             : name === 'schemaType'
-            ? validEnumString('schemaType', value, validSchemaTypes)
+            ? validEnumString('schemaType', value, EXTENDED_DATA_SCHEMA_TYPES)
             : name === 'enumOptions'
             ? validSchemaOptions(value, schemaType)
+            : name === 'numberConfig'
+            ? validNumberConfig(value)
             : name === 'showConfig'
             ? validUserShowConfig(value)
             : name === 'userTypeConfig'
@@ -1046,6 +1137,7 @@ const restructureListingFields = hostedListingFields => {
         schemaType,
         enumOptions,
         label,
+        displayOnListingPage,
         filterConfig = {},
         showConfig = {},
         saveConfig = {},
@@ -1072,6 +1164,7 @@ const restructureListingFields = hostedListingFields => {
             showConfig: {
               ...showConfig,
               label: showConfig.label || defaultLabel,
+              displayOnListingPage,
             },
             saveConfig: {
               ...restSaveConfig,
@@ -1444,22 +1537,66 @@ const validSortConfig = config => {
   return { active, queryParamName, relevanceKey, relevanceFilter, conflictingFilters, options };
 };
 
+const mergeSortConfig = (hostedSortConfig, defaultSortConfig, omitRelevance, listingFields) => {
+  // Flag filters to remove if the default sorting option is toggled off in Console
+  const removeByKey = {
+    createdAt: !hostedSortConfig?.newest,
+    '-createdAt': !hostedSortConfig?.oldest,
+    '-price': !hostedSortConfig?.lowestPrice,
+    price: !hostedSortConfig?.highestPrice,
+    relevance: !hostedSortConfig?.relevance || omitRelevance,
+  };
+
+  // In addition to the search configuration, additional sort options can be configured
+  // through listing fields. getSortOptionsFromListingFields iterates through the listing fields
+  // and returns primaryOptions and secondaryOptions. primaryOptions are prepended to the
+  // sort options and secondaryOptions are appended.
+  const { primaryOptions, secondaryOptions } = getSortOptionsFromListingFields(listingFields);
+  // hostedSortConfig can be undefined if listing search settings have not been updated in Console,
+  // in which case there's no need to filter out any options
+  const filteredDefaults =
+    hostedSortConfig == null
+      ? defaultSortConfig.options
+      : defaultSortConfig.options.filter(option => !removeByKey[option.key]);
+  const options = [...primaryOptions, ...filteredDefaults, ...secondaryOptions];
+
+  return {
+    ...defaultSortConfig,
+    // Disable SortBy component if there are less than 2 options
+    active: options.length > 1,
+    options: options,
+  };
+};
+
 const mergeSearchConfig = (
   hostedSearchConfig,
   defaultSearchConfig,
   categoryConfiguration,
-  listingTypeConfig
+  listingTypeConfig,
+  listingFieldsConfig
 ) => {
-  // The sortConfig is not yet configurable through Console / hosted assets,
-  // but other default search configs come from hosted assets
+  // the mainSearch attribute (reflects whether the user has chosen keyword or location search) is required in Console if modifying search configuration, so its presence reliably indicates a hosted config exists.
+  // If absent, we still check listingFieldsConfig since numeric fields may contribute sort options.
+  // If neither is set, return defaultSearchConfig
   const searchConfig = hostedSearchConfig?.mainSearch
     ? {
-        sortConfig: defaultSearchConfig.sortConfig,
-        // This just shows how to add custom built-in filters.
+        sortConfig: mergeSortConfig(
+          hostedSearchConfig?.sorting?.defaultSortingOptions,
+          defaultSearchConfig.sortConfig,
+          hostedSearchConfig?.mainSearch?.searchType === 'location',
+          listingFieldsConfig
+        ),
+        // This is an example of how to load custom built-in filters through the configListing.js file
         // Note: listingTypeFilter and categoryFilter might be overwritten by hostedSearchConfig
         listingTypeFilter: defaultSearchConfig.listingTypeFilter,
         categoryFilter: defaultSearchConfig.categoryFilter,
         ...hostedSearchConfig,
+      }
+    : listingFieldsConfig
+    ? {
+        // here we pass null since in this scenario no hosted search configuration exists
+        sortConfig: mergeSortConfig(null, defaultSearchConfig.sortConfig, listingFieldsConfig),
+        ...defaultSearchConfig,
       }
     : defaultSearchConfig;
 
@@ -1535,7 +1672,7 @@ const mergeMapConfig = (hostedMapConfig, defaultMapConfig) => {
 
   const hasApiAccess =
     mapProviderPicked === 'googleMaps' ? !!googleMapsAPIKeyPicked : !!mapboxAccessTokenPicked;
-  if (!hasApiAccess) {
+  if (!hasApiAccess && !isTestEnvironment) {
     console.error(
       `The access tokens are not in place for the selected map provider (${mapProviderPicked})`
     );
@@ -1637,7 +1774,8 @@ export const mergeConfig = (configAsset = {}, defaultConfigs = {}) => {
       configAsset.search,
       defaultConfigs.search,
       categoryConfiguration,
-      listingConfiguration.listingTypes
+      listingConfiguration.listingTypes,
+      listingConfiguration.listingFields
     ),
 
     // Map provider info might come from hosted assets. Other map configs come from defaultConfigs.
