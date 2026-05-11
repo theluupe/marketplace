@@ -309,8 +309,11 @@ const mapDispatchToProps = dispatch => ({
   onRequestQuote: (params, processAlias) => dispatch(requestQuote(params, processAlias)),
 });
 
-const RequestQuotePage = compose(connect(mapStateToProps, mapDispatchToProps))(
-  EnhancedRequestQuotePage
-);
+const RequestQuotePage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(EnhancedRequestQuotePage);
 
 export default RequestQuotePage;

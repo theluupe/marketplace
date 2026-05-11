@@ -13,6 +13,10 @@ ENV BASIC_AUTH_PASSWORD=TheLuupe_123
 ENV NODE_ENV=production
 ENV PORT=8080
 
-RUN yarn install
+# Since NODE_ENV=production is set above, `yarn install` would skip devDependencies
+# by default. Post CRA-eject (upstream v11.0.0), all build tooling — webpack, babel,
+# css-loader, postcss-loader, html-webpack-plugin, etc. — lives in devDependencies,
+# so `yarn build` below would fail without them. Force-install everything.
+RUN yarn install --production=false
 RUN yarn build
 CMD ["yarn", "start"]

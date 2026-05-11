@@ -177,7 +177,7 @@ export const pickCustomFieldProps = (extendedData, fieldConfigs, entityTypeKey, 
             heading: label,
             options: createFilterOptions(enumOptions),
             selectedOptions: value || [],
-            showUnselectedOptions: showUnselectedOptions !== false,
+            showUnselectedOptions: scope !== 'metadata' && showUnselectedOptions !== false,
           },
         ]
       : isTargetEntityType && !!value && config.schemaType === SCHEMA_TYPE_TEXT && shouldPick
@@ -355,6 +355,8 @@ export const getDetailCustomFieldValue = (
     : schemaType === 'boolean'
     ? { key, value: getBooleanMessage(value), label }
     : schemaType === 'long'
+    ? { key, value, label }
+    : schemaType === 'shortText'
     ? { key, value, label }
     : null;
 };

@@ -156,8 +156,11 @@ const mapDispatchToProps = dispatch => ({
   onSubmitContactDetails: values => dispatch(saveContactDetails(values)),
 });
 
-const ContactDetailsPage = compose(connect(mapStateToProps, mapDispatchToProps))(
-  ContactDetailsPageComponent
-);
+const ContactDetailsPage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(ContactDetailsPageComponent);
 
 export default ContactDetailsPage;

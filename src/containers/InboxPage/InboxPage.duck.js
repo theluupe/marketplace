@@ -23,6 +23,8 @@ const loadInboxBaseDataThunk = createAsyncThunk(
   }
 );
 
+// ================ Load data ================ //
+
 const loadDataPayloadCreator = ({ params, search }, { dispatch, rejectWithValue, extra: sdk }) => {
   const { tab } = params;
 

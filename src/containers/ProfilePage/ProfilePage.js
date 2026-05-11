@@ -35,6 +35,12 @@ import { updateProfile } from '../../containers/ProfileSettingsPage/ProfileSetti
 import BasicProfilePage from './BasicProfilePage';
 import SellerProfilePage from './SellerProfilePage/SellerProfilePage';
 
+// Note: this file is a thin TheLuupe router; the actual profile rendering lives in
+// ./BasicProfilePage and ./SellerProfilePage/SellerProfilePage. Upstream's ProfilePage
+// helpers (AsideContent, ReviewsErrorMaybe, MobileReviews, DesktopReviews,
+// CustomUserFields, MainContent) are imported from the upstream-equivalent location
+// inside those two child components, not here.
+
 /**
  * ProfilePageComponent
  *
@@ -281,6 +287,11 @@ const mapDispatchToProps = dispatch => ({
   onFetchCurrentUser: () => dispatch(fetchCurrentUser({})),
 });
 
-const ProfilePage = compose(connect(mapStateToProps, mapDispatchToProps))(ProfilePageComponent);
+const ProfilePage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(ProfilePageComponent);
 
 export default ProfilePage;

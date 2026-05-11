@@ -18,7 +18,7 @@ import TopbarContainer from '../TopbarContainer/TopbarContainer';
 import FooterContainer from '../FooterContainer/FooterContainer';
 import { updateProfile } from '../ProfileSettingsPage/ProfileSettingsPage.duck';
 
-import { getListingsById } from '../../ducks/marketplaceData.duck';
+import { makeGetListingsByIdSelector } from '../../ducks/marketplaceData.duck';
 
 import css from './FavoriteListingsPage.module.css';
 
@@ -134,24 +134,30 @@ FavoriteListingsPageComponent.propTypes = {
   intl: intlShape.isRequired,
 };
 
-const mapStateToProps = state => {
-  const {
-    currentPageResultIds,
-    pagination,
-    queryInProgress,
-    queryFavoritesError,
-    queryParams,
-  } = state.FavoriteListingsPage;
-  const { currentUser } = state.user;
-  const listings = getListingsById(state, currentPageResultIds);
-  return {
-    currentUser,
-    listings,
-    pagination,
-    queryInProgress,
-    queryFavoritesError,
-    queryParams,
-    scrollingDisabled: isScrollingDisabled(state),
+// Factory mapStateToProps: instantiate one memoised selector per component instance
+// so that `listings` keeps a stable reference across store updates that don't change the
+// underlying entities (PR #829).
+const makeMapStateToProps = () => {
+  const getListingsByIdSelector = makeGetListingsByIdSelector();
+  return state => {
+    const {
+      currentPageResultIds,
+      pagination,
+      queryInProgress,
+      queryFavoritesError,
+      queryParams,
+    } = state.FavoriteListingsPage;
+    const { currentUser } = state.user;
+    const listings = getListingsByIdSelector(state, currentPageResultIds);
+    return {
+      currentUser,
+      listings,
+      pagination,
+      queryInProgress,
+      queryFavoritesError,
+      queryParams,
+      scrollingDisabled: isScrollingDisabled(state),
+    };
   };
 };
 
@@ -161,7 +167,10 @@ const mapDispatchToProps = dispatch => ({
 });
 
 const FavoriteListingsPage = compose(
-  connect(mapStateToProps, mapDispatchToProps),
+  connect(
+    makeMapStateToProps,
+    mapDispatchToProps
+  ),
   injectIntl
 )(FavoriteListingsPageComponent);
 

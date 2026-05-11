@@ -262,8 +262,11 @@ const mapDispatchToProps = dispatch => ({
   onDeletePaymentMethod: params => dispatch(deletePaymentMethod(params)),
 });
 
-const PaymentMethodsPage = compose(connect(mapStateToProps, mapDispatchToProps))(
-  PaymentMethodsPageComponent
-);
+const PaymentMethodsPage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(PaymentMethodsPageComponent);
 
 export default PaymentMethodsPage;

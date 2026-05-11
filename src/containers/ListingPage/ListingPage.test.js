@@ -29,7 +29,7 @@ import { addMarketplaceEntities } from '../../ducks/marketplaceData.duck';
 
 import reducer, { showListing, loadData, setInitialValues } from './ListingPage.duck';
 
-import ActionBarMaybe from './ActionBarMaybe';
+import ActionBar from './Notifications/ActionBar';
 
 const { UUID } = sdkTypes;
 const { screen, waitFor, within } = testingLibrary;
@@ -96,12 +96,9 @@ const listingFields = [
       categoryIds: ['cats'],
     },
     schemaType: 'enum',
-    enumOptions: [
-      { option: 'cat_1', label: 'Cat 1' },
-      { option: 'cat_2', label: 'Cat 2' },
-    ],
+    enumOptions: [{ option: 'cat_1', label: 'Cat 1' }, { option: 'cat_2', label: 'Cat 2' }],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
     },
     showConfig: {
       label: 'Cat',
@@ -122,7 +119,7 @@ const listingFields = [
       { option: 'feat_3', label: 'Feat 3' },
     ],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
     },
     showConfig: {
       label: 'Amenities',
@@ -211,6 +208,7 @@ describe('ListingPage variants', () => {
     scrollingDisabled: false,
     onManageDisableScrolling: noop,
     callSetInitialValues: noop,
+    setInitialValues: noop,
     onFetchTransactionLineItems: noop,
     onSendInquiry: noop,
     onInitializeCardPaymentData: noop,
@@ -719,13 +717,13 @@ describe('Duck', () => {
   });
 });
 
-describe('ActionBarMaybe', () => {
+describe('ActionBar', () => {
   it('shows users own listing status', () => {
     const listing = createListing('listing-published', {
       state: LISTING_STATE_PUBLISHED,
     });
     render(
-      <ActionBarMaybe
+      <ActionBar
         isOwnListing
         listing={listing}
         editParams={{ id: 'id1', slug: 'asdf', type: 'edit', tab: 'details' }}
@@ -741,7 +739,7 @@ describe('ActionBarMaybe', () => {
       state: LISTING_STATE_PENDING_APPROVAL,
     });
     render(
-      <ActionBarMaybe
+      <ActionBar
         isOwnListing
         listing={listing}
         editParams={{ id: 'id1', slug: 'asdf', type: 'edit', tab: 'details' }}
@@ -756,7 +754,7 @@ describe('ActionBarMaybe', () => {
       state: LISTING_STATE_CLOSED,
     });
     render(
-      <ActionBarMaybe
+      <ActionBar
         isOwnListing
         listing={listing}
         editParams={{ id: 'id1', slug: 'asdf', type: 'edit', tab: 'details' }}
@@ -771,7 +769,7 @@ describe('ActionBarMaybe', () => {
       state: LISTING_STATE_CLOSED,
     });
     render(
-      <ActionBarMaybe
+      <ActionBar
         isOwnListing={false}
         listing={listing}
         editParams={{ id: 'id1', slug: 'asdf', type: 'edit', tab: 'details' }}
@@ -785,7 +783,7 @@ describe('ActionBarMaybe', () => {
       state: LISTING_STATE_PUBLISHED,
     });
     const actionBar = render(
-      <ActionBarMaybe
+      <ActionBar
         isOwnListing={false}
         listing={listing}
         editParams={{ id: 'id1', slug: 'asdf', type: 'edit', tab: 'details' }}

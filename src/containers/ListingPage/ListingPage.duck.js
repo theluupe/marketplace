@@ -418,6 +418,7 @@ const listingPageSlice = createSlice({
       })
       .addCase(showListingThunk.fulfilled, (state, action) => {
         // Data is handled by addMarketplaceEntities in the thunk
+        state.id = action.payload.data.data.id;
       })
       .addCase(showListingThunk.rejected, (state, action) => {
         state.showListingError = action.payload;

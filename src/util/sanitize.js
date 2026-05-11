@@ -111,10 +111,13 @@ export const sanitizeUser = (entity, config = {}) => {
     const sanitizedConfiguredPublicData = sanitizeConfiguredPublicData(publicData, config);
     return publicData ? { publicData: sanitizedConfiguredPublicData } : {};
   };
+  // Metadata fields declared in hosted field config are sanitized per schemaType.
+  // TheLuupe-specific keys written via the Integration API (see THELUUPE_ALLOWED_USER_METADATA_KEYS)
+  // are explicitly allow-listed. Unknown keys currently pass through (upstream's permissive
+  // fallthrough); see sanitizeConfiguredMetadata for the policy.
   const sanitizeMetadata = metadata => {
-    // TODO: If you add user-generated metadata through Integration API,
-    // you should probably sanitize it here.
-    return metadata ? { metadata } : {};
+    const sanitized = sanitizeConfiguredMetadata(metadata, config, 'user');
+    return metadata ? { metadata: sanitized } : {};
   };
 
   const profileMaybe = profile
@@ -143,7 +146,9 @@ export const sanitizeUser = (entity, config = {}) => {
 const sanitizedExtendedDataFields = (value, config) => {
   const { schemaType, enumOptions } = config;
   const sanitized =
-    schemaType === 'text'
+    schemaType === 'shortText'
+      ? sanitizeText(value)
+      : schemaType === 'text'
       ? sanitizeText(value)
       : schemaType === 'enum'
       ? sanitizeEnum(value, enumOptions)
@@ -203,6 +208,85 @@ const sanitizeConfiguredPublicData = (publicData, config = {}) => {
 };
 
 /**
+ * TheLuupe-specific metadata keys written via the Integration API.
+ * These are not declared in the hosted listing/user-field config (operators don't manage
+ * them), so without an explicit allow-list they would only survive sanitization by virtue
+ * of the permissive fallthrough below. Declaring them here documents TheLuupe's metadata
+ * schema and future-proofs against upstream tightening sanitizeConfiguredMetadata to drop
+ * unknown keys.
+ *
+ * Writers (server-side, all via Integration API):
+ *   - server/scripts/events/notifyUserCreated.js  — brandUsers, membership, isBrandAdmin,
+ *     communityId, studioId
+ *   - server/scripts/events/notifyUserUpdated.js  — membership, sellerStatus, communityStatus,
+ *     appliedAt
+ *   - server/api/slack/slackInteractivity.js      — sellerStatus, communityStatus, reviewedAt,
+ *     profileListingId, communityId, studioId
+ *   - operator-set in Sharetribe Console          — isLuupeAdmin
+ *
+ * When adding a new server-side metadata writer, also add the key here.
+ */
+const THELUUPE_ALLOWED_USER_METADATA_KEYS = new Set([
+  'brandUsers',
+  'membership',
+  'isBrandAdmin',
+  'communityId',
+  'studioId',
+  'sellerStatus',
+  'communityStatus',
+  'appliedAt',
+  'reviewedAt',
+  'profileListingId',
+  'isLuupeAdmin',
+]);
+
+/**
+ * TheLuupe-specific listing metadata keys.
+ * Writers:
+ *   - server/scripts/events/notifyProductListingCreated.js — creator
+ */
+const THELUUPE_ALLOWED_LISTING_METADATA_KEYS = new Set(['creator']);
+
+const isTheLuupeAllowedMetadataKey = (key, entityType) => {
+  if (entityType === 'user') return THELUUPE_ALLOWED_USER_METADATA_KEYS.has(key);
+  if (entityType === 'listing') return THELUUPE_ALLOWED_LISTING_METADATA_KEYS.has(key);
+  return false;
+};
+
+const sanitizeConfiguredMetadata = (metadata, config = {}, entityType) => {
+  const metadataObj = metadata || {};
+  const listingMetadataConfigs = config?.listingFields?.filter(d => d.scope === 'metadata') || [];
+  const userMetadataConfigs = config?.userFields?.filter(d => d.scope === 'metadata') || [];
+  const metadataFieldConfigs = [...listingMetadataConfigs, ...userMetadataConfigs];
+
+  return Object.entries(metadataObj).reduce((sanitized, entry) => {
+    const [key, value] = entry;
+    const foundFieldConfig = metadataFieldConfigs.find(d => d.key === key);
+    const isTheLuupeKey = isTheLuupeAllowedMetadataKey(key, entityType);
+
+    // Sanitization order:
+    //   1. If declared in hosted field config → sanitize per schemaType.
+    //   2. If a known TheLuupe key → pass through, text-sanitize only when the value is a string.
+    //   3. Otherwise (unknown key) → keep upstream's permissive fallthrough for now.
+    //      If upstream ever tightens this to drop unknowns, TheLuupe keys are still safe via (2).
+    const sanitizedValue = foundFieldConfig
+      ? sanitizedExtendedDataFields(value, foundFieldConfig)
+      : isTheLuupeKey
+      ? typeof value === 'string'
+        ? sanitizeText(value)
+        : value
+      : typeof value === 'string'
+      ? sanitizeText(value)
+      : value;
+
+    return {
+      ...sanitized,
+      [key]: sanitizedValue,
+    };
+  }, {});
+};
+
+/**
  * Sanitize listing entity.
  * If you add public data, you should probably sanitize it here.
  * By default, React DOM escapes any values embedded in JSX before rendering them,
@@ -211,7 +295,7 @@ const sanitizeConfiguredPublicData = (publicData, config = {}) => {
  */
 export const sanitizeListing = (entity, config = {}) => {
   const { attributes, ...restEntity } = entity;
-  const { title, description, publicData, ...restAttributes } = attributes || {};
+  const { title, description, publicData, metadata, ...restAttributes } = attributes || {};
 
   const sanitizeLocation = location => {
     const { address, building } = location || {};
@@ -228,12 +312,22 @@ export const sanitizeListing = (entity, config = {}) => {
     return publicData ? { publicData: { ...locationMaybe, ...sanitizedConfiguredPublicData } } : {};
   };
 
+  // Metadata fields declared in hosted field config are sanitized per schemaType.
+  // TheLuupe-specific listing keys (see THELUUPE_ALLOWED_LISTING_METADATA_KEYS) are
+  // explicitly allow-listed. Unknown keys currently pass through (upstream's permissive
+  // fallthrough); see sanitizeConfiguredMetadata for the policy.
+  const sanitizeMetadata = metadata => {
+    const sanitized = sanitizeConfiguredMetadata(metadata, config, 'listing');
+    return metadata ? { metadata: sanitized } : {};
+  };
+
   const attributesMaybe = attributes
     ? {
         attributes: {
           title: sanitizeText(title),
           description: sanitizeText(description),
           ...sanitizePublicData(publicData),
+          ...sanitizeMetadata(metadata),
           ...restAttributes,
         },
       }

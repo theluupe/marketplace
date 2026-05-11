@@ -16,13 +16,10 @@ class ReferralAPIManagerClient {
       error => Promise.reject(error)
     );
 
-    this.axiosClient.interceptors.response.use(
-      response => response,
-      function(error) {
-        console.error(`ReferralAPIManagerClient Error: ${error}`);
-        return Promise.reject(error);
-      }
-    );
+    this.axiosClient.interceptors.response.use(response => response, function(error) {
+      console.error(`ReferralAPIManagerClient Error: ${error}`);
+      return Promise.reject(error);
+    });
   }
 
   async getUser(email) {

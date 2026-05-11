@@ -90,6 +90,10 @@
     text-decoration: underline;
     cursor: pointer;
   }
+
+  @media (--viewportMedium) {
+    font-weight: var(--fontWeightMedium);
+  }
 }
 
 .links {
