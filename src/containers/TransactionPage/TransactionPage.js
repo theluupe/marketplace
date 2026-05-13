@@ -328,7 +328,7 @@ export const TransactionPageComponent = props => {
   };
 
   const redirectToCheckoutPageWithInitialValues = (initialValues, currentListing) => {
-    // Customize checkout page state with current listing and selected bookingDates
+    // Customize the state of the CheckoutPage with the current transaction, listing and the selected orderData
     const { setInitialValues } = findRouteByRouteName('CheckoutPage', routeConfiguration);
     callSetInitialValues(setInitialValues, initialValues);
 
@@ -540,14 +540,12 @@ export const TransactionPageComponent = props => {
     // If the user's user type does not have a provider role set, redirect
     // to 'orders' inbox tab. Otherwise, redirect to 'sales' tab.
     const tab = !isProviderUserTypeRole ? 'orders' : 'sales';
-    // eslint-disable-next-line no-console
     console.error('Tried to access a sale that was not owned by the current user');
     return <NamedRedirect name="InboxPage" params={{ tab }} />;
   } else if (isDataAvailable && isCustomerRole && !isOwnOrder) {
     // If the user's user type does not have a customer role set, redirect
     // to 'sales' inbox tab. Otherwise, redirect to 'orders' tab.
     const tab = !isCustomerUserTypeRole ? 'sales' : 'orders';
-    // eslint-disable-next-line no-console
     console.error('Tried to access an order that was not owned by the current user');
     return <NamedRedirect name="InboxPage" params={{ tab }} />;
   }
@@ -1011,7 +1009,10 @@ const mapDispatchToProps = dispatch => {
 
 const TransactionPage = compose(
   withRouter,
-  connect(mapStateToProps, mapDispatchToProps)
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
 )(TransactionPageComponent);
 
 export default TransactionPage;

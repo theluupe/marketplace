@@ -140,4 +140,7 @@ LocationFilter.propTypes = {
   intl: intlShape.isRequired,
 };
 
-export default compose(withRouter, injectIntl)(LocationFilter);
+export default compose(
+  withRouter,
+  injectIntl
+)(LocationFilter);

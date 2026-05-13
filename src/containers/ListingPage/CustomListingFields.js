@@ -28,6 +28,8 @@ const CustomListingFields = props => {
   const categoriesObj = pickCategoryFields(publicData, categoryPrefix, 1, listingCategoriesConfig);
   const currentCategories = Object.values(categoriesObj);
 
+  // Fields are shown by default. Set showConfig.displayOnListingPage to false to explicitly hide a field.
+  // TheLuupe: defensive null/undefined handling for `listingFieldConfigs`.
   const displayableFieldConfigs =
     listingFieldConfigs?.filter(
       fieldConfig => fieldConfig.showConfig?.displayOnListingPage !== false
@@ -50,6 +52,7 @@ const CustomListingFields = props => {
 
   const sectionDetailsProps = {
     ...props,
+    isFieldForCategory: isFieldForSelectedCategories,
     fieldConfigs: displayableFieldConfigs,
     heading: 'ListingPage.detailsTitle',
   };

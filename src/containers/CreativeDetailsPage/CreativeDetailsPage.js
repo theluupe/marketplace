@@ -137,7 +137,10 @@ const mapDispatchToProps = dispatch => ({
 });
 
 const CreativeDetailsPage = compose(
-  connect(mapStateToProps, mapDispatchToProps),
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  ),
   injectIntl
 )(CreativeDetailsPageComponent);
 

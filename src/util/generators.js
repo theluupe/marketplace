@@ -112,7 +112,10 @@ const invertedRangesFromExceptions = (start, end) =>
  * @returns Array of { start, end } objects.
  */
 export const availableRanges = (start, end, exceptions) => {
-  const availableRanges = pipe(exceptions, invertedRangesFromExceptions(start, end));
+  const availableRanges = pipe(
+    exceptions,
+    invertedRangesFromExceptions(start, end)
+  );
   return [...availableRanges];
 };
 

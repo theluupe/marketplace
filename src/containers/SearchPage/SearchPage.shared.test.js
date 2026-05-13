@@ -26,7 +26,7 @@ const listingFieldsConfig = [
       { option: 'three', label: 'Three' },
     ],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'General information',
       group: 'primary',
     },
@@ -45,7 +45,7 @@ const listingFieldsConfig = [
       { option: 'kids', label: 'Kids' },
     ],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'Bicycle rider',
       group: 'primary',
     },
@@ -58,12 +58,9 @@ const listingFieldsConfig = [
       listingTypeIds: ['sell-bicycles'],
     },
     schemaType: 'enum',
-    enumOptions: [
-      { option: 'smoke', label: 'Smoke' },
-      { option: 'wood', label: 'Wood' },
-    ],
+    enumOptions: [{ option: 'smoke', label: 'Smoke' }, { option: 'wood', label: 'Wood' }],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'Test',
       group: 'secondary',
     },
@@ -76,12 +73,9 @@ const listingFieldsConfig = [
       listingTypeIds: ['rent-bicycles-daily', 'rent-bicycles-nightly', 'rent-bicycles-hourly'],
     },
     schemaType: 'multi-enum',
-    enumOptions: [
-      { option: 'towels', label: 'Towels' },
-      { option: 'bathroom', label: 'Bathroom' },
-    ],
+    enumOptions: [{ option: 'towels', label: 'Towels' }, { option: 'bathroom', label: 'Bathroom' }],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'Amenities',
       //searchMode: 'has_all',
       group: 'secondary',
@@ -91,12 +85,9 @@ const listingFieldsConfig = [
     key: 'generalMultienum',
     scope: 'public',
     schemaType: 'multi-enum',
-    enumOptions: [
-      { option: 'towels', label: 'Towels' },
-      { option: 'bathroom', label: 'Bathroom' },
-    ],
+    enumOptions: [{ option: 'towels', label: 'Towels' }, { option: 'bathroom', label: 'Bathroom' }],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'Generic multi-enum',
       //searchMode: 'has_all',
       group: 'secondary',
@@ -120,7 +111,7 @@ const listingFieldsConfig = [
       { option: 'cat3', label: 'C3' },
     ],
     filterConfig: {
-      indexForSearch: true,
+      showFilter: true,
       label: 'Cat',
       group: 'primary',
     },

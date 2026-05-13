@@ -66,6 +66,7 @@ async function startServer() {
     app.get('/sitemap-:resource', sitemapResourceRoute);
 
     app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
       console.log(`API server listening on ${PORT}`);
     });
   } catch (err) {

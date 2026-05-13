@@ -4,6 +4,57 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Upstream Merge v10.14.0 → v11.0.2] — 2026-05-11
+
+Merged 244 upstream commits spanning seven Sharetribe releases (`v10.14.0`, `v10.14.1`, `v10.15.0`, `v11.0.0` major, `v11.0.1`, `v11.0.2`) plus point fixes. Bumped version to `11.0.2-theluuupe.1`. Resolution plan, decisions, and per-conflict resolutions documented in [`spec/upstream-merge-v10.14-to-v11.0.2.md`](./spec/upstream-merge-v10.14-to-v11.0.2.md).
+
+### Adopted upstream structure (with TheLuupe behaviour layered on)
+
+- **CRA-eject from `sharetribe-scripts`** (upstream PR #792). New in-tree `config/` (webpack, babel, eslint, jest, react-dev-utils) and `scripts/` (start, build, build-server, test) directories. `package.json` scripts now point at `node scripts/*.js` directly. `Dockerfile` updated to `yarn install --production=false` so `devDependencies` (which now hold all build tooling) are installed under `NODE_ENV=production`.
+- **AuthenticationPage refactored to hooks + inlined sub-components** (upstream PR #811). Replaced `compose(connect, withRouter)` with `useDispatch`/`useSelector`/`useStore`. Deleted the `AuthenticationForms/` middleware folder and inlined `<SignupBody>` and `<ConfirmIdProviderInfoForm>` directly in `AuthenticationPage.js`. Deleted the `SocialLoginButtons/` folder (no consumer — TheLuupe is SSO-only via Auth0). Folded the deleted `AuthenticationForms.module.css` rules into `AuthenticationPage.module.css`. `getHandleSubmitConfirm` overridden in `AuthenticationPage.helpers.js` with TheLuupe-aware logic (`brandStudioId`, `location`, `newsletterOptIn`, `withHiddenPrivateData`). Upstream's `getHandleSubmitSignup` dropped — TheLuupe doesn't expose email/password signup.
+- **ListingPage adopted the upstream-provided wrappers** (upstream PR #819). `ListingPageAccessWrapper.js` now handles all access-control redirects (private marketplace, unauthorised user, pending-approval, no-viewing-rights), replacing TheLuupe's inline duplicates at the page level. `<Notifications>` replaces the two inline `<ActionBarMaybe>` calls. `<ActionBarMaybe>` renamed to `Notifications/ActionBar.js`.
+- **SearchPage adopted `SearchPageAccessWrapper` and shared helpers** (upstream PR #815). `getDerivedRenderData`, `onResetAll`, `onSortBy`, `createFilterValueChangeHandler` moved into `SearchPage.shared.js`; `SearchErrors` extracted as a sub-component.
+- **ManageListingCard split into sub-components** (upstream PR #805) — `CardMenu`, `CardThumbnail`, `PriceInfo`, refactored `Overlay`. The list of cards is now `ul`/`li` for accessibility; out-of-stock cards no longer show the menu.
+- **Adopted upstream's `discardDraft` implementation** entirely (`DiscardDraftModal/`, the thunk in the duck, the `onDiscardDraft` prop chain). TheLuupe's near-identical HEAD implementation was redundant.
+
+### New TheLuupe-only file
+
+- **`src/containers/ListingPage/TheLuupeListingPageGate.js`** — handles TheLuupe-specific listing-type policy in one place: PORTFOLIO listings redirect to the author's ProfilePage with `pub_listingType=portfolio-showcase&pub_listingId=...`; PROFILE listings redirect to ProfilePage; HIDDEN_PRODUCT listings gate to owner-or-isLuupeAdmin (`NamedRedirect` to NoAccessPage otherwise). Invoked from inside `ListingPageAccessWrapper`'s final return (γ-inverted pattern: upstream wrapper minimally modified to delegate the inner render through the gate). Replaces the inline blocks that were duplicated across `ListingPageCarousel.js` and `ListingPageCoverPhoto.js`.
+
+### Behaviour changes
+
+- **Drafts are discard-only from `ManageListingsPage`.** Removed the "Finish listing" `<NamedLink>` from `<DraftOverlay>` in `CardThumbnail.js`. The corresponding `ManageListingCard.finishListingDraft` i18n key dropped from `en/de/es/fr`.
+- **TheLuupe's SSO-only invariant is now hard-enforced.** `AuthenticationPage.js` does not import `login` or `signup` thunks from `auth.duck`; `LoginForm`, `SignupForm`, `LinkTabNavHorizontal`, `getAuthenticationTabs`, `AuthenticationFormErrorMessage` (login/signup branches), and the entire `SocialLoginButtons/` folder are absent. Only `signupWithIdp` is dispatched.
+- **`server/env/index.js` migrated from `dotenv-expand` v5 API to v12 API.** Line 43 changed from `require('dotenv-expand')({ parsed: secrets })` to `require('dotenv-expand').expand({ parsed: secrets })` to match the new package version.
+
+### In-merge silent-risk fixes
+
+- **`src/util/sanitize.js` allow-list** added for TheLuupe Integration-API-written metadata keys. PR #779 introduced a metadata filter that *currently* passes unknown keys through permissively, but the in-file comment claims (aspirationally) that it filters. The allow-list (`THELUUPE_ALLOWED_USER_METADATA_KEYS`: 11 keys including `sellerStatus`, `communityStatus`, `studioId`, `communityId`, `isBrandAdmin`, `brandStudioId`, `isLuupeAdmin`, etc.; `THELUUPE_ALLOWED_LISTING_METADATA_KEYS`: `creator`) future-proofs TheLuupe against upstream tightening the filter.
+- **`getListingsById` migrated to `makeGetListingsByIdSelector`** (per upstream PR #829) for all six callers: `SearchPageWithGrid.js`, `SearchPageWithMap.js`, `LandingPage.js`, `CMSPage.js`, `PrivacyPolicyPage.js`, `TermsOfServicePage.js`, `FavoriteListingsPage.js`, `AuthenticationPage.js`. Connect-based callers use the factory `mapStateToProps` pattern; hook-based callers (`AuthenticationPage`, `SearchPage*`) use `useMemo(makeGetListingsByIdSelector, [])`.
+
+### Dependencies
+
+- **Added** as direct dependencies (previously transitive): `js-cookie ^2.2.1`, `invariant ^2.2.4`, `redux ^5.0.1` — these were broken imports in HEAD (pre-existing, not introduced by the merge) that had been silently resolving via transitive resolution.
+- **Removed**: `@voucherify/sdk` (already gone post-coupon-removal); `passport`, `passport-facebook`, `passport-google-oauth` (added by upstream for Sharetribe's built-in IdP login; not needed for TheLuupe's Auth0 setup); `sharetribe-scripts` (replaced by in-tree CRA-eject scripts); `workbox-webpack-plugin` (removed from `dependencies` — kept in `devDependencies` where it belongs).
+- **Bumped (major versions)** with usage audited and migrated where needed: `dotenv` `^10.0.0` → `17.3.1`; `dotenv-expand` `^5.1.0` → `12.0.3` (required the `server/env/index.js` migration above); `@sentry/{browser,node}` `9.47.1` → `10.43.0` (no API changes needed for TheLuupe's usage); `style-loader` `^3.3.1` → `^4.0.0` (build-time only).
+
+### Spec corrections (recorded inline in spec where they apply)
+
+During implementation, three spec items in §3.3 were updated against the original draft because the original recommendation was wrong on re-inspection:
+
+- `ContactDetailsPage.duck.js` — upstream's `resetPasswordThunk` reducer cases dropped instead of taken; TheLuupe intentionally removed the thunk, so taking the handlers would have been a `ReferenceError`.
+- `ManageListingsPage.js` — kept TheLuupe's `<ListingTabs>` structure (which already provides ul/li grid + pagination + grid-layout toggle); did not adopt upstream's new manual `<ul>`/`<li>`/`<PaginationLinksMaybe>` block (would have been a regression).
+- `ProfilePage.js` — dropped upstream's helpers block (`AsideContent`, `MobileReviews`, `DesktopReviews`, `MainContent`, etc.) entirely instead of folding; TheLuupe's child pages (`BasicProfilePage`, `SellerProfilePage`) handle their own rendering.
+
+### Out-of-scope (deferred to follow-up specs)
+
+1. Hooks migration for the four closure-pattern containers (LandingPage, CMSPage, PrivacyPolicyPage, TermsOfServicePage) — they got the factory-`mapStateToProps` `makeGetListingsByIdSelector` treatment but are still on `connect`.
+2. Drafts retirement — TheLuupe's single-listing `EditListingWizard` still produces drafts as an intermediate state. Removing drafts entirely (or auto-cleaning abandoned ones) is a real product decision.
+3. CI lint rule that enforces the `sanitize.js` allow-list stays in sync with Integration-API metadata writers.
+4. Extract `canBypassListingAccessGates(currentUser)` helper for the `isLuupeAdmin` admin-bypass pattern (used in 5+ places).
+
+---
+
 ## [Coupon Feature Removal] — 2026-05-07
 
 - Removed the Voucherify-backed discount-coupon feature in preparation for a future in-house implementation.

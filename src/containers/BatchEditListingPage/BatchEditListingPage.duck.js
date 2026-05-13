@@ -427,12 +427,15 @@ export const getAllThumbnailsReady = state => state.BatchEditListingPage.allThum
 export const getAllKeywordsReady = state => state.BatchEditListingPage.allKeywordsReady;
 export const getIsProcessingTags = state => state.BatchEditListingPage.isProcessingTags;
 export const getListingsDetails = state => state.BatchEditListingPage.listings;
-export const getKeywordsGenerationProgress = createSelector(getListingsDetails, listings => {
-  const total = listings.length;
-  const completed = listings.filter(l => l.tagsReady).length;
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-  return { total, completed, percent };
-});
+export const getKeywordsGenerationProgress = createSelector(
+  getListingsDetails,
+  listings => {
+    const total = listings.length;
+    const completed = listings.filter(l => l.tagsReady).length;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, percent };
+  }
+);
 
 function updateAiTermsStatus(getState, dispatch) {
   if (getAiTermsAccepted(getState())) {

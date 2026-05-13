@@ -420,6 +420,11 @@ const mapDispatchToProps = dispatch => ({
     dispatch(makeOffer(params, processAlias, transactionId, isPrivileged)),
 });
 
-const MakeOfferPage = compose(connect(mapStateToProps, mapDispatchToProps))(EnhancedMakeOfferPage);
+const MakeOfferPage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(EnhancedMakeOfferPage);
 
 export default MakeOfferPage;

@@ -104,8 +104,6 @@ export const ManageAccountPageComponent = props => {
       if (typeof window !== 'undefined') {
         window.location = path;
       }
-
-      console.log('logged out'); // eslint-disable-line
     });
   };
 
@@ -218,8 +216,11 @@ const mapDispatchToProps = dispatch => ({
   onUpdateProfile: values => dispatch(updateProfile(values)),
 });
 
-const ManageAccountPage = compose(connect(mapStateToProps, mapDispatchToProps))(
-  ManageAccountPageComponent
-);
+const ManageAccountPage = compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(ManageAccountPageComponent);
 
 export default ManageAccountPage;

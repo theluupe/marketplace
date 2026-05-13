@@ -1,22 +1,63 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import { useConfiguration } from '../../context/configurationContext';
-import { FormattedMessage } from '../../util/reactIntl';
+import { useConfiguration } from '../../../context/configurationContext';
+import { useRouteConfiguration } from '../../../context/routeConfigurationContext';
+import { FormattedMessage } from '../../../util/reactIntl';
+import { generateLinkProps } from '../../../util/routes';
 import {
   LISTING_STATE_PENDING_APPROVAL,
   LISTING_STATE_CLOSED,
   LISTING_STATE_DRAFT,
   propTypes,
-} from '../../util/types';
+} from '../../../util/types';
 
-import { NamedLink } from '../../components';
-import EditIcon from './EditIcon';
+import { NamedLink, ExternalLink } from '../../../components';
+import EditIcon from '../EditIcon';
 
-import css from './ListingPage.module.css';
+import css from '../ListingPage.module.css';
 
 /**
- * The ActionBarMaybe component.
+ * CTAButtonMaybe component renders a call-to-action (CTA) button if it is enabled.
+ * If the link is internal, a `NamedLink` is rendered, otherwise an `ExternalLink`
+ * is rendered. Uses userData to inject user data into the URL.
+ */
+const CTAButtonMaybe = props => {
+  const { data, routeConfiguration, userId, userEmail, listingId, isPendingApproval } = props;
+
+  // If the call to action button is not enabled, return null and don't render anything
+  const hasValidType = data?.type && data.type !== 'none';
+  const isCTAEnabled = hasValidType && isPendingApproval;
+
+  if (!isCTAEnabled) {
+    return null;
+  }
+
+  const { type, text, href } = data;
+
+  // Construct a the props for the NamedLink and ExternalLink components dynamically using the CTA data and user info
+  const ctaLink = generateLinkProps(type, href, routeConfiguration, userId, userEmail, listingId);
+
+  const isInternalLink = type === 'internal' && ctaLink.route;
+
+  return isInternalLink ? (
+    <NamedLink
+      name={ctaLink.route.name}
+      to={ctaLink.route.to}
+      params={ctaLink.route.params}
+      className={css.actionBarCTA}
+    >
+      {text}
+    </NamedLink>
+  ) : (
+    <ExternalLink href={ctaLink.link} className={css.actionBarCTA}>
+      {text}
+    </ExternalLink>
+  );
+};
+
+/**
+ * The ActionBar component.
  *
  * @component
  * @param {Object} props
@@ -25,10 +66,18 @@ import css from './ListingPage.module.css';
  * @param {boolean} props.isOwnListing - Whether the listing is own
  * @param {propTypes.listing | propTypes.ownListing} props.listing - The listing
  * @param {boolean} props.showNoPayoutDetailsSet - Show info about missing payout details
- * @returns {JSX.Element} action bar maybe component
+ * @returns {JSX.Element} action bar component
  */
-export const ActionBarMaybe = props => {
-  const { rootClassName, className, isOwnListing, listing, showNoPayoutDetailsSet } = props;
+export const ActionBar = props => {
+  const {
+    rootClassName,
+    className,
+    isOwnListing,
+    listing,
+    currentUser,
+    editParams,
+    showNoPayoutDetailsSet,
+  } = props;
   const classes = classNames(rootClassName || css.actionBar, className);
   const state = listing.attributes.state;
   const isPendingApproval = state === LISTING_STATE_PENDING_APPROVAL;
@@ -87,4 +136,4 @@ export const ActionBarMaybe = props => {
   return null;
 };
 
-export default ActionBarMaybe;
+export default ActionBar;

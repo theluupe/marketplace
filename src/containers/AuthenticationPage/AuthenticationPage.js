@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { compose } from 'redux';
-import { connect } from 'react-redux';
-import { withRouter, Redirect } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector, useStore } from 'react-redux';
+import { Redirect } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import classNames from 'classnames';
+import isEmpty from 'lodash/isEmpty';
 
 import { useConfiguration } from '../../context/configurationContext';
 import { camelize } from '../../util/string';
@@ -11,14 +11,15 @@ import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { propTypes } from '../../util/types';
 import { ensureCurrentUser, getFeaturedListingsProps } from '../../util/data';
 import { isTooManyEmailVerificationRequestsError } from '../../util/errors';
-import { isStudioBrand } from '../../util/userHelpers';
+import { isStudioBrand, isCreativeSeller } from '../../util/userHelpers';
 import { authenticationInProgress, signupWithIdp } from '../../ducks/auth.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { sendVerificationEmail } from '../../ducks/user.duck';
 import { fetchFeaturedListings } from '../../ducks/featuredListings.duck';
-import { getListingsById } from '../../ducks/marketplaceData.duck';
+import { makeGetListingsByIdSelector } from '../../ducks/marketplaceData.duck';
 
 import {
+  Heading,
   Page,
   IconSpinner,
   NamedRedirect,
@@ -33,26 +34,20 @@ import FooterContainer from '../../containers/FooterContainer/FooterContainer';
 import { TermsOfServiceContent } from '../../containers/TermsOfServicePage/TermsOfServicePage';
 // We need to get PrivacyPolicy asset and get it rendered for the modal on this page.
 import { PrivacyPolicyContent } from '../../containers/PrivacyPolicyPage/PrivacyPolicyPage';
-import NotFoundPage from '../NotFoundPage/NotFoundPage';
+import NotFoundPage from '../../containers/NotFoundPage/NotFoundPage';
 
-import AuthenticationOrConfirmInfoForm from './AuthenticationForms/AuthenticationForms';
+import { getAuthInfoFromCookies, getAuthErrorFromCookies } from './AuthenticationPage.helpers';
+
 import EmailVerificationInfo from './EmailVerificationInfo';
 import { SSOButton } from './SSOButton/SSOButton';
 import TermsAndConditions from './TermsAndConditions/TermsAndConditions';
+import ConfirmSignupForm from './ConfirmSignupForm/ConfirmSignupForm';
+import BaseSignup from './Signup/BaseSignup';
+import BrandSignup from './Signup/BrandSignup';
+import { getHandleSubmitConfirm } from './AuthenticationPage.helpers';
 
 import { TOS_ASSET_NAME, PRIVACY_POLICY_ASSET_NAME } from './AuthenticationPage.duck';
 import css from './AuthenticationPage.module.css';
-
-const getAuthInfoFromCookies = () => {
-  return Cookies.get('st-authinfo')
-    ? JSON.parse(Cookies.get('st-authinfo').replace('j:', ''))
-    : null;
-};
-const getAuthErrorFromCookies = () => {
-  return Cookies.get('st-autherror')
-    ? JSON.parse(Cookies.get('st-autherror').replace('j:', ''))
-    : null;
-};
 
 const BlankPage = props => {
   const { schemaTitle, schemaDescription, scrollingDisabled, topbarClasses } = props;
@@ -80,28 +75,129 @@ const BlankPage = props => {
 };
 
 /**
+ * TheLuupe SignupBody — replaces upstream's deleted `<AuthenticationOrConfirmInfoForm>`
+ * routing layer for the non-confirm signup case. Routes between Brand and Base signup
+ * based on the preselected user type. Inlined here per spec §3.3 Option 2C.
+ */
+const SignupBody = props => {
+  const { userType, from, brandStudioId, idpAuthError } = props;
+  const isBrand = isStudioBrand(userType);
+  return (
+    <div className={css.signupForm}>
+      {!!idpAuthError && (
+        <div className={css.error}>
+          <FormattedMessage id="AuthenticationPage.idpAuthFailed" />
+        </div>
+      )}
+      {isBrand ? (
+        <BrandSignup from={from} brandStudioId={brandStudioId} />
+      ) : (
+        <BaseSignup from={from} />
+      )}
+    </div>
+  );
+};
+
+/**
+ * TheLuupe ConfirmIdProviderInfoForm — replaces upstream's deleted
+ * `<AuthenticationOrConfirmInfoForm>` confirm-step layer. Renders the
+ * brand/seller info section (when applicable) plus the `<ConfirmSignupForm>`,
+ * wired to TheLuupe's `getHandleSubmitConfirm` (defined in
+ * `AuthenticationPage.helpers.js`) which handles `brandStudioId`, `location`,
+ * and `newsletterOptIn` injection into privateData.
+ */
+const ConfirmIdProviderInfoForm = props => {
+  const {
+    userType,
+    authInfo,
+    authInProgress,
+    confirmError,
+    submitSingupWithIdp,
+    termsAndConditions,
+  } = props;
+  const config = useConfiguration();
+  const { userFields, userTypes } = config.user;
+  const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
+  const idp = authInfo ? authInfo.idpId.replace(/^./, str => str.toUpperCase()) : null;
+
+  const showBrandExperience = isStudioBrand(preselectedUserType);
+  const showSellerExperience = isCreativeSeller(preselectedUserType);
+  const showInfoSection = showBrandExperience || showSellerExperience;
+
+  const rootStyles = classNames(css.confirmFormRoot, {
+    [css.forBrand]: showBrandExperience,
+    [css.forSeller]: showSellerExperience,
+  });
+
+  const onSubmit = getHandleSubmitConfirm({ authInfo, submitSingupWithIdp, userFields });
+
+  const confirmErrorMessage = confirmError ? (
+    <div className={css.error}>
+      <FormattedMessage id="AuthenticationPage.signupFailed" />
+    </div>
+  ) : null;
+
+  const infoSection = showInfoSection ? (
+    <div className={css.infoSection}>
+      <Heading as="h1" rootClassName={css.infoTitle}>
+        <FormattedMessage
+          id={`ConfirmSignupForm.${showBrandExperience ? 'brandInfoTitle' : 'sellerInfoTitle'}`}
+        />
+      </Heading>
+      <Heading as="h3" rootClassName={css.infoSubtitle}>
+        <FormattedMessage
+          id={`ConfirmSignupForm.${
+            showBrandExperience ? 'brandInfoDescription' : 'sellerInfoDescription'
+          }`}
+          values={{
+            lineBreak: (
+              <>
+                <br /> <br />
+              </>
+            ),
+          }}
+        />
+      </Heading>
+    </div>
+  ) : null;
+
+  return (
+    <section className={rootStyles}>
+      {infoSection}
+      <div className={css.confirmForm}>
+        <Heading as="h1" rootClassName={css.signupWithIdpTitle}>
+          <FormattedMessage id="AuthenticationPage.confirmSignupWithIdpTitle" values={{ idp }} />
+        </Heading>
+        <p className={css.confirmInfoText}>
+          <FormattedMessage id="AuthenticationPage.confirmSignupInfoText" />
+        </p>
+        {confirmErrorMessage}
+        <ConfirmSignupForm
+          className={css.form}
+          onSubmit={onSubmit}
+          inProgress={authInProgress}
+          termsAndConditions={termsAndConditions}
+          authInfo={authInfo}
+          idp={idp}
+          preselectedUserType={preselectedUserType}
+          userTypes={userTypes}
+          userFields={userFields}
+        />
+      </div>
+    </section>
+  );
+};
+
+/**
  * The AuthenticationPage component.
  *
+ * SSO-only: TheLuupe never renders email/password login or signup forms. The
+ * page either redirects to Auth0 (via `<SSOButton forceRedirect>`), shows the
+ * post-SSO confirm form (via `<ConfirmIdProviderInfoForm>`), or shows the
+ * brand-studio-aware signup body (`<SignupBody>` → `<BrandSignup>` /
+ * `<BaseSignup>`).
+ *
  * @component
- * @param {Object} props
- * @param {boolean} props.authInProgress - Whether the authentication is in progress
- * @param {propTypes.currentUser} props.currentUser - The current user
- * @param {boolean} props.isAuthenticated - Whether the user is authenticated
- * @param {propTypes.error} props.loginError - The login error
- * @param {propTypes.error} props.signupError - The signup error
- * @param {propTypes.error} props.confirmError - The confirm error
- * @param {Function} props.submitLogin - The login submit function
- * @param {Function} props.submitSignup - The signup submit function
- * @param {Function} props.submitSingupWithIdp - The signup with IdP submit function
- * @param {'login' | 'signup'| 'confirm'} props.tab - The tab to render
- * @param {boolean} props.sendVerificationEmailInProgress - Whether the verification email is in progress
- * @param {propTypes.error} props.sendVerificationEmailError - The verification email error
- * @param {Function} props.onResendVerificationEmail - The resend verification email function
- * @param {Function} props.onManageDisableScrolling - The manage disable scrolling function
- * @param {object} props.location - The location object
- * @param {object} props.params - The path parameters
- * @param {boolean} props.scrollingDisabled - Whether the scrolling is disabled
- * @returns {JSX.Element}
  */
 export const AuthenticationPageComponent = props => {
   const [tosModalOpen, setTosModalOpen] = useState(false);
@@ -143,11 +239,12 @@ export const AuthenticationPageComponent = props => {
     pageAssetsData,
     pageAssetsFetchInProgress,
     pageAssetsFetchError,
+    staticContext,
   } = props;
 
   // History API has potentially state tied to this route
   // We have used that state to store previous URL ("from"),
-  // so that use can be redirected back to that page after authentication.
+  // so that the user can be redirected back to that page after authentication.
   const locationFrom = location.state?.from || null;
   const authinfoFrom = authInfo?.from || null;
   const from = locationFrom || authinfoFrom || null;
@@ -193,6 +290,7 @@ export const AuthenticationPageComponent = props => {
     return (
       <BlankPage
         schemaTitle={schemaTitle}
+        scrollingDisabled={scrollingDisabled}
         schemaDescription={schemaDescription}
         topbarClasses={topbarClasses}
       />
@@ -207,10 +305,10 @@ export const AuthenticationPageComponent = props => {
     return <NamedRedirect name="LandingPage" />;
   } else if (show404) {
     // User type not found, show 404
-    return <NotFoundPage staticContext={props.staticContext} />;
+    return <NotFoundPage staticContext={staticContext} />;
   }
 
-  // We won't have a LoginPage anymore, instead redirect directly to Auth0
+  // SSO-only: there is no in-app LoginPage. Redirect straight to Auth0.
   if (isLogin) {
     return (
       <SSOButton
@@ -223,7 +321,7 @@ export const AuthenticationPageComponent = props => {
     );
   }
 
-  // For users other than Brands we redirect directly to Auth0
+  // SSO-only: for users other than Brands, signup also redirects straight to Auth0.
   if (isSignup && preselectedUserType && !isBrand) {
     return <SSOButton isLogin={false} forceRedirect from={from} userType={preselectedUserType} />;
   }
@@ -238,6 +336,14 @@ export const AuthenticationPageComponent = props => {
       <FormattedMessage id={resendErrorTranslationId} />
     </p>
   ) : null;
+
+  const termsAndConditions = (
+    <TermsAndConditions
+      onOpenTermsOfService={() => setTosModalOpen(true)}
+      onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
+      intl={intl}
+    />
+  );
 
   return (
     <Page
@@ -271,24 +377,21 @@ export const AuthenticationPageComponent = props => {
               resendErrorMessage={resendErrorMessage}
               sendVerificationEmailInProgress={sendVerificationEmailInProgress}
             />
-          ) : (
-            <AuthenticationOrConfirmInfoForm
-              tab={tab}
+          ) : isConfirm ? (
+            <ConfirmIdProviderInfoForm
               userType={userType}
               authInfo={authInfo}
-              brandStudioId={brandStudioId}
-              from={from}
               submitSingupWithIdp={submitSingupWithIdp}
               authInProgress={authInProgress}
-              idpAuthError={authError}
               confirmError={confirmError}
-              termsAndConditions={
-                <TermsAndConditions
-                  onOpenTermsOfService={() => setTosModalOpen(true)}
-                  onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
-                  intl={intl}
-                />
-              }
+              termsAndConditions={termsAndConditions}
+            />
+          ) : (
+            <SignupBody
+              userType={userType}
+              from={from}
+              brandStudioId={brandStudioId}
+              idpAuthError={authError}
             />
           )}
         </ResponsiveBackgroundImageContainer>
@@ -334,47 +437,74 @@ export const AuthenticationPageComponent = props => {
   );
 };
 
-const mapStateToProps = state => {
-  const { isAuthenticated, confirmError } = state.auth;
-  const { currentUser, sendVerificationEmailInProgress, sendVerificationEmailError } = state.user;
-  const { pageAssetsData, inProgress: pageAssetsFetchInProgress, error: pageAssetsFetchError } =
-    state.hostedAssets || {};
-  const featuredListingData = state.featuredListings || {};
-  const getListingEntitiesById = listingIds => getListingsById(state, listingIds);
-  return {
-    authInProgress: authenticationInProgress(state),
-    currentUser,
-    isAuthenticated,
-    scrollingDisabled: isScrollingDisabled(state),
-    confirmError,
-    sendVerificationEmailInProgress,
-    sendVerificationEmailError,
-    pageAssetsData,
-    pageAssetsFetchInProgress,
-    pageAssetsFetchError,
-    featuredListingData,
-    getListingEntitiesById,
-  };
+/**
+ * AuthenticationPage hooks-based wrapper. Replaces the deprecated
+ * `compose(connect(...), withRouter)` HOC chain that HEAD used.
+ */
+const AuthenticationPage = props => {
+  const dispatch = useDispatch();
+  const store = useStore();
+  const selectListingsById = useMemo(makeGetListingsByIdSelector, []);
+
+  const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
+  const confirmError = useSelector(state => state.auth.confirmError);
+  const authInProgress = useSelector(state => authenticationInProgress(state));
+  const currentUser = useSelector(state => state.user?.currentUser);
+  const sendVerificationEmailInProgress = useSelector(
+    state => state.user?.sendVerificationEmailInProgress
+  );
+  const sendVerificationEmailError = useSelector(state => state.user?.sendVerificationEmailError);
+  const scrollingDisabled = useSelector(state => isScrollingDisabled(state));
+
+  const pageAssetsData = useSelector(state => state.hostedAssets?.pageAssetsData);
+  const pageAssetsFetchInProgress = useSelector(state => state.hostedAssets?.inProgress);
+  const pageAssetsFetchError = useSelector(state => state.hostedAssets?.error);
+  const featuredListingData = useSelector(state => state.featuredListings || {});
+
+  // TheLuupe: memoised getListingsById per Stage B step 8 / spec §4.2.
+  // Closure pattern via useStore so the helper signature `(listingIds) => listings`
+  // is preserved — getFeaturedListingsProps consumes this shape.
+  const getListingEntitiesById = useCallback(
+    listingIds => selectListingsById(store.getState(), listingIds),
+    [selectListingsById, store]
+  );
+
+  const submitSingupWithIdp = useCallback(params => dispatch(signupWithIdp(params)), [dispatch]);
+  const onResendVerificationEmail = useCallback(() => dispatch(sendVerificationEmail()), [
+    dispatch,
+  ]);
+  const onManageDisableScrolling = useCallback(
+    (componentId, disableScrolling) =>
+      dispatch(manageDisableScrolling(componentId, disableScrolling)),
+    [dispatch]
+  );
+  const onFetchFeaturedListings = useCallback(
+    (sectionId, parentPage, listingImageConfig, allSections) =>
+      dispatch(fetchFeaturedListings({ sectionId, parentPage, listingImageConfig, allSections })),
+    [dispatch]
+  );
+
+  return (
+    <AuthenticationPageComponent
+      {...props}
+      authInProgress={authInProgress}
+      currentUser={currentUser}
+      isAuthenticated={isAuthenticated}
+      scrollingDisabled={scrollingDisabled}
+      confirmError={confirmError}
+      sendVerificationEmailInProgress={sendVerificationEmailInProgress}
+      sendVerificationEmailError={sendVerificationEmailError}
+      pageAssetsData={pageAssetsData}
+      pageAssetsFetchInProgress={pageAssetsFetchInProgress}
+      pageAssetsFetchError={pageAssetsFetchError}
+      featuredListingData={featuredListingData}
+      getListingEntitiesById={getListingEntitiesById}
+      submitSingupWithIdp={submitSingupWithIdp}
+      onResendVerificationEmail={onResendVerificationEmail}
+      onManageDisableScrolling={onManageDisableScrolling}
+      onFetchFeaturedListings={onFetchFeaturedListings}
+    />
+  );
 };
-
-const mapDispatchToProps = dispatch => ({
-  submitSingupWithIdp: params => dispatch(signupWithIdp(params)),
-  onResendVerificationEmail: () => dispatch(sendVerificationEmail()),
-  onManageDisableScrolling: (componentId, disableScrolling) =>
-    dispatch(manageDisableScrolling(componentId, disableScrolling)),
-  onFetchFeaturedListings: (sectionId, parentPage, listingImageConfig, allSections) =>
-    dispatch(fetchFeaturedListings({ sectionId, parentPage, listingImageConfig, allSections })),
-});
-
-// Note: it is important that the withRouter HOC is **outside** the
-// connect HOC, otherwise React Router won't rerender any Route
-// components since connect implements a shouldComponentUpdate
-// lifecycle hook.
-//
-// See: https://github.com/ReactTraining/react-router/issues/4671
-const AuthenticationPage = compose(
-  withRouter,
-  connect(mapStateToProps, mapDispatchToProps)
-)(AuthenticationPageComponent);
 
 export default AuthenticationPage;

@@ -55,7 +55,10 @@ const mapDispatchToProps = dispatch => ({});
 
 const EditPortfolioListingPage = compose(
   withRouter,
-  connect(mapStateToProps, mapDispatchToProps),
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  ),
   injectIntl
 )(EditPortfolioListingPageComponent);
 

@@ -10,7 +10,7 @@ import { propTypes } from '../../util/types';
 import { getFeaturedListingsProps } from '../../util/data';
 
 import { fetchFeaturedListings } from '../../ducks/featuredListings.duck';
-import { getListingsById } from '../../ducks/marketplaceData.duck';
+import { makeGetListingsByIdSelector } from '../../ducks/marketplaceData.duck';
 
 import { H1 } from '../PageBuilder/Primitives/Heading';
 import FallbackPage, { fallbackSections } from './FallbackPage';
@@ -81,13 +81,18 @@ PrivacyPolicyPageComponent.propTypes = {
   error: propTypes.error,
 };
 
-const mapStateToProps = state => {
-  const { pageAssetsData, inProgress, error } = state.hostedAssets || {};
-  const featuredListingData = state.featuredListings || {};
+// Factory mapStateToProps: instantiate one memoised selector per component instance
+// so that getListingsById doesn't allocate a new array on every store update (PR #829).
+const makeMapStateToProps = () => {
+  const getListingsByIdSelector = makeGetListingsByIdSelector();
+  return state => {
+    const { pageAssetsData, inProgress, error } = state.hostedAssets || {};
+    const featuredListingData = state.featuredListings || {};
 
-  const getListingEntitiesById = listingIds => getListingsById(state, listingIds);
+    const getListingEntitiesById = listingIds => getListingsByIdSelector(state, listingIds);
 
-  return { pageAssetsData, featuredListingData, getListingEntitiesById, inProgress, error };
+    return { pageAssetsData, featuredListingData, getListingEntitiesById, inProgress, error };
+  };
 };
 
 const mapDispatchToProps = dispatch => ({
@@ -101,9 +106,12 @@ const mapDispatchToProps = dispatch => ({
 // lifecycle hook.
 //
 // See: https://github.com/ReactTraining/react-router/issues/4671
-const PrivacyPolicyPage = compose(connect(mapStateToProps, mapDispatchToProps))(
-  PrivacyPolicyPageComponent
-);
+const PrivacyPolicyPage = compose(
+  connect(
+    makeMapStateToProps,
+    mapDispatchToProps
+  )
+)(PrivacyPolicyPageComponent);
 
 const PRIVACY_POLICY_ASSET_NAME = ASSET_NAME;
 export { PRIVACY_POLICY_ASSET_NAME, PrivacyPolicyPageComponent, PrivacyPolicyContent };
