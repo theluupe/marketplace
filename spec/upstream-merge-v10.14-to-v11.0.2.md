@@ -457,6 +457,18 @@ This is the **renamed** `ActionBarMaybe.js` (upstream rename via PR #819).
 - **Re-apply TheLuupe-only parts** in the new component boundaries:
   `createListingURL` builder for the body click, custom thumbnail/price
   logic if present.
+- **Modify `<CardThumbnail>` to accept an `isSquareLayout` prop**
+  (default `true`). When `false` (i.e. MASONRY grid mode), the inner
+  `<Thumbnail>` helper switches from `<AspectRatioWrapper>` to
+  `<AspectRatioWrapperMaybe isSquareLayout={false}>` — the latter
+  degrades to a plain `<div>` so images render at their natural height.
+  **Without this, MASONRY mode renders every image as a square** and
+  the masonry grid breaks (HEAD's `ManageListingCard` already handled
+  this via `<AspectRatioWrapperMaybe>` directly; upstream's new
+  `<CardThumbnail>` lost the conditional). The `css.rootForImage`
+  rootClassName on the image is also conditionally applied only when
+  `isSquareLayout=true`, mirroring HEAD. Pass
+  `isSquareLayout={gridLayout === GRID_STYLE_SQUARE}` from the parent.
 
 #### `src/containers/ManageListingsPage/ManageListingsPage.js` (1 hunk)
 
@@ -569,10 +581,27 @@ Five conflict regions. Resolve as follows; regenerate `yarn.lock` afterwards.
   - `dotenv-expand` 5.x → 12.x — API signature changed (now `expand({ parsed })`
     rather than `expand(dotenvOutput)`). Check call sites.
   - `@sentry/node` 9.47.1 → 10.43.0 — Sentry v10 deprecated some
-    integrations and config keys. Check `Sentry.init({...})`.
+    integrations and config keys. Check `Sentry.init({...})`. Also pulls
+    in `@opentelemetry/instrumentation-http` transitively for HTTP
+    instrumentation, which depends on `shimmer` (see below).
   - `style-loader` 3.3.1 → 4.0.0 — default behavior changed for inline
     styles. Likely safe (CSS Modules dominate); verify dev-server still
     HMRs styles correctly.
+
+  **Additional `dependencies` entry required after the `@sentry/node` bump:**
+
+  - `shimmer ^1.2.1`. Sentry v10 transitively requires
+    `@opentelemetry/instrumentation@0.57.1`, which lists `shimmer` as a
+    regular `dependency` — but yarn 1.22 sometimes fails to install a
+    transitive dep when there are multiple nested copies of the parent
+    (the project ends up with 4 different `@opentelemetry/instrumentation`
+    directories: top-level, plus inside `@fastify/otel`, `@prisma/instrumentation`,
+    and `@opentelemetry/instrumentation-http`). The deterministic fix is
+    to declare `shimmer` at the top level. Same pattern as the
+    `js-cookie` / `invariant` / `redux` additions above. Without this,
+    the server fails to boot with
+    `Error: Cannot find module 'shimmer'` from
+    `server/log.js` → `@sentry/node` → `@opentelemetry/instrumentation`.
 - **`devDependencies`.** Take **all** of upstream's CRA-eject build tooling:
   `webpack`, `webpack-dev-server`, `webpack-manifest-plugin`,
   `babel-loader`, `babel-jest`, `babel-plugin-named-asset-import`,

@@ -20,6 +20,7 @@ import { isBookingProcessAlias, isPurchaseProcessAlias } from '../../../transact
 
 import {
   AspectRatioWrapper,
+  AspectRatioWrapperMaybe,
   InlineTextButton,
   NamedLink,
   PrimaryButtonInline,
@@ -74,16 +75,24 @@ const Thumbnail = props => {
     aspectHeight,
     isBlended,
     linkProps,
+    isSquareLayout = true,
   } = props;
 
   const Tag = as === NamedLink ? NamedLink : as;
   const tagProps = as === NamedLink ? linkProps : {};
   return (
     <Tag className={css.thumbnailTrigger} {...tagProps}>
-      <AspectRatioWrapper width={aspectWidth} height={aspectHeight}>
+      {/* TheLuupe: AspectRatioWrapperMaybe lets the wrapper degrade to a plain
+          <div> when isSquareLayout=false (MASONRY), so images keep their natural
+          height. Forcing the 1:1 wrapper breaks the masonry grid. */}
+      <AspectRatioWrapperMaybe
+        width={aspectWidth}
+        height={aspectHeight}
+        isSquareLayout={isSquareLayout}
+      >
         {showListingImage ? (
           <ResponsiveImage
-            rootClassName={css.rootForImage}
+            rootClassName={isSquareLayout ? css.rootForImage : ''}
             alt={title}
             image={firstImage}
             variants={variants}
@@ -92,7 +101,7 @@ const Thumbnail = props => {
         ) : (
           <ListingCardThumbnail style={cardStyle} width={aspectWidth} height={aspectHeight} />
         )}
-      </AspectRatioWrapper>
+      </AspectRatioWrapperMaybe>
 
       {isBlended && (
         <div className={css.menuOverlayWrapper}>
@@ -274,6 +283,9 @@ const PendingApprovalOverlay = props => {
  * @param {string} [props.variantPrefix] - TheLuupe: override for image variant prefix (default
  *   from `config.layout.listingImage.variantPrefix`). Used by the parent to switch image variants
  *   between SQUARE and MASONRY grid layouts.
+ * @param {boolean} [props.isSquareLayout=true] - TheLuupe: when false, the inner thumbnail wrapper
+ *   degrades to a plain <div> (no aspect-ratio enforcement) so images render at their natural
+ *   height. Required for MASONRY grid layouts; defaults to true so upstream callers see no change.
  * @returns {JSX.Element}
  */
 const CardThumbnail = props => {
@@ -291,6 +303,7 @@ const CardThumbnail = props => {
     onMouseOver,
     onTouchStart,
     variantPrefix: variantPrefixOverride,
+    isSquareLayout = true,
   } = props;
 
   const listingId = listing.id;
@@ -351,6 +364,7 @@ const CardThumbnail = props => {
     aspectHeight,
     isBlended,
     linkProps,
+    isSquareLayout,
   };
 
   const overlayProps = {

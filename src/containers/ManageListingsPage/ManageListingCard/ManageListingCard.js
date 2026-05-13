@@ -28,31 +28,7 @@ import { NamedLink, IconSpinner } from '../../../components';
 import CardMenu from './CardMenu';
 import CardThumbnail from './CardThumbnail';
 import Overlay from './Overlay';
-import PriceInfo from './PriceInfo';
 import css from './ManageListingCard.module.css';
-
-const MAX_LENGTH_FOR_WORDS_IN_TITLE = 7;
-
-/**
- * Splits a title to break long words into spans so that
- * flexbox card layouts don't expand excessively.
- *
- * @param {string} title - Listing title
- * @param {number} maxLength - Maximum allowed word length before breaking
- * @returns {Array<React.ReactNode>} Formatted title parts
- */
-export const formatTitle = (title, maxLength) => {
-  const nonWhiteSpaceSequence = /([^\s]+)/gi;
-  return title.split(nonWhiteSpaceSequence).map((word, index) => {
-    return word.length > maxLength ? (
-      <span key={index} style={{ wordBreak: 'break-all' }}>
-        {word}
-      </span>
-    ) : (
-      word
-    );
-  });
-};
 
 // TheLuupe: build the listing-page URL for the body-click handler. Drafts route to the draft
 // preview variant; pending-approval listings to the pending-approval preview; everything else
@@ -80,39 +56,6 @@ const createListingURL = (routes, listing) => {
         };
 
   return createResourceLocatorString(linkProps.name, routes, linkProps.params, {});
-};
-
-const LinkedListingTitle = props => {
-  const intl = useIntl();
-  const { state, id, slug, title } = props;
-
-  return (
-    <NamedLink
-      className={css.title}
-      {...(state === LISTING_STATE_DRAFT || state === LISTING_STATE_PENDING_APPROVAL
-        ? {
-            name: 'ListingPageVariant',
-            params: {
-              id,
-              slug,
-              variant:
-                state === LISTING_STATE_DRAFT
-                  ? LISTING_PAGE_DRAFT_VARIANT
-                  : LISTING_PAGE_PENDING_APPROVAL_VARIANT,
-            },
-          }
-        : {
-            name: 'ListingPage',
-            params: { id, slug },
-          })}
-      ariaLabel={intl.formatMessage(
-        { id: 'ManageListingCard.screenreader.viewListing' },
-        { title }
-      )}
-    >
-      {formatTitle(title, MAX_LENGTH_FOR_WORDS_IN_TITLE)}
-    </NamedLink>
-  );
 };
 
 const LinkToStockOrAvailabilityTab = props => {
@@ -230,11 +173,9 @@ export const ManageListingCard = props => {
   const classes = classNames(rootClassName || css.root, className);
   const currentListing = ensureOwnListing(listing);
   const id = currentListing.id.uuid;
-  const { title = '', state, publicData, price } = currentListing.attributes;
-  const slug = createSlug(title);
-  const isDraft = state === LISTING_STATE_DRAFT;
+  const { title = '', publicData } = currentListing.attributes;
 
-  const { listingType, transactionProcessAlias } = publicData || {};
+  const { listingType } = publicData || {};
 
   const validListingTypes = config.listing.listingTypes;
   const listingTypeConfig = validListingTypes.find(conf => conf.listingType === listingType);
@@ -243,10 +184,6 @@ export const ManageListingCard = props => {
   const hasError = hasOpeningError || hasClosingError || hasDiscardingError;
   const thisListingInProgress =
     actionsInProgressListingId && actionsInProgressListingId.uuid === id;
-
-  const editListingLinkType = isDraft
-    ? LISTING_PAGE_PARAM_TYPE_DRAFT
-    : LISTING_PAGE_PARAM_TYPE_EDIT;
 
   // TheLuupe: SQUARE grid uses the default 'listing-card' image variants; MASONRY uses
   // 'scaled-medium' to support variable-height layout. Pass the override down to CardThumbnail.
@@ -283,6 +220,7 @@ export const ManageListingCard = props => {
           onMouseOver={onOverListingLink}
           onTouchStart={onOverListingLink}
           variantPrefix={variantPrefix}
+          isSquareLayout={isSquareLayout}
         />
 
         <CardMenu
@@ -304,34 +242,11 @@ export const ManageListingCard = props => {
 
       {isSquareLayout && (
         <div className={css.info}>
-          <PriceInfo
-            price={price}
-            publicData={publicData}
-            isBookable={isBookingProcessAlias(transactionProcessAlias)}
-            listingTypeConfig={listingTypeConfig}
-          />
-
           <div className={css.mainInfo}>
-            <div className={css.titleWrapper}>
-              {listingTypeLabel || (
-                <LinkedListingTitle state={state} id={id} slug={slug} title={title} />
-              )}
-            </div>
+            <div className={css.titleWrapper}>{listingTypeLabel}</div>
           </div>
 
           <div className={css.manageLinks}>
-            <NamedLink
-              className={css.manageLink}
-              name="EditListingPage"
-              params={{ id, slug, type: editListingLinkType, tab: 'details' }}
-              ariaLabel={intl.formatMessage(
-                { id: 'ManageListingCard.screenreader.editListing' },
-                { title }
-              )}
-            >
-              <FormattedMessage id="ManageListingCard.editListing" />
-            </NamedLink>
-
             <LinkToStockOrAvailabilityTab
               listing={currentListing}
               listingTypeConfig={listingTypeConfig}
