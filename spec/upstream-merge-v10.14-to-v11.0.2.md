@@ -819,6 +819,35 @@ Verification: run `yarn config-check`, then load the search and
 edit-listing pages with each TheLuupe listing type after the merge.
 Watch for "filtered out" warnings in the console.
 
+**Confirmed in-merge silent-risk fix**: `src/containers/SearchPage/SearchPageWithGrid.js`'s
+`creativesLocationField` (the augmented "location" filter shown on
+`/s?pub_categoryLevel1=creatives` for `profile-listing`) declared
+`filterConfig: { indexForSearch: true, group: 'primary' }` only. Pre-merge,
+`groupListingFieldConfigs` gated visibility on
+`filterConfig?.indexForSearch === true`. Upstream rewrote that gate to use
+`isFilterEnabled(filterConfig)` (in `src/util/search.js`), which **only**
+checks `showFilter === true` — the function's doc comment claims a
+fallback to `indexForSearch` but the implementation does not. Result: the
+creatives location filter silently disappeared from the SRP. **Fix**: add
+`showFilter: true` alongside the existing `indexForSearch: true` in the
+field's `filterConfig`. Any future TheLuupe listing field that wants to
+be both indexed and visible needs both keys.
+
+**Confirmed in-merge silent-risk fix**: `src/containers/SearchPage/SearchPage.shared.js`'s
+new shared `createFilterValueChangeHandler` (which replaced
+TheLuupe HEAD's per-page `getHandleChangedValueFn`) regressed the
+address/bounds handling. Pre-merge, the keyword-search branch was
+`keywordsMaybe = { keywords }` and address/bounds were only re-spread
+from the URL in the location-search branch (`{ address, bounds }`).
+Upstream's rewrite always re-spreads `address, bounds` at the bottom of
+the merged-query-params object — clobbering whatever the sidebar
+LocationFilter put into `updatedURLParams`. Result: selecting a location
+in the creatives LocationFilter became a no-op (URL never updated).
+Upstream never hit this because they don't render a LocationFilter inside
+keyword-search mode. **Fix**: restore the pre-merge conditional
+(`isMainSearchTypeKeywords(config) ? { keywords } : { address, bounds }`)
+and drop the always-spread `address, bounds` at the bottom.
+
 ### 4.4 `ext/transaction-processes/default-negotiation/templates/.../*-html.html` (post-merge action)
 
 PR #837 renamed an i18n key in one negotiation email:

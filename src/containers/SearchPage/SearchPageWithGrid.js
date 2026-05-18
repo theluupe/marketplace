@@ -56,6 +56,7 @@ const buildAugmentedConfig = config => {
     schemaType: 'location',
     filterConfig: {
       indexForSearch: true,
+      showFilter: true,
       group: 'primary',
     },
     categoryConfig: {

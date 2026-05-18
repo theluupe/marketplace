@@ -835,7 +835,14 @@ export const createFilterValueChangeHandler = (
       const { address, bounds, keywords } = urlQueryParams;
       const mergedQueryParams = { ...urlQueryParams, ...prevState.currentQueryParams };
 
-      const keywordsMaybe = isMainSearchTypeKeywords(config) ? { keywords } : {};
+      // TheLuupe: address/bounds are owned by the TopbarSearchForm / map
+      // controls in location-search mode, so re-spread them from the URL
+      // there. In keyword-search mode they are owned by the sidebar
+      // LocationFilter (creatives category), so they must come from
+      // `updatedURLParams` instead — re-spreading from the URL would clobber
+      // the filter's selection. Pre-merge SearchPageWithGrid behaved this
+      // way; upstream's shared handler regressed by always re-spreading.
+      const keywordsMaybe = isMainSearchTypeKeywords(config) ? { keywords } : { address, bounds };
 
       const datesAndSeatsMaybe = getDatesAndSeatsMaybe(mergedQueryParams, updatedURLParams);
 
@@ -846,8 +853,6 @@ export const createFilterValueChangeHandler = (
             ...updatedURLParams,
             ...keywordsMaybe,
             ...datesAndSeatsMaybe,
-            address,
-            bounds,
           },
           filterConfigs
         ),
