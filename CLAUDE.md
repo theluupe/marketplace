@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **TheLuupe Marketplace** — a heavily customized fork of [Sharetribe Web Template](https://github.com/sharetribe/web-template). It is a two-sided creative marketplace where photographers and creative professionals (sellers) list and sell digital assets, and buyers purchase or commission them. The upstream template handles core marketplace mechanics; TheLuupe adds its own transaction processes, integrations, and business logic on top.
 
+## Package Manager
+
+**Yarn only.** Never use `npm install` or `npm run` — this project and its `yarn.lock` are yarn-based, and mixing package managers will corrupt the dependency tree.
+
 ## Commands
 
 ```bash
@@ -175,6 +179,18 @@ Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referra
 - Keep components focused: if a component file exceeds ~300 lines, consider extracting sub-components.
 - Remove dead code rather than commenting it out. Git history preserves it if it is ever needed again.
 - Avoid `console.log` in committed code; use the existing logger utilities or remove debug statements before opening a PR.
+
+### Manual Testing Plan — every implemented spec gets one
+
+When a spec ships, append a **Manual Testing Plan** section to the spec file itself (the last section before any "Open Questions" / "Future Considerations"). This is the walkthrough an admin, QA reviewer, or manager can follow to exercise every shipped surface end-to-end without reading the implementation.
+
+- **Prereqs** — what to start (which command to run, which URL to land on, any setup or test accounts needed).
+- **One subsection per surface or flow** — list page, detail page, each major action, each edge case.
+- **Each step is a table row** with three things: a sequence number, the action ("Click X / type Y / navigate to Z"), and the **expected outcome** (the visible result the reader confirms).
+- **Cover the unhappy paths** — rejected actions, validation errors, 404s, mismatched params — so every error toast and edge-state UI is reachable.
+- **Confirm what is _not_ changed** — list adjacent surfaces the spec deliberately left untouched, so the reviewer knows what to spot-check for regressions.
+
+The plan lives in the spec (not a separate doc) so the two evolve together: when the spec gains a behavior, the plan gets the matching row. When a spec is moved from Pending → Implemented in `TL_README.md`, its testing plan should be in place.
 
 ## Code conventions (from AGENTS.md)
 
