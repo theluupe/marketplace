@@ -1,8 +1,8 @@
 # Marketplace ↔ storage-manager v2 — Integration Spec
 
-> Status: **Proposed** — depends on [storage-manager/spec/v2/storage-manager-v2.md](../../storage-manager/spec/v2/storage-manager-v2.md).
+> Status: **Proposed** — depends on [storage-manager/spec/v2/storage-manager-v2.md](../../../storage-manager/spec/v2/storage-manager-v2.md).
 > Owner: marketplace
-> Companion: [studio/spec/v2/storage-manager-v2-integration.md](../../studio/spec/v2/storage-manager-v2-integration.md)
+> Companion: [studio/spec/v2/storage-manager-v2-integration.md](../../../studio/spec/v2/storage-manager-v2-integration.md)
 
 ---
 
@@ -38,11 +38,11 @@ Plus an upstream Transloadit pipeline that produces preview/thumbnail and upload
 
 | Surface | File(s) | Change |
 |---|---|---|
-| Product listing created | [server/scripts/events/notifyProductListingCreated.js](../server/scripts/events/notifyProductListingCreated.js) | Switch from `uploadOriginalAsset` (v1) to v2 upload + finalize. Persist returned `assetVersionId` on Sharetribe `privateData`. |
-| Product listing rejected/deleted | [server/scripts/events/notifyProductListingRejected.js](../server/scripts/events/notifyProductListingRejected.js) | Switch from `deleteAsset(bucketName, assetPath)` to `DELETE /api/v2/assets/:assetVersionId`. |
-| Digital product download | [server/api/digital-product-download.js](../server/api/digital-product-download.js) | Replace `@google-cloud/storage` direct signing with `POST /api/v2/assets/:assetVersionId/download-url`. |
+| Product listing created | [server/scripts/events/notifyProductListingCreated.js](../../server/scripts/events/notifyProductListingCreated.js) | Switch from `uploadOriginalAsset` (v1) to v2 upload + finalize. Persist returned `assetVersionId` on Sharetribe `privateData`. |
+| Product listing rejected/deleted | [server/scripts/events/notifyProductListingRejected.js](../../server/scripts/events/notifyProductListingRejected.js) | Switch from `deleteAsset(bucketName, assetPath)` to `DELETE /api/v2/assets/:assetVersionId`. |
+| Digital product download | [server/api/digital-product-download.js](../../server/api/digital-product-download.js) | Replace `@google-cloud/storage` direct signing with `POST /api/v2/assets/:assetVersionId/download-url`. |
 | Marketplace residual cleanup orchestration | new server-side helper + cron | Drive storage-manager's v2 marketplace cleanup with a Marketplace-supplied listing-id list. |
-| storage-manager helper | [server/api-util/storageManagerHelper.js](../server/api-util/storageManagerHelper.js) | Add v2 client methods alongside v1 for the duration of the cutover. |
+| storage-manager helper | [server/api-util/storageManagerHelper.js](../../server/api-util/storageManagerHelper.js) | Add v2 client methods alongside v1 for the duration of the cutover. |
 
 ---
 

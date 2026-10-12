@@ -6,7 +6,7 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ## [Upstream Merge v10.14.0 → v11.0.2] — 2026-05-11
 
-Merged 244 upstream commits spanning seven Sharetribe releases (`v10.14.0`, `v10.14.1`, `v10.15.0`, `v11.0.0` major, `v11.0.1`, `v11.0.2`) plus point fixes. Bumped version to `11.0.2-theluuupe.1`. Resolution plan, decisions, and per-conflict resolutions documented in [`spec/upstream-merge-v10.14-to-v11.0.2.md`](./spec/upstream-merge-v10.14-to-v11.0.2.md).
+Merged 244 upstream commits spanning seven Sharetribe releases (`v10.14.0`, `v10.14.1`, `v10.15.0`, `v11.0.0` major, `v11.0.1`, `v11.0.2`) plus point fixes. Bumped version to `11.0.2-theluuupe.1`. Resolution plan, decisions, and per-conflict resolutions documented in [`spec/upstream-merge/upstream-merge-v10.14-to-v11.0.2.md`](./spec/upstream-merge/upstream-merge-v10.14-to-v11.0.2.md).
 
 ### Adopted upstream structure (with TheLuupe behaviour layered on)
 
@@ -61,7 +61,7 @@ During implementation, three spec items in §3.3 were updated against the origin
 - Buyer-facing input, validation endpoint, redemption hook, and SDK dependency have all been deleted.
 - Cleaned dead voucher Handlebars block from `default-purchase-no-stripe` email templates (always dead — vouchers were Stripe-only).
 - Historical transactions retain their embedded `line-item/voucher-discount` line items; the Stripe email templates and frontend renderer are preserved so past receipts continue to display correctly.
-- Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) are tracked in `spec/disable-coupons.md` §6.
+- Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) are tracked in `spec/v0/disable-coupons.md` §6.
 
 ---
 

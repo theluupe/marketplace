@@ -1,6 +1,6 @@
 # Marketplace Changes for Studio Brand Onboarding
 
-> **Related spec:** [Studio — User Sync & Brand Onboarding](../../studio/spec/user-sync-and-brand-onboarding.md)
+> **Related spec:** [Studio — User Sync & Brand Onboarding](../../../studio/spec/v2/user-sync-and-brand-onboarding.md)
 
 ## 1. Overview
 
@@ -40,6 +40,11 @@ WEBAPI_URL=https://studio-api.theluupe.com
 ---
 
 ### 2.2 Use `isBrandAdmin` from Studio response
+
+> **Built against the webapp (2026-10-12)** by [`../v0/brands-without-admin.md`](../v0/brands-without-admin.md) §2.1–2.2,
+> which goes further: an admin joiner also gets the brand's name (`companyName`) and an empty `brandUsers`, and skips
+> `getBrandData`. The "current behavior" below predates it. When Studio replaces the webapp, its answer needs the same
+> `isBrandAdmin` and `companyName`.
 
 **File:** `server/scripts/events/notifyUserCreated.js`
 
@@ -193,6 +198,10 @@ async validateBrand(brandId) {
 ---
 
 ### 2.4 Brand data retrieval for teamless Brands
+
+> **Changed against the webapp (2026-10-12):** an admin joiner no longer goes through `getBrandData`; they get the
+> brand's name from the join answer ([`../v0/brands-without-admin.md`](../v0/brands-without-admin.md) §2.2). A member
+> joiner still does, as below.
 
 **File:** `server/scripts/events/notifyUserCreated.js`
 

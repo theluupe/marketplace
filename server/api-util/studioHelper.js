@@ -55,10 +55,12 @@ class StudioManagerClient {
 
   async addStudioBrandUser(brandStudioId, data) {
     const result = await this.axiosClient.post(`/brand/${brandStudioId}/user`, data);
-    const { communityId, studioId } = result?.data?.data || {};
+    const { communityId, studioId, isBrandAdmin, companyName } = result?.data?.data || {};
     return {
       communityId,
       studioId,
+      isBrandAdmin,
+      companyName,
     };
   }
 
