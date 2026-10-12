@@ -22,7 +22,7 @@ const QUERY_PARAMS = { expand: true };
 
 async function addBrandUser(brandAdminId, userId, brandUsers) {
   const integrationSdk = integrationSdkInit();
-  const parsedBrandUsers = [...new Set([...brandUsers, userId])];
+  const parsedBrandUsers = [...new Set([...(brandUsers || []), userId])];
   await integrationSdk.users.updateProfile(
     {
       id: brandAdminId,
@@ -95,6 +95,23 @@ async function getExtendedData(userId, userAttributes) {
         privateData: {
           brandStudioId: newBrandStudioId,
         },
+        metadata: {
+          brandUsers: [],
+          membership: BRAND_MEMBERSHIP_TYPES.BASIC,
+          isBrandAdmin: true,
+          communityId,
+          studioId,
+        },
+      };
+    }
+    // The webapp makes the first person to join a brand with no admin its admin, and says so
+    // (spec/v0/brands-without-admin.md). There is no admin to copy the brand from, so the
+    // joiner gets its name from the webapp and starts its member list. A webapp without that
+    // change sends no flag, and the joiner stays a plain member.
+    const { isBrandAdmin, companyName } = studioBrandUser;
+    if (isBrandAdmin) {
+      return {
+        publicData: { brandName: companyName },
         metadata: {
           brandUsers: [],
           membership: BRAND_MEMBERSHIP_TYPES.BASIC,
@@ -251,3 +268,4 @@ module.exports = script;
 module.exports.EVENT_TYPES = EVENT_TYPES;
 module.exports.RESOURCE_TYPE = RESOURCE_TYPE;
 module.exports.analyzeEvent = analyzeEvent;
+module.exports.getExtendedData = getExtendedData;

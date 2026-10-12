@@ -165,6 +165,8 @@
     "prettier": "^1.18.2",
     "prompts": "^2.4.2",
     "recursive-readdir": "^2.2.2",
+    "remark-cli": "^12.0.1",
+    "remark-validate-links": "^13.1.0",
     "resolve": "^1.22.12",
     "resolve-url-loader": "^5.0.0",
     "semver": "^7.7.4",
@@ -262,7 +264,8 @@
     "heroku-postbuild": "yarn run build",
     "postinstall": "patch-package",
     "translate": "node scripts/translations.js",
-    "version:patch": "npm version prerelease --preid=theluuupe"
+    "version:patch": "npm version prerelease --preid=theluuupe",
+    "lint:links": "remark --quiet --frail --no-stdout --ignore-pattern node_modules ."
   },
   "browserslist": {
     "production": [

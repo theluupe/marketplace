@@ -385,7 +385,7 @@ Add a new top-of-file entry noting the removal. Existing references in older ent
 - Buyer-facing input, validation endpoint, redemption hook, and SDK dependency have all been deleted.
 - Cleaned dead voucher Handlebars block from `default-purchase-no-stripe` email templates (always dead — vouchers were Stripe-only).
 - Historical transactions retain their embedded `line-item/voucher-discount` line items; the Stripe email templates and frontend renderer are preserved so past receipts continue to display correctly.
-- Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) are tracked in `spec/disable-coupons.md` §6.
+- Future-implementation guardrails (Stripe-only, no stacking with license deals, no refund reversal, clamp invariant) are tracked in `spec/v0/disable-coupons.md` §6.
 ```
 
 ---

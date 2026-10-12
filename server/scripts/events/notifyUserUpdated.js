@@ -27,6 +27,44 @@ const EVENT_TYPES = 'user/updated';
 const RESOURCE_TYPE = 'user';
 const QUERY_PARAMS = { expand: true };
 
+async function shouldUpdateBrandUsers(userAttributes, previousValues) {
+  const integrationSdk = integrationSdkInit();
+  const { profile } = userAttributes;
+  const { isBrandAdmin, brandUsers } = profile.metadata || {};
+  const { brandStudioId } = profile.privateData || {};
+  const { brandName, brandWebsite, aboutUs, brandIndustry, userType } = profile.publicData || {};
+  const { profile: previousProfile } = previousValues?.attributes || {};
+  const previousPublicData = previousProfile?.publicData || {};
+  // previousValues holds only the keys that changed, an added one with `null` (Sharetribe's
+  // events reference), so a key's presence means "it changed". Testing its previous value
+  // instead missed a field filled in for the first time, such as a new admin's first website
+  // (spec/v0/brands-without-admin.md §2.3).
+  const aboutUsUpdated = 'aboutUs' in previousPublicData;
+  const brandNameUpdated = 'brandName' in previousPublicData;
+  const brandWebsiteUpdated = 'brandWebsite' in previousPublicData;
+  const brandIndustryUpdated = 'brandIndustry' in previousPublicData;
+  const brandDataUpdated =
+    aboutUsUpdated || brandNameUpdated || brandWebsiteUpdated || brandIndustryUpdated;
+  const isBrand = userType === USER_TYPES.BRAND;
+  const shouldUpdate = isBrand && isBrandAdmin && brandDataUpdated;
+  const shouldUpdateStudio = isBrand && isBrandAdmin && brandNameUpdated;
+  if (shouldUpdate) {
+    const brandData = { brandName, brandWebsite, aboutUs, brandIndustry };
+    await Promise.all(
+      brandUsers.map(brandUserId =>
+        integrationSdk.users.updateProfile({
+          id: brandUserId,
+          publicData: brandData,
+        })
+      )
+    );
+  }
+  if (shouldUpdateStudio) {
+    const studioManagerClient = new SMClient();
+    await studioManagerClient.studioBrandUpdate(brandStudioId, { companyName: brandName });
+  }
+}
+
 function script() {
   const queryEvents = args => {
     const integrationSdk = integrationSdkInit();
@@ -83,45 +121,6 @@ function script() {
       slackUserUpdateWarningWorkflow(userId, displayName, email, warnings);
     }
     return [userTypeChanges, sellerStatusChanges];
-  }
-
-  async function shouldUpdateBrandUsers(userAttributes, previousValues) {
-    const integrationSdk = integrationSdkInit();
-    const { profile } = userAttributes;
-    const { isBrandAdmin, brandUsers } = profile.metadata || {};
-    const { brandStudioId } = profile.privateData || {};
-    const { brandName, brandWebsite, aboutUs, brandIndustry, userType } = profile.publicData || {};
-    const { profile: previousProfile } = previousValues?.attributes || {};
-    const {
-      brandName: previousBrandName,
-      brandWebsite: previousBrandWebsite,
-      aboutUs: previousAboutUs,
-      brandIndustry: previousBrandIndustry,
-    } = previousProfile?.publicData || {};
-    const aboutUsUpdated = !!previousAboutUs;
-    const brandNameUpdated = !!previousBrandName;
-    const brandWebsiteUpdated = !!previousBrandWebsite;
-    const brandIndustryUpdated = !!previousBrandIndustry;
-    const brandDataUpdated =
-      aboutUsUpdated || brandNameUpdated || brandWebsiteUpdated || brandIndustryUpdated;
-    const isBrand = userType === USER_TYPES.BRAND;
-    const shouldUpdate = isBrand && isBrandAdmin && brandDataUpdated;
-    const shouldUpdateStudio = isBrand && isBrandAdmin && brandNameUpdated;
-    if (shouldUpdate) {
-      const brandData = { brandName, brandWebsite, aboutUs, brandIndustry };
-      await Promise.all(
-        brandUsers.map(brandUserId =>
-          integrationSdk.users.updateProfile({
-            id: brandUserId,
-            publicData: brandData,
-          })
-        )
-      );
-    }
-    if (shouldUpdateStudio) {
-      const studioManagerClient = new SMClient();
-      await studioManagerClient.studioBrandUpdate(brandStudioId, { companyName: brandName });
-    }
   }
 
   async function getProfileImage(userId, profileImageId) {
@@ -341,3 +340,4 @@ function script() {
 }
 
 module.exports = script;
+module.exports.shouldUpdateBrandUsers = shouldUpdateBrandUsers;

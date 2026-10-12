@@ -79,7 +79,7 @@ The following decisions shape every recommendation in this document.
    SearchPage does not need a TheLuupe-specific gate — there is no
    SearchPage-level concern that mirrors HIDDEN_PRODUCT/PORTFOLIO/PROFILE.
 
-5. **Voucherify removal (`spec/disable-coupons.md`) is already merged on
+5. **Voucherify removal (`spec/v0/disable-coupons.md`) is already merged on
    HEAD.** Conflicts in `server/api-util/lineItemHelpers.js` are unrelated
    to coupon code — they are an `exports.*` vs. `this.*` style issue
    introduced by another upstream PR. Resolve to upstream's `exports.*`
@@ -219,7 +219,7 @@ Four large refactors and one ejection:
 | --- | --- |
 | `server/apiServer.js` | Keep TheLuupe's `startServer()` wrapper, compression, and SEO routes. Upstream's direct `app.listen()` is a regression for our setup. |
 | `server/index.js` | Two conflicts. **First** (lines ~93-205): keep TheLuupe's bot-rejection middleware (PHP/wp-*/cgi-bin); drop upstream's robots/sitemap/manifest/well-known/passport/api/SSR block — TheLuupe already has equivalent handlers later in the file (lines 270-447), structured inside `startServer()`. Upstream's block in this region is a duplicate. **Second** (lines ~365-386): keep TheLuupe's `startServer()` call; drop upstream's direct `app.listen()` + SIGINT/SIGTERM block — TheLuupe already has graceful-shutdown handlers inside `startServer()` (added in HEAD prior to this merge). Port upstream's `// eslint-disable-line no-console` comments to TheLuupe's `console.log` calls (post-CRA-eject ESLint may warn). |
-| `server/api-util/lineItemHelpers.js` | Take upstream's syntactic improvement — convert all `this.calculateTotalFromLineItems(...)` / `this.hasMinimumCommission(...)` references to `exports.*`. **However, upstream's MERGE_HEAD also introduced a bug:** it changed the variable inside the call from `baseLineItemsForCommission` to `[order]`, where `order` is not in scope (the function signature is `(providerCommission, baseLineItemsForCommission, currency)`). Combine `exports.*` syntax (from upstream) with `baseLineItemsForCommission` (from HEAD) to get a working result. The conflicts are independent of `spec/disable-coupons.md`; do not re-introduce voucher branches. |
+| `server/api-util/lineItemHelpers.js` | Take upstream's syntactic improvement — convert all `this.calculateTotalFromLineItems(...)` / `this.hasMinimumCommission(...)` references to `exports.*`. **However, upstream's MERGE_HEAD also introduced a bug:** it changed the variable inside the call from `baseLineItemsForCommission` to `[order]`, where `order` is not in scope (the function signature is `(providerCommission, baseLineItemsForCommission, currency)`). Combine `exports.*` syntax (from upstream) with `baseLineItemsForCommission` (from HEAD) to get a working result. The conflicts are independent of `spec/v0/disable-coupons.md`; do not re-introduce voucher branches. |
 | `package.json` | See §3.5. |
 | `yarn.lock` | After resolving `package.json`, regenerate with `rm yarn.lock && yarn install`. Do **not** hand-merge. |
 
@@ -570,7 +570,7 @@ Five conflict regions. Resolve as follows; regenerate `yarn.lock` afterwards.
   `@google-cloud/storage`, `@slack/web-api`, `@uppy/*` set, `auth0`,
   `analytics-node`, `transloadit`, `exifr`, `papaparse`,
   `@ant-design/icons`, `react-responsive-masonry`. **Drop
-  `@voucherify/sdk`** — already removed in `spec/disable-coupons.md`.
+  `@voucherify/sdk`** — already removed in `spec/v0/disable-coupons.md`.
   **Drop `passport`, `passport-facebook`, `passport-google-oauth`** — TheLuupe
   uses Auth0.
 

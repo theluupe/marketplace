@@ -155,6 +155,28 @@ Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referra
 
 ## Development best practices
 
+### Grilling a spec — end by proposing enhancements
+
+When grilling or stress-testing a spec or design (the `grill-me` / `grill-with-docs` skills, or any "poke holes in my plan" request), the **final step** is to propose further enhancements that would make the feature better than the author's original approach — higher-value alternatives, adjacent UX / robustness / performance wins, and simplifications they may not have considered. Don't just validate the plan as given: end every grill with concrete "here's how we could make this even better" recommendations for the author to accept or decline.
+
+### Comments — a changed behaviour changes its comments too
+
+Explanatory comments are the design record — what was decided, what was **rejected and why**, and which traps have already been hit. That is only an asset while they are **true**. A wrong comment is worse than no comment: it reads as authoritative, it gets trusted over the code, and it is what the next reader acts on. **No test catches a false comment** — the suite stays green through one that has been wrong for months.
+
+So, when you change behaviour:
+
+- **Update every comment that describes it — including in other files.** The rationale for a decision is rarely stored next to the code that implements it.
+- **Keep ONE canonical explanation and have the others point at it.** Restating the same rationale in two places means the next change has to find both, and the second copy is the one that goes stale. Prefer `see lib/x.js` over a second paragraph.
+- **Never delete a comment just because it names code that no longer exists.** That is usually the most valuable kind — a rejected alternative, a past bug, a migration log. Deleting history mistaken for drift is not recoverable by reading the code.
+- **When a comment describes better behaviour than the code implements**, that is a bug to raise, not a comment to quietly reconcile downward.
+- **Spec references drift too.** A comment citing a spec section is a claim about a document that gets renumbered — check it when you touch that section.
+
+### When fixing a bug — prove the test can fail
+
+- Write a failing test that reproduces the bug **first**, then fix the code — this proves the bug existed and is now gone.
+- **If the fix already exists — revert it, confirm the test goes RED, then restore it.** Diagnosing and fixing before writing the guard is normal when chasing a reported bug, but it means you have **never seen the test fail**. A green test written against already-correct code proves nothing about the code; it may be measuring something else entirely, and no gate can tell you — green is green.
+- **Check WHICH tests go red, not merely that something did.** A test that stays green is testing something other than what its name claims. Real examples that passed with the fix reverted: an assertion made before an async retry could fire, and a UI assertion that held whether the panel under test was open or closed.
+
 ### Commit messages
 
 - Write commits in the **imperative mood**: "Add download endpoint" not "Added download endpoint".
@@ -206,7 +228,15 @@ The plan lives in the spec (not a separate doc) so the two evolve together: when
 
 Design documents live in `spec/` and are tracked with their implementation status in [TL_README.md](./TL_README.md) under the "Specs" heading. Keep that list in sync:
 
-- **New spec added** — append a row to the **Pending** table with a one-line summary of what the spec changes. Follow the same format as the existing rows.
-- **Spec implemented** — move its row from **Pending** to **Implemented** when the changes land in the codebase.
+Every row carries a `Status`: ✅ **Implemented** (landed in the codebase) · 🟡 **Pending** (not built, but all dependencies are Implemented) · 🔴 **Blocked** (not built, and a dependency is still Pending/Blocked).
+
+- **New spec added** — append a row to the **Pending** table with its `Status` (🟡 if its dependencies are all Implemented, else 🔴) and a one-line summary of what the spec changes. Follow the same format as the existing rows.
+- **Spec implemented** — move its row from **Pending** to **Implemented**, flip `Status` to ✅ Implemented, and rewrite the Notes column to a short implementation summary. Then re-check every spec that depended on it — a 🔴 Blocked spec whose last pending dependency just landed becomes 🟡 Pending.
 
 > **Marketplace naming:** in this project, `TL_README.md` and `TL_CHANGELOG.md` are TheLuupe's equivalents of what other projects call `README.md` and `CHANGELOG.md`. The upstream Sharetribe `README.md` and `CHANGELOG.md` are left untouched. Spec tracking belongs in `TL_README.md`, not `TL_CHANGELOG.md` and not the upstream `README.md`.
+
+**Where a new spec goes** (decided 2026-10-12). Each folder has a `README.md` listing its specs' order and dependencies, which mirrors `TL_README.md`'s statuses:
+
+- `spec/v0/`: pre-Studio. Changes to today's Marketplace, whose platform is still the webapp, and anything else added in the meantime.
+- `spec/v1/`: Studio-related specs, and future features.
+- `spec/upstream-merge/`: one plan per merge of the upstream Sharetribe template, named `upstream-merge-v<from>-to-v<to>.md`.
