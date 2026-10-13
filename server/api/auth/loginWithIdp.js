@@ -3,6 +3,8 @@ const https = require('https');
 const sharetribeSdk = require('sharetribe-flex-sdk');
 const log = require('../../log.js');
 const sdkUtils = require('../../api-util/sdk');
+const { USER_TYPES } = require('../../api-util/metadataHelper');
+const { StudioManagerClient, STUDIO_USER_TYPE } = require('../../api-util/studioHelper');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
@@ -19,6 +21,25 @@ const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
 
 const baseUrl = BASE_URL ? { baseUrl: BASE_URL } : {};
+
+// A person with no Sharetribe account may already be a webapp user: Popup Studio creates brand
+// members there first (spec/v0/webapp-user-first-sign-up.md). The webapp's answer picks the
+// sign-up they confirm, whatever link they came from. Anyone else, or a failed lookup, signs up
+// as before: this never blocks a sign-up.
+const signupTypeFromWebapp = async email => {
+  try {
+    const webappUser = await new StudioManagerClient().lookupUser(email);
+    if (webappUser?.type === STUDIO_USER_TYPE.BRAND && webappUser.brandId) {
+      return { userType: USER_TYPES.BRAND, brandStudioId: webappUser.brandId };
+    }
+    if (webappUser?.type === STUDIO_USER_TYPE.CREATOR) {
+      return { userType: USER_TYPES.SELLER, brandStudioId: undefined };
+    }
+  } catch (e) {
+    log.error(e, 'webapp-user-lookup-failed');
+  }
+  return {};
+};
 
 module.exports = (err, user, req, res, idpClientId, idpId) => {
   if (err) {
@@ -103,7 +124,7 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
         }
       }
     })
-    .catch(() => {
+    .catch(async () => {
       // eslint-disable-next-line no-console
       console.log(
         'Authenticating with idp failed. User needs to confirm creating sign up in frontend.'
@@ -114,6 +135,9 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
       // that we can use that information in createUserWithIdp api call.
       // The createUserWithIdp api call is triggered from frontend
       // after showing a confirm page to user
+
+      // The confirm page (/confirm) takes its user type from this cookie.
+      const webappSignupType = await signupTypeFromWebapp(user.email);
 
       res.cookie(
         'st-authinfo',
@@ -126,6 +150,7 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
           from,
           userType,
           brandStudioId: user.brandStudioId,
+          ...webappSignupType,
         },
         {
           maxAge: 15 * 60 * 1000, // 15 minutes

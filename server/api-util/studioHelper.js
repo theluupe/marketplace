@@ -1,6 +1,8 @@
 const axios = require('axios');
 
 const BASE_PATH = 'api/v1/management';
+// The lookup runs while the person waits on a redirect after their Auth0 login.
+const LOOKUP_TIMEOUT_MS = 5000;
 const STUDIO_USER_TYPE = {
   CREATOR: 'CREATOR',
   BRAND: 'BRAND',
@@ -69,6 +71,17 @@ class StudioManagerClient {
       return await this.addStudioBrand(data);
     }
     return await this.addStudioBrandUser(brandStudioId, data.admin);
+  }
+
+  // The webapp user with this email, ignoring case: { id, type, brandId }, or null.
+  // A failed call reads as null (the interceptor answers { data: {} }).
+  async lookupUser(email) {
+    const result = await this.axiosClient.post(
+      `/user/lookup`,
+      { email },
+      { timeout: LOOKUP_TIMEOUT_MS }
+    );
+    return result?.data?.data?.user || null;
   }
 
   async studioBrandUpdate(brandId, data) {
