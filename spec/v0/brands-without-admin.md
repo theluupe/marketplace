@@ -53,6 +53,8 @@ that answer.
   - return `publicData: { brandName: companyName }`;
   - return `metadata: { brandUsers: [], membership: BRAND_MEMBERSHIP_TYPES.BASIC, isBrandAdmin: true, communityId, studioId }`.
     The empty `brandUsers` matters: the next person to join adds themselves to it, and `addBrandUser` spreads it.
+    **Changed 2026-10-13:** it starts with the brand's members who signed up here before it, not `[]`
+    ([`webapp-user-first-sign-up.md`](./webapp-user-first-sign-up.md) §2.3).
 - **When it is `false` or missing:** exactly today's code. A webapp without the change returns no flag, so the
   two can be deployed in either order.
 - **In `addBrandUser`** (the Sharetribe helper at the top of the file), read `brandUsers || []`, so an admin whose
@@ -102,7 +104,8 @@ back to the webapp once, unchanged.
 
 - **`notifyUserCreated.test.js`:**
   - the admin branch sets `isBrandAdmin: true`, the brand's name and `brandUsers: []`, and never queries for an
-    admin;
+    admin (since [`webapp-user-first-sign-up.md`](./webapp-user-first-sign-up.md), it queries the brand's members
+    for `brandUsers`);
   - the member branch is unchanged, with the admin's fields copied and the joiner added to the admin's list;
   - a missing flag behaves exactly as today;
   - an admin with no `brandUsers` list doesn't make a joiner fail.

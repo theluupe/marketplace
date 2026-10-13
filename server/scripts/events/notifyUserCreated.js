@@ -34,7 +34,7 @@ async function addBrandUser(brandAdminId, userId, brandUsers) {
   );
 }
 
-async function getBrandData(userId, brandStudioId) {
+async function getBrandData(userId, brandStudioId, companyName) {
   const integrationSdk = integrationSdkInit();
   const response = await integrationSdk.users.query(
     {
@@ -46,8 +46,11 @@ async function getBrandData(userId, brandStudioId) {
   const data = response.data.data;
   const brandFound = data.length > 0;
   if (!brandFound) {
+    // No Marketplace admin yet: Popup Studio's brands get theirs in the webapp, and people sign
+    // up here in any order (spec/v0/webapp-user-first-sign-up.md). The webapp names the brand;
+    // its admin joins this member to its list when they sign up.
     return {
-      brandName: '',
+      brandName: companyName || '',
       brandWebsite: '',
       aboutUs: '',
       brandIndustry: '',
@@ -66,6 +69,13 @@ async function getBrandData(userId, brandStudioId) {
     aboutUs,
     brandIndustry,
   };
+}
+
+// The brand's members who signed up here before its admin (spec/v0/webapp-user-first-sign-up.md).
+async function getBrandMemberIds(adminId, brandStudioId) {
+  const integrationSdk = integrationSdkInit();
+  const response = await integrationSdk.users.query({ priv_brandStudioId: brandStudioId });
+  return response.data.data.map(user => user.id.uuid).filter(id => id !== adminId);
 }
 
 async function getExtendedData(userId, userAttributes) {
@@ -106,14 +116,15 @@ async function getExtendedData(userId, userAttributes) {
     }
     // The webapp makes the first person to join a brand with no admin its admin, and says so
     // (spec/v0/brands-without-admin.md). There is no admin to copy the brand from, so the
-    // joiner gets its name from the webapp and starts its member list. A webapp without that
+    // joiner gets its name from the webapp and starts its member list, with the members who
+    // signed up here before it (spec/v0/webapp-user-first-sign-up.md). A webapp without that
     // change sends no flag, and the joiner stays a plain member.
     const { isBrandAdmin, companyName } = studioBrandUser;
     if (isBrandAdmin) {
       return {
         publicData: { brandName: companyName },
         metadata: {
-          brandUsers: [],
+          brandUsers: await getBrandMemberIds(userId, brandStudioId),
           membership: BRAND_MEMBERSHIP_TYPES.BASIC,
           isBrandAdmin: true,
           communityId,
@@ -121,7 +132,7 @@ async function getExtendedData(userId, userAttributes) {
         },
       };
     }
-    const brandData = await getBrandData(userId, brandStudioId);
+    const brandData = await getBrandData(userId, brandStudioId, companyName);
     return {
       publicData: brandData,
       metadata: {

@@ -54,27 +54,60 @@ describe('notifyUserCreated getExtendedData, invitation sign-up', () => {
     integrationSdkInit.mockReturnValue(sdk);
   });
 
-  it("makes the webapp's admin the brand's admin, with its name, without looking for another", async () => {
-    webappAnswers({
-      communityId: 'community-1',
-      studioId: 'studio-1',
-      isBrandAdmin: true,
-      companyName: 'Acme',
-    });
+  const marketplaceUsers = ids => ({ data: { data: ids.map(uuid => ({ id: { uuid } })) } });
+
+  it.each([
+    ['no members yet', [JOINER_ID], []],
+    [
+      'members who signed up before it',
+      ['member-1', JOINER_ID, 'member-2'],
+      ['member-1', 'member-2'],
+    ],
+  ])(
+    "makes the webapp's admin the brand's admin, with its name and %s, without looking for another",
+    async (_, brandUserIds, expectedBrandUsers) => {
+      webappAnswers({
+        communityId: 'community-1',
+        studioId: 'studio-1',
+        isBrandAdmin: true,
+        companyName: 'Acme',
+      });
+      sdk.users.query.mockResolvedValue(marketplaceUsers(brandUserIds));
+
+      const result = await getExtendedData(JOINER_ID, joiner);
+
+      expect(result).toEqual({
+        publicData: { brandName: 'Acme' },
+        metadata: {
+          brandUsers: expectedBrandUsers,
+          membership: BRAND_MEMBERSHIP_TYPES.BASIC,
+          isBrandAdmin: true,
+          communityId: 'community-1',
+          studioId: 'studio-1',
+        },
+      });
+      expect(sdk.users.query).toHaveBeenCalledTimes(1);
+      expect(sdk.users.query).toHaveBeenCalledWith({ priv_brandStudioId: BRAND_ID });
+      expect(sdk.users.updateProfile).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ["the webapp's brand name", { isBrandAdmin: false, companyName: 'Acme' }, 'Acme'],
+    ['an empty name when the webapp sends none', {}, ''],
+  ])('gives a member of a brand with no Marketplace admin yet %s', async (_, answer, brandName) => {
+    webappAnswers({ communityId: 'community-1', studioId: 'studio-1', ...answer });
+    sdk.users.query.mockResolvedValue(marketplaceUsers([]));
 
     const result = await getExtendedData(JOINER_ID, joiner);
 
-    expect(result).toEqual({
-      publicData: { brandName: 'Acme' },
-      metadata: {
-        brandUsers: [],
-        membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-        isBrandAdmin: true,
-        communityId: 'community-1',
-        studioId: 'studio-1',
-      },
+    expect(result.publicData).toEqual({
+      brandName,
+      brandWebsite: '',
+      aboutUs: '',
+      brandIndustry: '',
     });
-    expect(sdk.users.query).not.toHaveBeenCalled();
+    expect(result.metadata.isBrandAdmin).toBe(false);
     expect(sdk.users.updateProfile).not.toHaveBeenCalled();
   });
 

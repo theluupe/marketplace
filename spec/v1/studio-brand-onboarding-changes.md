@@ -202,6 +202,11 @@ async validateBrand(brandId) {
 > **Changed against the webapp (2026-10-12):** an admin joiner no longer goes through `getBrandData`; they get the
 > brand's name from the join answer ([`../v0/brands-without-admin.md`](../v0/brands-without-admin.md) §2.2). A member
 > joiner still does, as below.
+>
+> **Changed again (2026-10-13):** a member whose brand has no Marketplace admin yet takes `brandName` from the join
+> answer's `companyName` instead of `''`, and an admin starts `brandUsers` with the brand's existing members
+> ([`../v0/webapp-user-first-sign-up.md`](../v0/webapp-user-first-sign-up.md) §2.3). Studio's answer needs `companyName`
+> for members too.
 
 **File:** `server/scripts/events/notifyUserCreated.js`
 
