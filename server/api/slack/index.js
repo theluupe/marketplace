@@ -1,48 +1,59 @@
+const crypto = require('crypto');
+const bodyParser = require('body-parser');
+
 const { slackInteractivity } = require('./slackInteractivity');
 
-const VERIFY_ERROR_PREFIX = 'Failed to verify authenticity';
+// Slack's request signing (spec/v0/login-and-registration.md §10.2.1):
+// https://api.slack.com/authentication/verifying-requests-from-slack
+const SIGNATURE_VERSION = 'v0';
+// Slack's own limit, both ways, so an old request can't be replayed.
+const MAX_AGE_SECONDS = 60 * 5;
 
-const verifySlackRequest = (req, res) => {
-  const slackVerificationToken = process.env.SLACK_BOT_VERIFICATION_TOKEN;
-  const reqHeaders = req.headers;
-  const requestTimestamp = reqHeaders['x-slack-request-timestamp'];
-  const slackSignature = reqHeaders['x-slack-signature'];
-  const notifyUserUpdated = 'v0';
-  // Rule 1: Check staleness
-  const requestTimestampMaxDelta = 5;
-  const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5;
-  if (requestTimestamp < fiveMinutesAgo) {
-    throw new Error(
-      `${VERIFY_ERROR_PREFIX}: x-slack-request-timestamp must differ from system time by no more than ${requestTimestampMaxDelta} minutes or request is stale`
-    );
+// Slack signs the body exactly as it sent it, so keep those bytes before they're parsed.
+const slackBodyParser = bodyParser.urlencoded({
+  extended: true,
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+});
+
+const isSignedBySlack = (req, signingSecret) => {
+  const timestamp = req.headers['x-slack-request-timestamp'];
+  const signature = req.headers['x-slack-signature'];
+  if (!req.rawBody || typeof signature !== 'string' || !/^\d+$/.test(timestamp || '')) {
+    return false;
   }
-  // Rule 2: Check signature
-  const [signatureVersion] = slackSignature.split('=');
-  if (signatureVersion !== notifyUserUpdated) {
-    throw new Error(`${VERIFY_ERROR_PREFIX}: unknown signature version`);
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSeconds - Number(timestamp)) > MAX_AGE_SECONDS) {
+    return false;
   }
-  const payload = JSON.parse(req.body.payload);
-  const requestToken = payload.token;
-  const validSignature = requestToken === slackVerificationToken;
-  if (validSignature) {
-    return true;
-  } else {
-    console.debug(`Slack interactivity: Invalid Signature`);
-    return res.status(400).send('Verification failed');
-  }
+
+  const expected = `${SIGNATURE_VERSION}=${crypto
+    .createHmac('sha256', signingSecret)
+    .update(`${SIGNATURE_VERSION}:${timestamp}:${req.rawBody}`)
+    .digest('hex')}`;
+  const received = Buffer.from(signature);
+  return (
+    received.length === expected.length && crypto.timingSafeEqual(received, Buffer.from(expected))
+  );
 };
 
 const verifySlackRequestMiddleware = (req, res, next) => {
-  try {
-    verifySlackRequest(req, res);
-    next();
-  } catch (e) {
-    console.debug(`Slack interactivity: ${e}`);
-    res.status(400).send('Verification failed');
+  const signingSecret = process.env.SLACK_SIGNING_SECRET;
+  if (!signingSecret) {
+    console.error('Slack interactivity: SLACK_SIGNING_SECRET is not set');
+    return res.status(400).send('Verification failed');
   }
+  if (!isSignedBySlack(req, signingSecret)) {
+    console.debug('Slack interactivity: request not signed by Slack');
+    return res.status(400).send('Verification failed');
+  }
+  next();
 };
 
 module.exports = {
+  slackBodyParser,
   verifySlackRequestMiddleware,
   slackInteractivity,
 };

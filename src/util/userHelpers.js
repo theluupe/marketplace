@@ -336,6 +336,22 @@ export const isStudioUser = profile => {
 export const showBrandManagementTab = currentUser =>
   currentUser?.attributes?.profile?.metadata?.isBrandAdmin === true;
 
+/**
+ * A brand's admin who has filled in none of the brand's details. The first person to join a brand
+ * with no admin takes its seat through the member form, so they get only the name the webapp holds;
+ * they're sent to complete it right after their sign-up (spec/v0/login-and-registration.md §4.5.4).
+ */
+export const isBrandProfileIncomplete = currentUser => {
+  const { publicData, metadata } = currentUser?.attributes?.profile || {};
+  return (
+    isStudioBrand(publicData?.userType) === true &&
+    metadata?.isBrandAdmin === true &&
+    !publicData?.brandWebsite &&
+    !publicData?.aboutUs &&
+    !publicData?.brandIndustry
+  );
+};
+
 export const getBrandUserFieldInputs = (fieldKey, isBrandAdmin) => {
   if (isBrandAdmin) {
     return true;

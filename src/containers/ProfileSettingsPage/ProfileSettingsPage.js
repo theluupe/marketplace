@@ -12,6 +12,7 @@ import {
   isUserAuthorized,
   pickUserFieldsData,
   isCreativeSellerApproved,
+  isBrandProfileIncomplete,
   showPaymentDetailsForUser,
 } from '../../util/userHelpers';
 import { isScrollingDisabled } from '../../ducks/ui.duck';
@@ -220,6 +221,16 @@ export const ProfileSettingsPageComponent = props => {
 
             <ViewProfileLink userUUID={user?.id?.uuid} isUnauthorizedUser={isUnauthorizedUser} />
           </div>
+          {isBrandProfileIncomplete(currentUser) ? (
+            <div className={css.brandProfileBanner}>
+              <p className={css.brandProfileBannerTitle}>
+                <FormattedMessage id="ProfileSettingsPage.completeBrandProfileTitle" />
+              </p>
+              <p className={css.brandProfileBannerText}>
+                <FormattedMessage id="ProfileSettingsPage.completeBrandProfileText" />
+              </p>
+            </div>
+          ) : null}
           {profileSettingsForm}
         </div>
       </LayoutSideNavigation>

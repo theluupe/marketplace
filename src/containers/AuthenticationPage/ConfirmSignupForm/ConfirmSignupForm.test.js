@@ -119,6 +119,26 @@ describe('ConfirmSignupForm', () => {
   //   expect(tree.asFragment()).toMatchSnapshot();
   // });
 
+  it("shows Auth0's email and doesn't let it be changed", () => {
+    render(
+      <ConfirmSignupForm
+        authInfo={authInfo}
+        intl={fakeIntl}
+        termsAndConditions={termsAndConditions}
+        userTypes={userTypes}
+        userFields={[]}
+        preselectedUserType="b"
+        onSubmit={noop}
+        onOpenTermsOfService={noop}
+      />
+    );
+
+    // spec/v0/login-and-registration.md §2.6.4
+    const email = screen.getByRole('textbox', { name: 'ConfirmSignupForm.emailLabel' });
+    expect(email).toHaveValue(authInfo.email);
+    expect(email).toBeDisabled();
+  });
+
   it('enables Continue with button when required fields are filled', async () => {
     const user = userEvent.setup();
     render(
@@ -194,5 +214,53 @@ describe('ConfirmSignupForm', () => {
     // Don't show user fields that are limited to user types –
     // ConfirmSignupForm does not support user types yet!
     expect(screen.queryByText('Enum Field 2')).toBeNull();
+  });
+
+  // spec/v0/login-and-registration.md §4.5.3: BR3, BR10.
+  describe('a brand sign-up', () => {
+    const brandField = (key, label) => ({
+      key,
+      scope: 'public',
+      schemaType: 'text',
+      saveConfig: { label, displayInSignUp: true, isRequired: false },
+      userTypeConfig: { limitToUserTypeIds: false },
+    });
+    const brandFields = [
+      brandField('brandName', 'Brand name'),
+      brandField('brandWebsite', 'Website'),
+    ];
+    const renderBrandForm = brandAuthInfo =>
+      render(
+        <ConfirmSignupForm
+          authInfo={{ ...authInfo, userType: 'studio-brand', ...brandAuthInfo }}
+          intl={fakeIntl}
+          termsAndConditions={termsAndConditions}
+          userTypes={[{ userType: 'studio-brand', label: 'Brand' }]}
+          userFields={brandFields}
+          preselectedUserType="studio-brand"
+          onSubmit={noop}
+        />
+      );
+
+    it("gives a webapp brand's admin the brand fields, with its webapp name locked", () => {
+      renderBrandForm({ brandStudioId: 'brand-1', isBrandAdmin: true, companyName: 'Acme' });
+
+      expect(screen.getByLabelText('Brand name')).toHaveValue('Acme');
+      expect(screen.getByLabelText('Brand name')).toBeDisabled();
+      expect(screen.getByLabelText('Website')).toBeEnabled();
+    });
+
+    it('hides the brand fields from a member of the brand', () => {
+      renderBrandForm({ brandStudioId: 'brand-1' });
+
+      expect(screen.queryByLabelText('Brand name')).toBeNull();
+    });
+
+    it('gives a new brand the fields to fill in', () => {
+      renderBrandForm({});
+
+      expect(screen.getByLabelText('Brand name')).toHaveValue('');
+      expect(screen.getByLabelText('Brand name')).toBeEnabled();
+    });
   });
 });

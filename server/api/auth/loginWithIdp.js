@@ -4,7 +4,9 @@ const sharetribeSdk = require('sharetribe-flex-sdk');
 const log = require('../../log.js');
 const sdkUtils = require('../../api-util/sdk');
 const { USER_TYPES } = require('../../api-util/metadataHelper');
-const { StudioManagerClient, STUDIO_USER_TYPE } = require('../../api-util/studioHelper');
+const { integrationSdkInit } = require('../../api-util/scriptManager');
+const { UNFINISHED_SIGNUP_CODE, finishSignup } = require('./finishSignup');
+const { SECOND_LOGIN_ERROR_CODE, lookUpWebappUser, signupFromWebapp } = require('./webappSignup');
 
 const CLIENT_ID = process.env.REACT_APP_SHARETRIBE_SDK_CLIENT_ID;
 const CLIENT_SECRET = process.env.SHARETRIBE_SDK_CLIENT_SECRET;
@@ -22,23 +24,41 @@ const httpsAgent = new https.Agent({ keepAlive: true });
 
 const baseUrl = BASE_URL ? { baseUrl: BASE_URL } : {};
 
-// A person with no Sharetribe account may already be a webapp user: Popup Studio creates brand
-// members there first (spec/v0/webapp-user-first-sign-up.md). The webapp's answer picks the
-// sign-up they confirm, whatever link they came from. Anyone else, or a failed lookup, signs up
-// as before: this never blocks a sign-up.
-const signupTypeFromWebapp = async email => {
+// The login link's `from`, `defaultReturn` and `defaultConfirm` reach here unchecked (auth0.js and
+// the Auth0 Action copy them), and every redirect below puts them right after the site's URL, so
+// `.evil.com` would land on another host. Only a path on this site is used
+// (spec/v0/login-and-registration.md §10.2.2). `//` and `/\` are refused too: harmless after the
+// site's URL, but a browser reads them as another host wherever a value is used on its own.
+const CONFIRM_PATH = '/confirm';
+const sitePathOr = (value, fallback) =>
+  typeof value === 'string' && /^\/(?![/\\])/.test(value) ? value : fallback;
+
+// A second login method (Google after a password, say) is another Auth0 user, so it finds no
+// Marketplace account while its email already has one. The form would only fail at the end with
+// "email taken"; they get the error page instead (spec/v0/login-and-registration.md §8.3, BR22).
+const isEmailTaken = async email => {
   try {
-    const webappUser = await new StudioManagerClient().lookupUser(email);
-    if (webappUser?.type === STUDIO_USER_TYPE.BRAND && webappUser.brandId) {
-      return { userType: USER_TYPES.BRAND, brandStudioId: webappUser.brandId };
-    }
-    if (webappUser?.type === STUDIO_USER_TYPE.CREATOR) {
-      return { userType: USER_TYPES.SELLER, brandStudioId: undefined };
-    }
+    const response = await integrationSdkInit().users.show({ email });
+    return !!response?.data?.data;
   } catch (e) {
-    log.error(e, 'webapp-user-lookup-failed');
+    // Nobody has it (404), or Sharetribe is failing: the sign-up carries on as before.
+    if (e?.status !== 404) {
+      log.error(e, 'email-lookup-failed');
+    }
+    return false;
   }
-  return {};
+};
+
+// A buyer or creator who logs in through a brand link: a one-time notice after login, which the
+// Topbar shows from this cookie (spec/v0/login-and-registration.md §4.5.5, BR15).
+const BRAND_LINK_NOTICES = {
+  [USER_TYPES.BUYER]: 'registered-as-buyer',
+  [USER_TYPES.SELLER]: 'registered-as-creator',
+};
+
+const sendToErrorPage = (res, code) => {
+  res.cookie('st-autherror', { code }, { maxAge: 15 * 60 * 1000 }); // 15 minutes
+  return res.redirect(`${rootUrl}/signup#`);
 };
 
 module.exports = (err, user, req, res, idpClientId, idpId) => {
@@ -85,7 +105,10 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
       .redirect(`${rootUrl}/signup#`);
   }
 
-  const { from, defaultReturn, defaultConfirm, userType } = user;
+  const { userType } = user;
+  const from = sitePathOr(user.from, undefined);
+  const defaultReturn = sitePathOr(user.defaultReturn, '/');
+  const defaultConfirm = sitePathOr(user.defaultConfirm, CONFIRM_PATH);
 
   const tokenStore = sharetribeSdk.tokenStore.expressCookieStore({
     clientId: CLIENT_ID,
@@ -111,52 +134,79 @@ module.exports = (err, user, req, res, idpClientId, idpId) => {
       idpClientId,
       idpToken: user.idpToken,
     })
-    .then(response => {
-      if (response.status === 200) {
-        // If the user was authenticated, redirect back to to LandingPage
-        // We need to add # to the end of the URL because otherwise Facebook
-        // login will add their defaul #_#_ which breaks the routing in frontend.
+    .then(
+      async response => {
+        if (response.status === 200) {
+          // A brand user whose join didn't complete at sign-up is joined now, or logged out
+          // again and offered Try again (spec/v0/login-and-registration.md §4.5.1).
+          const { finished, user: account } = await finishSignup(sdk, tokenStore);
+          if (!finished) {
+            return sendToErrorPage(res, UNFINISHED_SIGNUP_CODE);
+          }
+          const accountUserType = account?.attributes?.profile?.publicData?.userType;
+          const notice = userType === USER_TYPES.BRAND && BRAND_LINK_NOTICES[accountUserType];
+          if (notice) {
+            res.cookie('st-authnotice', { code: notice }, { maxAge: 15 * 60 * 1000 }); // 15 minutes
+          }
 
-        if (from) {
-          res.redirect(`${rootUrl}${from}#`);
-        } else {
-          res.redirect(`${rootUrl}${defaultReturn}#`);
+          // If the user was authenticated, redirect back to to LandingPage
+          // We need to add # to the end of the URL because otherwise Facebook
+          // login will add their defaul #_#_ which breaks the routing in frontend.
+
+          if (from) {
+            res.redirect(`${rootUrl}${from}#`);
+          } else {
+            res.redirect(`${rootUrl}${defaultReturn}#`);
+          }
         }
+      },
+      // Only the login's own failure (no account) leads to the sign-up, not a failure above.
+      async () => {
+        // eslint-disable-next-line no-console
+        console.log(
+          'Authenticating with idp failed. User needs to confirm creating sign up in frontend.'
+        );
+
+        // If authentication fails, we want to create a new user with idp
+        // For this we will need to pass some information to frontend so
+        // that we can use that information in createUserWithIdp api call.
+        // The createUserWithIdp api call is triggered from frontend
+        // after showing a confirm page to user
+
+        if (await isEmailTaken(user.email)) {
+          return sendToErrorPage(res, SECOND_LOGIN_ERROR_CODE);
+        }
+
+        const webappUser = await lookUpWebappUser(user.email, user.auth0UserId);
+        const { errorCode, ...webappSignup } = signupFromWebapp(
+          { userType, brandStudioId: user.brandStudioId },
+          webappUser
+        );
+        if (errorCode) {
+          return sendToErrorPage(res, errorCode);
+        }
+
+        // The confirm page (/confirm) takes its user type from this cookie.
+
+        res.cookie(
+          'st-authinfo',
+          {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            idpToken: user.idpToken,
+            idpId,
+            from,
+            userType,
+            brandStudioId: user.brandStudioId,
+            ...webappSignup,
+          },
+          {
+            maxAge: 15 * 60 * 1000, // 15 minutes
+          }
+        );
+
+        res.redirect(`${rootUrl}${defaultConfirm}#`);
       }
-    })
-    .catch(async () => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Authenticating with idp failed. User needs to confirm creating sign up in frontend.'
-      );
-
-      // If authentication fails, we want to create a new user with idp
-      // For this we will need to pass some information to frontend so
-      // that we can use that information in createUserWithIdp api call.
-      // The createUserWithIdp api call is triggered from frontend
-      // after showing a confirm page to user
-
-      // The confirm page (/confirm) takes its user type from this cookie.
-      const webappSignupType = await signupTypeFromWebapp(user.email);
-
-      res.cookie(
-        'st-authinfo',
-        {
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          idpToken: user.idpToken,
-          idpId,
-          from,
-          userType,
-          brandStudioId: user.brandStudioId,
-          ...webappSignupType,
-        },
-        {
-          maxAge: 15 * 60 * 1000, // 15 minutes
-        }
-      );
-
-      res.redirect(`${rootUrl}${defaultConfirm}#`);
-    });
+    );
 };

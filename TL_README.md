@@ -75,14 +75,17 @@ Agencies and multi-photographer studios operate under a shared brand identity.
 3. When a new user registers via that link, Auth0 app metadata carries `brandStudioId` and `userType`.
    A person the webapp already holds as a brand member (Popup Studio creates them there first) gets their brand's
    sign-up whatever link they came from: `loginWithIdp` asks the webapp (`spec/v0/webapp-user-first-sign-up.md`).
-4. On user creation, `server/scripts/events/notifyUserCreated.js` syncs this metadata to Sharetribe user `privateData`/`publicData`.
+4. During sign-up, `server/api-util/brandJoin.js` joins the webapp's brand and writes the brand data to the Sharetribe
+   user's `privateData`/`publicData`/`metadata` (`spec/v0/login-and-registration.md` §4.5.1). A login finishes a join that
+   failed. `notifyUserCreated.js` then syncs Auth0.
 
 ### Key files
 
 - `server/api-util/studioHelper.js` — Studio Manager API client
 - `server/api-util/auth0Helper.js` — Auth0 Management API client
+- `server/api-util/brandJoin.js` — the brand join, during sign-up
 - `server/scripts/events/notifyUserCreated.js` — handles new user event
-- `server/api/scripts-retry/retryBrandUserAssignment.js` — retry on assignment failure
+- `server/api/scripts-retry/retryBrandUserAssignment.js` — Luupe's "assign an existing buyer to a brand" (a POST, called by the webapp)
 
 ### Required environment variables
 
@@ -202,7 +205,8 @@ REFERRAL_CAMPAIGN_ID
 
 | Script | Trigger |
 |---|---|
-| `notifyUserCreated.js` | New user registered — syncs brand/studio metadata |
+| `notifyUserCreated.js` | New user registered — referral code, Segment, Auth0; a creator's application to Slack, or the automatic approval of a creator the webapp already knows |
+| `notifyUserUpdated.js` | User updated — the admin's brand fields to the members, names to the webapp, a newly joined brand user's community (Circle), Auth0 |
 | `notifyProductListingCreated.js` | New product listing — posts to Slack for review |
 | `notifyPortfolioListingUpdated.js` | Portfolio listing updated — posts error/update to Slack |
 
@@ -273,5 +277,6 @@ Tracking which design documents in `spec/` have been implemented in this codebas
 
 | Spec | Status | Notes |
 | ---- | ------ | ----- |
+| [spec/v0/login-and-registration.md](./spec/v0/login-and-registration.md) | 🟡 Pending | Approved 2026-10-15; built in four phases (§11), the webapp part through its own spec. Login and registration for every user type, across the Marketplace, Auth0 and the webapp: how each works, what fails, and the fixes. |
 | [spec/v1/studio-brand-onboarding-changes.md](./spec/v1/studio-brand-onboarding-changes.md) | 🟡 Pending | Read `isBrandAdmin` from Studio's `POST /brand/:brandId/member` response (already read from the webapp's answer since [spec/v0/brands-without-admin.md](./spec/v0/brands-without-admin.md); Studio's answer needs the same `isBrandAdmin` and `companyName`); validate empty brands via Studio's `GET /api/v1/management/brand/:brandId`; surface in `getBrandData()`. Companion: [studio/spec/v2/marketplace-integration.md](../studio/spec/v2/marketplace-integration.md). |
 | [spec/v1/storage-manager-v2-integration.md](./spec/v1/storage-manager-v2-integration.md) | 🟡 Pending | Switch `notifyProductListingCreated`, `notifyProductListingRejected`, and `digital-product-download` to the new storage-manager `/api/v2/*` API. New marketplace-driven cleanup cron replaces the in-storage-manager Sharetribe SDK call. Companion: [storage-manager/spec/v2/storage-manager-v2.md](../storage-manager/spec/v2/storage-manager-v2.md). |

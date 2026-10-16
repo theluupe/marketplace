@@ -1,10 +1,10 @@
 const { identifyUserEvent, trackManagementAPIEvent } = require('../../api-util/analytics');
 const { updateAuth0User } = require('../../api-util/auth0Helper');
+const { approveCommunity, approveSeller } = require('../../api-util/creatorApproval');
 const {
   USER_TYPES,
   COMMUNITY_STATUS,
   SELLER_STATUS,
-  BRAND_MEMBERSHIP_TYPES,
   SELLER_MEMBERSHIP_TYPES,
 } = require('../../api-util/metadataHelper');
 const { ReferralAPIManagerClient: RAMClient } = require('../../api-util/referralManager');
@@ -13,136 +13,43 @@ const {
   slackSellerValidationWorkflow,
   slackUserCreatedErrorWorkflow,
 } = require('../../api-util/slackHelper');
-const { StudioManagerClient: SMClient, STUDIO_USER_TYPE } = require('../../api-util/studioHelper');
+const { STUDIO_USER_TYPE } = require('../../api-util/studioHelper');
+const { lookUpWebappUser } = require('../../api/auth/webappSignup');
 
 const SCRIPT_NAME = 'notifyUserCreated';
 const EVENT_TYPES = 'user/created';
 const RESOURCE_TYPE = 'user';
 const QUERY_PARAMS = { expand: true };
 
-async function addBrandUser(brandAdminId, userId, brandUsers) {
-  const integrationSdk = integrationSdkInit();
-  const parsedBrandUsers = [...new Set([...(brandUsers || []), userId])];
-  await integrationSdk.users.updateProfile(
-    {
-      id: brandAdminId,
-      metadata: {
-        brandUsers: parsedBrandUsers,
-      },
-    },
-    QUERY_PARAMS
-  );
-}
-
-async function getBrandData(userId, brandStudioId, companyName) {
-  const integrationSdk = integrationSdkInit();
-  const response = await integrationSdk.users.query(
-    {
-      priv_brandStudioId: brandStudioId,
-      meta_isBrandAdmin: true,
-    },
-    QUERY_PARAMS
-  );
-  const data = response.data.data;
-  const brandFound = data.length > 0;
-  if (!brandFound) {
-    // No Marketplace admin yet: Popup Studio's brands get theirs in the webapp, and people sign
-    // up here in any order (spec/v0/webapp-user-first-sign-up.md). The webapp names the brand;
-    // its admin joins this member to its list when they sign up.
-    return {
-      brandName: companyName || '',
-      brandWebsite: '',
-      aboutUs: '',
-      brandIndustry: '',
-    };
+// A creator the webapp already knows is approved here, as a seller and for the community, with no
+// Slack message (spec/v0/login-and-registration.md §6.4.2). The job asks the webapp itself and
+// never trusts what the browser sent. The community comes first: when the webapp fails there,
+// nothing is approved yet, and they're handled as an unknown creator (APPLIED and the Slack
+// message), as when the webapp can't be asked at all. Answers the metadata, or null.
+async function autoApproveCreator(userId, userAttributes) {
+  const { email, identityProviders } = userAttributes;
+  const webappUser = await lookUpWebappUser(email, identityProviders[0].userId);
+  const isWebappCreator =
+    webappUser?.type === STUDIO_USER_TYPE.CREATOR && webappUser.loginMatches === true;
+  if (!isWebappCreator) {
+    return null;
   }
-  const user = data[0];
-  const brandAdminId = user.id.uuid;
-  const { profile } = user.attributes;
-  const { publicData, metadata } = profile;
-  const { brandName, brandWebsite, aboutUs, brandIndustry } = publicData;
-  const { brandUsers } = metadata;
-  await addBrandUser(brandAdminId, userId, brandUsers);
-  return {
-    brandName,
-    brandWebsite,
-    aboutUs,
-    brandIndustry,
-  };
-}
-
-// The brand's members who signed up here before its admin (spec/v0/webapp-user-first-sign-up.md).
-async function getBrandMemberIds(adminId, brandStudioId) {
-  const integrationSdk = integrationSdkInit();
-  const response = await integrationSdk.users.query({ priv_brandStudioId: brandStudioId });
-  return response.data.data.map(user => user.id.uuid).filter(id => id !== adminId);
+  const community = await approveCommunity(userId, userAttributes);
+  if (!community) {
+    return null;
+  }
+  const seller = await approveSeller(userId, userAttributes);
+  return { membership: SELLER_MEMBERSHIP_TYPES.BASIC, ...community, ...seller };
 }
 
 async function getExtendedData(userId, userAttributes) {
-  const { profile, email, identityProviders } = userAttributes;
-  const { firstName, lastName } = profile;
+  const { profile } = userAttributes;
   const { userType } = profile.publicData;
-  if (userType === USER_TYPES.BRAND) {
-    const { brandStudioId } = profile.privateData;
-    const { brandName } = profile.publicData;
-    const studioManagerClient = new SMClient();
-    const studioBrandUser = await studioManagerClient.studioBrandUserInit(brandStudioId, {
-      admin: {
-        email,
-        firstName,
-        lastName,
-        providerId: identityProviders[0].userId,
-        marketId: userId,
-        type: STUDIO_USER_TYPE.BRAND,
-      },
-      companyName: brandName,
-    });
-    const { communityId, studioId } = studioBrandUser;
-    const withBrandStudioId = !!brandStudioId;
-    if (!withBrandStudioId) {
-      const { brandStudioId: newBrandStudioId } = studioBrandUser;
-      return {
-        privateData: {
-          brandStudioId: newBrandStudioId,
-        },
-        metadata: {
-          brandUsers: [],
-          membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-          isBrandAdmin: true,
-          communityId,
-          studioId,
-        },
-      };
+  if (userType === USER_TYPES.SELLER) {
+    const approved = await autoApproveCreator(userId, userAttributes);
+    if (approved) {
+      return { metadata: approved, autoApproved: true };
     }
-    // The webapp makes the first person to join a brand with no admin its admin, and says so
-    // (spec/v0/brands-without-admin.md). There is no admin to copy the brand from, so the
-    // joiner gets its name from the webapp and starts its member list, with the members who
-    // signed up here before it (spec/v0/webapp-user-first-sign-up.md). A webapp without that
-    // change sends no flag, and the joiner stays a plain member.
-    const { isBrandAdmin, companyName } = studioBrandUser;
-    if (isBrandAdmin) {
-      return {
-        publicData: { brandName: companyName },
-        metadata: {
-          brandUsers: await getBrandMemberIds(userId, brandStudioId),
-          membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-          isBrandAdmin: true,
-          communityId,
-          studioId,
-        },
-      };
-    }
-    const brandData = await getBrandData(userId, brandStudioId, companyName);
-    return {
-      publicData: brandData,
-      metadata: {
-        membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-        isBrandAdmin: false,
-        communityId,
-        studioId,
-      },
-    };
-  } else if (userType === USER_TYPES.SELLER) {
     const appliedAt = new Date();
     return {
       metadata: {
@@ -214,14 +121,31 @@ const analyzeEvent = async event => {
     const { displayName, firstName, lastName } = profile;
     const { userType } = profile.publicData;
     const isBuyer = userType === USER_TYPES.BUYER;
+    const isBrand = userType === USER_TYPES.BRAND;
     const isSeller = userType === USER_TYPES.SELLER;
     identifyUserHandler(userId, user.attributes);
     try {
       await referralProgramOptIn(userId, email, firstName, lastName);
-      if (isBuyer) {
+      // Brand users are joined during sign-up (spec/v0/login-and-registration.md §4.5.1). The
+      // `user/updated` event of the join's write brings their `studioId` to Auth0 and joins their
+      // community (notifyUserUpdated.js).
+      if (isBuyer || isBrand) {
+        // Written here, not left to the `user/updated` event of the referral code, which never
+        // comes when the referral call fails (spec/v0/login-and-registration.md §2.6.5).
+        await updateAuth0User({
+          auth0UserId: identityProviders[0].userId,
+          marketId: userId,
+          firstName,
+          lastName,
+          displayName,
+          userType,
+        });
         return;
       }
-      const { metadata, privateData, publicData } = await getExtendedData(userId, user.attributes);
+      const { metadata, privateData, publicData, autoApproved } = await getExtendedData(
+        userId,
+        user.attributes
+      );
       const { studioId, communityId, sellerStatus, communityStatus } = metadata || {};
       await integrationSdk.users.updateProfile(
         {
@@ -244,7 +168,7 @@ const analyzeEvent = async event => {
         communityStatus,
         userType,
       });
-      if (isSeller) {
+      if (isSeller && !autoApproved) {
         const { displayName } = profile;
         const { portfolioURL } = profile.publicData;
         await slackSellerValidationWorkflow(userId, displayName, email, portfolioURL, false);

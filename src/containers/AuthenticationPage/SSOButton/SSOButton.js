@@ -6,7 +6,7 @@ import { apiBaseUrl } from '../../../util/api';
 import { FormattedMessage } from '../../../util/reactIntl';
 import { isStudioBrand, isCreativeSeller } from '../../../util/userHelpers';
 
-import { SocialLoginButton } from '../../../components';
+import { InlineTextButton, SocialLoginButton } from '../../../components';
 import css from './SSOButton.module.css';
 
 const getDataForAuth0Routes = ({
@@ -36,7 +36,17 @@ const getDataForAuth0Routes = ({
   return { baseUrl, queryParams, auth0Route: `${baseUrl}/api/auth/auth0/login?${queryParams}` };
 };
 
-export const SSOButton = ({ isLogin, from, userType, brandStudioId, forceRedirect = false }) => {
+// `asLink` renders it as a text link (spec/v0/login-and-registration.md §2.6.2), and `children`
+// replaces its label.
+export const SSOButton = ({
+  isLogin,
+  from,
+  userType,
+  brandStudioId,
+  forceRedirect = false,
+  asLink = false,
+  children,
+}) => {
   const routeConfiguration = useRouteConfiguration();
   const signupMsg = isCreativeSeller(userType)
     ? 'AuthenticationPage.signupSellerWithAuth0'
@@ -65,15 +75,21 @@ export const SSOButton = ({ isLogin, from, userType, brandStudioId, forceRedirec
     return null;
   }
 
+  const label = children || (
+    <FormattedMessage id={isLogin ? 'AuthenticationPage.loginWithAuth0' : signupMsg} />
+  );
+
+  if (asLink) {
+    return (
+      <InlineTextButton type="button" onClick={() => authWithAuth0()}>
+        {label}
+      </InlineTextButton>
+    );
+  }
+
   return (
     <div className={css.socialButtonWrapper}>
-      <SocialLoginButton onClick={() => authWithAuth0()}>
-        {isLogin ? (
-          <FormattedMessage id="AuthenticationPage.loginWithAuth0" />
-        ) : (
-          <FormattedMessage id={signupMsg} />
-        )}
-      </SocialLoginButton>
+      <SocialLoginButton onClick={() => authWithAuth0()}>{label}</SocialLoginButton>
     </div>
   );
 };

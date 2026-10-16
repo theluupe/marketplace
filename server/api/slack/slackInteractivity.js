@@ -1,9 +1,9 @@
 const { WebClient } = require('@slack/web-api');
 
 const { identifyUserEvent, trackManagementAPIEvent } = require('../../api-util/analytics');
-const { COMMUNITY_STATUS, SELLER_STATUS, LISTING_TYPES } = require('../../api-util/metadataHelper');
+const { approveCommunity, approveSeller } = require('../../api-util/creatorApproval');
+const { COMMUNITY_STATUS, SELLER_STATUS } = require('../../api-util/metadataHelper');
 const { integrationSdkInit } = require('../../api-util/scriptManager');
-const { StudioManagerClient: SMClient, STUDIO_USER_TYPE } = require('../../api-util/studioHelper');
 
 const SELLER_ACTIONS_BLOCK_ID = 'seller_actions';
 const COMMUNITY_ACTIONS_BLOCK_ID = 'community_actions';
@@ -15,44 +15,42 @@ const SLACK_ACTIONS = {
   rejectCommunity: 'reject_community',
 };
 
-const chatUpdate = async (action, channel, ts, blocks) => {
-  const isSellerAction =
-    action === SLACK_ACTIONS.approveSeller || action === SLACK_ACTIONS.rejectSeller;
-  const isCommunityAction =
-    action === SLACK_ACTIONS.approveCommunity || action === SLACK_ACTIONS.rejectCommunity;
-  const blockId = isSellerAction ? SELLER_ACTIONS_BLOCK_ID : COMMUNITY_ACTIONS_BLOCK_ID;
+const isSellerAction = action =>
+  action === SLACK_ACTIONS.approveSeller || action === SLACK_ACTIONS.rejectSeller;
+const isApproveAction = action =>
+  action === SLACK_ACTIONS.approveSeller || action === SLACK_ACTIONS.approveCommunity;
+
+const outcomeText = action => {
+  const result = isApproveAction(action) ? 'approved' : 'rejected';
+  return isSellerAction(action)
+    ? `User has been ${result} to be a Seller`
+    : `User request to become part of the Community has been ${result}`;
+};
+
+// A failure whose cause the message names, instead of the general "Couldn't complete this".
+const failureWithNote = note => Object.assign(new Error(note), { slackNote: note });
+
+const textBlock = (blockId, text) => ({
+  type: 'section',
+  block_id: blockId,
+  text: { type: 'mrkdwn', text, verbatim: false },
+});
+
+// Rewrites the clicked decision in the message: its buttons become `text`, or, with
+// `keepButtons`, stay with `text` under them. A note left by an earlier failed click on that
+// decision goes either way.
+const chatUpdate = async (click, text, { keepButtons = false } = {}) => {
+  const { action, channel, ts, blocks } = click;
+  const blockId = isSellerAction(action) ? SELLER_ACTIONS_BLOCK_ID : COMMUNITY_ACTIONS_BLOCK_ID;
+  const noteBlockId = `${blockId}_note`;
   const slackBotToken = process.env.SLACK_BOT_TOKEN;
 
-  if (!isSellerAction && !isCommunityAction) return;
-
-  const parsedBLocks = blocks.map(block => {
-    const isActionBlock = block.block_id === blockId;
-    if (!isActionBlock) return block;
-    const isApproveAction =
-      action === SLACK_ACTIONS.approveSeller || action === SLACK_ACTIONS.approveCommunity;
-    if (isSellerAction) {
-      return {
-        type: 'section',
-        block_id: blockId,
-        text: {
-          type: 'mrkdwn',
-          text: `User has been ${isApproveAction ? 'approved' : 'rejected'} to be a Seller`,
-          verbatim: false,
-        },
-      };
-    }
-    return {
-      type: 'section',
-      block_id: blockId,
-      text: {
-        type: 'mrkdwn',
-        text: `User request to become part of the Community has been ${
-          isApproveAction ? 'approved' : 'rejected'
-        }`,
-        verbatim: false,
-      },
-    };
-  });
+  const parsedBLocks = blocks
+    .filter(block => block.block_id !== noteBlockId)
+    .flatMap(block => {
+      if (block.block_id !== blockId) return [block];
+      return keepButtons ? [block, textBlock(noteBlockId, text)] : [textBlock(blockId, text)];
+    });
   const payload = {
     text: 'User action has been processed.',
     blocks: parsedBLocks,
@@ -63,83 +61,14 @@ const chatUpdate = async (action, channel, ts, blocks) => {
   await webClient.chat.update(payload);
 };
 
-async function approveSellerHandler(userId, userAttributes) {
-  console.warn(`--- APPROVE SELLER: ${userId}`);
-  const integrationSdk = integrationSdkInit();
-  const reviewedAt = new Date();
-  await integrationSdk.users.updatePermissions({
-    id: userId,
-    postListings: 'permission/allow',
-  });
-  const { profile, email } = userAttributes;
-  const { creativeSpecialty } = profile.publicData || {};
-  const { location } = profile.privateData || {};
-  const { firstName, lastName, displayName } = profile;
-  const listingResponse = await integrationSdk.listings.create(
-    {
-      authorId: userId,
-      title: `${firstName} ${lastName} ${displayName}`,
-      description: '',
-      state: 'published',
-      geolocation: location?.geolocation,
-      publicData: {
-        location: {
-          address: location?.address,
-          building: location?.building,
-        },
-        listingType: LISTING_TYPES.PROFILE,
-        categoryLevel1: 'creatives',
-        creativeSpecialty,
-        // DEFAULT VALUES
-        transactionProcessAlias: 'default-inquiry/release-1',
-        unitType: 'inquiry',
-      },
-    },
-    { expand: true }
-  );
-  const eventUser = { id: userId, email };
-  const eventTraits = {
-    type: 'CREATOR',
-    hasProductListings: 'NO',
-    sellerStatus: SELLER_STATUS.APPROVED,
-  };
-  identifyUserEvent(eventUser, eventTraits);
-  trackManagementAPIEvent('NEW_CREATOR | MARKET_SELLER - Approved', eventUser);
-  const profileListing = listingResponse.data.data;
-  const profileListingId = profileListing?.id?.uuid;
-  const metadata = {
-    profileListingId,
-    sellerStatus: SELLER_STATUS.APPROVED,
-    reviewedAt: reviewedAt.toUTCString(),
-  };
-  return metadata;
-}
+// The approvals are shared with the job's automatic approval (api-util/creatorApproval.js).
+const approveSellerHandler = approveSeller;
 
 async function approveCommunityHandler(userId, userAttributes) {
-  console.warn(`--- APPROVE COMMUNITY: ${userId}`);
-  const { profile, email, identityProviders } = userAttributes;
-  const { creativeSpecialty } = profile.publicData || {};
-  const { location } = profile.privateData || {};
-  const { firstName, lastName } = profile;
-  const studioManagerClient = new SMClient();
-  const newCreatorIds = await studioManagerClient.studioCreatorInit({
-    attributes: {
-      creativeSpecialty: creativeSpecialty.join(', '),
-      location: location?.address,
-    },
-    user: {
-      email,
-      firstName,
-      lastName,
-      providerId: identityProviders[0].userId,
-      marketId: userId,
-      type: STUDIO_USER_TYPE.CREATOR,
-    },
-  });
-  const metadata = {
-    ...newCreatorIds,
-    communityStatus: COMMUNITY_STATUS.APPROVED,
-  };
+  const metadata = await approveCommunity(userId, userAttributes);
+  if (!metadata) {
+    throw failureWithNote("The webapp couldn't be reached. Try again.");
+  }
   return metadata;
 }
 
@@ -166,60 +95,87 @@ async function rejectCommunityHandler(userId, userAttributes) {
   return metadata;
 }
 
+const DECISION_HANDLERS = {
+  [SLACK_ACTIONS.approveSeller]: approveSellerHandler,
+  [SLACK_ACTIONS.rejectSeller]: rejectSellerHandler,
+  [SLACK_ACTIONS.approveCommunity]: approveCommunityHandler,
+  [SLACK_ACTIONS.rejectCommunity]: rejectCommunityHandler,
+};
+
+// Clicks being handled, one per person and decision. The status only changes at the end of the
+// work, so a double click would otherwise approve twice. The Marketplace runs a single instance
+// (spec/v0/login-and-registration.md §9.4.5), so memory is enough.
+const decisionsInProgress = new Set();
+
 const slackInteractivity = async (req, res) => {
+  // Slack wants an answer within 3 seconds and the work can take longer: without one, the
+  // operator sees "didn't respond" and clicks again. The outcome goes into the message instead
+  // (spec/v0/login-and-registration.md §3.6.2). The work after the answer needs Cloud Run's CPU
+  // always allocated (§9.4.5).
+  res.sendStatus(200);
   console.warn('\nStarting slack interactivity service..');
-  const payload = JSON.parse(req.body.payload);
-  const action = payload.actions[0].action_id;
-  const userId = payload.actions[0].value;
+  let click;
+  try {
+    const payload = JSON.parse(req.body.payload);
+    const [{ action_id: action, value: userId }] = payload.actions;
+    const { ts, blocks } = payload.message;
+    click = { action, userId, channel: payload.channel.id, ts, blocks };
+  } catch (error) {
+    console.error('Slack interactivity: unreadable payload', error?.message);
+    return;
+  }
+  const { action, userId } = click;
   console.warn(`--- action:`, action);
   console.warn(`--- userId:`, userId);
+  const decisionHandler = DECISION_HANDLERS[action];
+  if (!decisionHandler) {
+    console.warn(`--- NO ACTION REQUIRED`);
+    return;
+  }
+  const decision = isSellerAction(action) ? 'seller' : 'community';
+  const decisionKey = `${decision}:${userId}`;
+  if (decisionsInProgress.has(decisionKey)) {
+    console.warn(`--- already being handled, click ignored`);
+    return;
+  }
+  decisionsInProgress.add(decisionKey);
   try {
-    const channel = payload.channel.id;
-    const { ts: messageTimestamp, blocks } = payload.message;
     const integrationSdk = integrationSdkInit();
     const response = await integrationSdk.users.show({ id: userId });
     const user = response.data.data;
     const userAttributes = user.attributes;
     const { email } = userAttributes;
     console.warn(`--- email:`, email);
-    let metadata;
-    switch (action) {
-      case SLACK_ACTIONS.approveSeller: {
-        metadata = await approveSellerHandler(userId, userAttributes);
-        break;
-      }
-      case SLACK_ACTIONS.rejectSeller: {
-        metadata = await rejectSellerHandler(userId, userAttributes);
-        break;
-      }
-      case SLACK_ACTIONS.approveCommunity: {
-        metadata = await approveCommunityHandler(userId, userAttributes);
-        break;
-      }
-      case SLACK_ACTIONS.rejectCommunity: {
-        metadata = await rejectCommunityHandler(userId, userAttributes);
-        break;
-      }
-      default:
-        console.warn(`--- NO ACTION REQUIRED`);
-        break;
+    // Approve once (spec/v0/login-and-registration.md §3.6.1): approving twice created a second
+    // published profile listing. Rejecting is unchanged.
+    const { sellerStatus, communityStatus } = userAttributes.profile.metadata || {};
+    const currentStatus = isSellerAction(action) ? sellerStatus : communityStatus;
+    const appliedStatus = isSellerAction(action) ? SELLER_STATUS.APPLIED : COMMUNITY_STATUS.APPLIED;
+    if (isApproveAction(action) && currentStatus !== appliedStatus) {
+      await chatUpdate(
+        click,
+        `Nothing changed: this user's ${decision} status is already ${currentStatus || 'not set'}`
+      );
+      return;
     }
-    const withMetadata = !!metadata;
-    if (withMetadata) {
-      await integrationSdk.users.updateProfile({
-        id: userId,
-        metadata,
-      });
-    }
-    await chatUpdate(action, channel, messageTimestamp, blocks);
+    const metadata = await decisionHandler(userId, userAttributes);
+    await integrationSdk.users.updateProfile({
+      id: userId,
+      metadata,
+    });
+    await chatUpdate(click, outcomeText(action));
+    console.warn('Slack interactivity service DONE\n');
   } catch (error) {
-    const metadata = error?.data?.response_metadata;
+    console.error(`Slack interactivity: ${action} failed | userId: ${userId} |`, error?.message);
     console.warn(`--- error`, error?.data);
-    console.warn(`--- metadata`, metadata);
-    return res.status(500);
+    console.warn(`--- metadata`, error?.data?.response_metadata);
+    const note = error?.slackNote || "Couldn't complete this. Try again.";
+    await chatUpdate(click, `:warning: ${note}`, { keepButtons: true }).catch(updateError =>
+      console.error('Slack interactivity: the message could not be updated', updateError?.message)
+    );
+  } finally {
+    decisionsInProgress.delete(decisionKey);
   }
-  console.warn('Slack interactivity service DONE\n');
-  res.sendStatus(200);
 };
 
 module.exports = {

@@ -83,9 +83,12 @@ exports.authenticateAuth0Callback = (req, res) => {
     brandStudioId,
   } = initialProfile;
   const userInfo = req.oidc.user;
-  const { email } = userInfo;
+  // `sub` is the login's Auth0 id: the webapp checks it against the one it has for a known person
+  // (spec/v0/login-and-registration.md §6.4.1).
+  const { email, sub: auth0UserId } = userInfo;
   const userProfile = {
     email,
+    auth0UserId,
     firstName,
     lastName,
     idpToken,

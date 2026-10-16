@@ -44,12 +44,15 @@ function script() {
       const validListing = profileListingId === listingId;
       if (validListing) {
         const studioManagerClient = new SMClient();
-        await studioManagerClient.creatorProfileListingUpdate(studioId, {
+        const synced = await studioManagerClient.creatorProfileListingUpdate(studioId, {
           creativeSpecialty: creativeSpecialty.map(entry => _.startCase(entry)).join(', '),
           genres: genres.map(entry => _.startCase(entry)).join(', '),
           skills: skills.map(entry => _.startCase(entry)).join(', '),
           location: location?.address,
         });
+        // Nothing runs after this call, so a failure takes the event's usual alert below
+        // (spec/v0/login-and-registration.md §9.4.3).
+        if (!synced) throw new Error("The webapp didn't take the creator profile");
       }
     }
   }

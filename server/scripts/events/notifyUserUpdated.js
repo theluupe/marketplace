@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const { updateAuth0User } = require('../../api-util/auth0Helper');
+const { getBrandMemberIds } = require('../../api-util/brandMembers');
 const {
   USER_TYPES,
   SELLER_MEMBERSHIP_TYPES,
@@ -27,7 +28,7 @@ const EVENT_TYPES = 'user/updated';
 const RESOURCE_TYPE = 'user';
 const QUERY_PARAMS = { expand: true };
 
-async function shouldUpdateBrandUsers(userAttributes, previousValues) {
+async function shouldUpdateBrandUsers(userId, userAttributes, previousValues) {
   const integrationSdk = integrationSdkInit();
   const { profile } = userAttributes;
   const { isBrandAdmin, brandUsers } = profile.metadata || {};
@@ -50,18 +51,62 @@ async function shouldUpdateBrandUsers(userAttributes, previousValues) {
   const shouldUpdateStudio = isBrand && isBrandAdmin && brandNameUpdated;
   if (shouldUpdate) {
     const brandData = { brandName, brandWebsite, aboutUs, brandIndustry };
+    // The brand's members, not the admin's list: a deleted account stayed in that list, and
+    // updating it failed the rest of the event (spec/v0/login-and-registration.md §4.5.7). The
+    // list is put right on the way.
+    const memberIds = await getBrandMemberIds(userId, brandStudioId);
     await Promise.all(
-      brandUsers.map(brandUserId =>
+      memberIds.map(brandUserId =>
         integrationSdk.users.updateProfile({
           id: brandUserId,
           publicData: brandData,
         })
       )
     );
+    if (_.xor(memberIds, brandUsers || []).length > 0) {
+      await integrationSdk.users.updateProfile({ id: userId, metadata: { brandUsers: memberIds } });
+    }
   }
   if (shouldUpdateStudio) {
     const studioManagerClient = new SMClient();
-    await studioManagerClient.studioBrandUpdate(brandStudioId, { companyName: brandName });
+    return await studioManagerClient.studioBrandUpdate(brandStudioId, { companyName: brandName });
+  }
+  return true;
+}
+
+// A brand user's community (Circle): once their join has written `studioId`, the webapp's community
+// route joins them and answers the id, which is written here; Auth0 gets it with the next update's
+// sync (spec/v0/login-and-registration.md §4.5.1). It runs on the join's own write, not on
+// `user/created`: the join can finish after that event, at a later login. No retry (§9.2, J2): a
+// failure answers false, for the usual alert.
+async function shouldJoinCommunity(userId, userAttributes, previousValues) {
+  const { profile } = userAttributes;
+  const { userType } = profile.publicData || {};
+  const { studioId, communityId } = profile.metadata || {};
+  const { profile: previousProfile } = previousValues?.attributes || {};
+  const justJoined = 'studioId' in (previousProfile?.metadata || {});
+  const shouldJoin = userType === USER_TYPES.BRAND && !!studioId && justJoined && !communityId;
+  if (!shouldJoin) {
+    return true;
+  }
+  const studioManagerClient = new SMClient();
+  const newCommunityId = await studioManagerClient.addUserToCommunity(studioId);
+  if (!newCommunityId) {
+    return false;
+  }
+  try {
+    const integrationSdk = integrationSdkInit();
+    await integrationSdk.users.updateProfile({
+      id: userId,
+      metadata: { communityId: newCommunityId },
+    });
+    return true;
+  } catch (error) {
+    console.error(
+      `[notifyUserUpdated] Error saving the community id | userId: ${userId} | Error:`,
+      error
+    );
+    return false;
   }
 }
 
@@ -160,12 +205,13 @@ function script() {
     if (shouldUpdateStudio) {
       const profileImageId = profileImage?.data?.id?.uuid;
       const studioManagerClient = new SMClient();
-      await studioManagerClient.studioUserUpdate(studioId, {
+      return await studioManagerClient.studioUserUpdate(studioId, {
         avatarUri: await getProfileImage(userId, profileImageId),
         firstName,
         lastName,
       });
     }
+    return true;
   }
 
   async function shouldSyncStudioProfileListing(resource, previousValues) {
@@ -222,10 +268,12 @@ function script() {
     const shouldUpdateStudio = withStudioAccess && profileListingUpdated;
     if (shouldUpdateStudio) {
       const studioManagerClient = new SMClient();
-      await studioManagerClient.creatorProfileListingUpdate(studioId, {
+      return await studioManagerClient.creatorProfileListingUpdate(studioId, {
         birthday,
         pronouns,
-        mentorship: mentorship.map(entry => _.startCase(entry)).join(', '),
+        // A missing list is an empty one: `.map` on it crashed the event before its Auth0 sync
+        // (spec/v0/login-and-registration.md §3.6.4).
+        mentorship: (mentorship || []).map(entry => _.startCase(entry)).join(', '),
         website,
         instagramHandle,
         linkedinHandle,
@@ -235,6 +283,7 @@ function script() {
         youtubeHandle,
       });
     }
+    return true;
   }
 
   async function shouldSyncProfileListing(resource, previousValues) {
@@ -263,8 +312,9 @@ function script() {
           title: `${firstName} ${lastName} ${displayName}`,
         });
       }
-      await shouldSyncStudioProfileListing(resource, previousValues);
+      return await shouldSyncStudioProfileListing(resource, previousValues);
     }
+    return true;
   }
 
   async function profileSync(userId, resource, previousValues) {
@@ -273,9 +323,13 @@ function script() {
     const { displayName, firstName, lastName } = profile;
     const { communityStatus, sellerStatus, studioId, communityId } = profile.metadata || {};
     const { userType } = profile.publicData || {};
-    await shouldUpdateBrandUsers(userAttributes, previousValues);
-    await shouldSyncUserProfile(userId, resource, previousValues);
-    await shouldSyncProfileListing(resource, previousValues);
+    // Each step answers whether the webapp took its change (true when it had none to send). A
+    // failure doesn't stop the event: the other steps and Auth0 still run, then the usual alert
+    // goes out (spec/v0/login-and-registration.md §9.4.3).
+    const brandSynced = await shouldUpdateBrandUsers(userId, userAttributes, previousValues);
+    const communityJoined = await shouldJoinCommunity(userId, userAttributes, previousValues);
+    const userSynced = await shouldSyncUserProfile(userId, resource, previousValues);
+    const profileListingSynced = await shouldSyncProfileListing(resource, previousValues);
     const auth0UserId = identityProviders?.[0]?.userId;
     if (auth0UserId) {
       await updateAuth0User({
@@ -290,6 +344,10 @@ function script() {
         communityStatus,
         userType,
       });
+    }
+    if (!brandSynced || !communityJoined || !userSynced || !profileListingSynced) {
+      slacktUserUpdatedErrorWorkflow(userId);
+      console.error(`[notifyUserUpdated] The webapp didn't take the update | userId: ${userId}`);
     }
   }
 
