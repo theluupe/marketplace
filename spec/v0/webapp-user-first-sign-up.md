@@ -55,9 +55,9 @@ on a redirect) and returns `data.user`, or `null`.
 | `type: 'CREATOR'` | `userType: 'creative-seller'`, no `brandStudioId` | The creator sign-up. They start "applied" and the team approves them in Slack, as for any creator; the webapp's `addCreator` then updates their existing user. No auto-approval (Rafael, 2026-10-13) |
 | Anything else, no answer, or an error | What it gets today | What it shows today |
 
-> **To change (2026-10-14):** [`login-and-registration.md`](./login-and-registration.md) §4.5.3 and §6 refine this table
-> (errors for another brand's link, the new-brand form for a brand's admin, a login check, webapp creators approved
-> automatically, webapp users in no brand as buyers), and §4.5.1 moves the brand join into the sign-up itself.
+> **Changed (on PROD 2026-10-16):** [`login-and-registration.md`](./login-and-registration.md) §4.5.3 and §6 refine
+> this table (errors for another brand's link, the new-brand form for a brand's admin, a login check, webapp creators
+> approved automatically, webapp users in no brand as buyers), and §4.5.1 moved the brand join into the sign-up itself.
 
 **Never blocks the sign-up.** The client's response interceptor already swallows the webapp's errors and returns
 `{ data: {} }`, which reads as "not found"; anything else that throws is logged and ignored.

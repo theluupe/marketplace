@@ -1,8 +1,8 @@
 # Login and registration: every user type, across the Marketplace, Auth0 and the webapp
 
-> **Status:** 🟡 Approved by Rafael (2026-10-15), not built yet. Written step by step with his approval at each step
-> (2026-10-14/15). Built one step at a time, in four phases (§11); §12 is filled in as each phase is built. The
-> webapp's part (phase 2) has its own spec,
+> **Status:** ✅ Implemented: phases 1–3 on PROD (2026-10-16), after QA passed §12. Phase 4, a one-off clean-up of
+> PROD data (§11.5), is still to run. Approved by Rafael (2026-10-15), written step by step with his approval at each
+> step (2026-10-14/15) and built one step at a time (§11). The webapp's part (phase 2) has its own spec,
 > [`webapp/spec/marketplace-login-and-registration.md`](../../../webapp/spec/marketplace-login-and-registration.md),
 > built in parallel.
 >
@@ -865,9 +865,11 @@ a brand sign-up; a webapp brand's admin gets the brand's webapp name whatever th
 #### 10.2.4 No API key in the logs (S8)
 
 The webapp client's error handler (`studioHelper.js`) logs only the method, the path, the status and the webapp's
-answer, or the error's message when there's no answer. Never `error.config`, `error.request` or headers. Once this
-is live on PROD, the webapp's management key (`STUDIO_MANAGER_API_KEY`, shared by the webapp and the Marketplace) is
-changed, since the old one is in the logs. The referral client already logs only the message.
+answer, or the error's message when there's no answer. Never `error.config`, `error.request` or headers. The
+referral client already logs only the message.
+
+The webapp's management key (`STUDIO_MANAGER_API_KEY`, shared by the webapp and the Marketplace) was to be changed
+once this was live, since the old one is in past logs. Not changed: Rafael's call (2026-10-16).
 
 #### 10.2.5 No secrets in the build log (S10)
 
@@ -963,9 +965,10 @@ Each PROD read and write needs Rafael's go.
   - Between phase 3 and 2b, a brand join runs Circle twice (the webapp's join and the job's step). That's harmless:
     the community route does nothing for a user who already has one.
   - The assign tool doesn't work between phase 3 (a POST) and 2b (the webapp still calls a GET): a few minutes.
-- **After phase 1 is on PROD:** change `STUDIO_MANAGER_API_KEY` in the webapp and the Marketplace (S8).
+- **After phase 1 is on PROD:** change `STUDIO_MANAGER_API_KEY` in the webapp and the Marketplace (S8). Not done:
+  Rafael's call (2026-10-16), as for removing the old `SLACK_BOT_VERIFICATION_TOKEN`.
 - **When phase 3 is on PROD:** [`webapp-user-first-sign-up.md`](./webapp-user-first-sign-up.md)'s "To change" note is
-  resolved, and this spec moves to Implemented in `spec/v0/README.md` and `TL_README.md`.
+  resolved, and this spec moves to Implemented in `spec/v0/README.md` and `TL_README.md`. Done 2026-10-16.
 
 ### 11.7 Tests
 
@@ -1200,4 +1203,4 @@ exist" (the webapp's form only offers existing brands), and the joins being safe
 
 **Before phase 3 reaches PROD (R8):** count PROD's brand users without a `studioId` (a PROD read, with Rafael's go).
 From phase 3, their next login runs the join, and they get only the Try again screen until it works. The old job left
-some behind (BR17).
+some behind (BR17). Not counted: Rafael's call (2026-10-16), since each one's next login finishes their join.
