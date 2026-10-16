@@ -3,7 +3,7 @@ import { updatedEntities, denormalisedEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
 import { createImageVariantConfig } from '../../util/sdkLoader';
 import { parse } from '../../util/urlHelpers';
-import { LISTING_TAB_TYPES } from '../../util/types';
+import { LISTING_TAB_TYPES, isListingTabPaused } from '../../util/types';
 
 import { fetchCurrentUser } from '../../ducks/user.duck';
 
@@ -297,10 +297,14 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
   } = config.layout.listingImage;
   const aspectRatio = aspectHeight / aspectWidth;
 
-  return Promise.all([
-    dispatch(fetchCurrentUser()),
-    dispatch(
-      queryOwnListings({
+  // A paused tab (Portfolio while it's switched off — see util/featureFlags.js) shows only a
+  // message, which depends on whether the creative has any. So it queries only the count: one
+  // listing, no images. It must be a real query, not a skipped one: its `pending` case is what
+  // makes the tab current (the page reads the tab from `queryParams`, the last query, not the
+  // URL) and clears the previous tab's listings. A skipped query (`condition`) does neither.
+  const listingsQuery = isListingTabPaused(queryParams.pub_listingType)
+    ? queryOwnListings({ pub_listingType: queryParams.pub_listingType, page: 1, perPage: 1 })
+    : queryOwnListings({
         ...queryParams,
         page,
         perPage: RESULT_PAGE_SIZE,
@@ -317,9 +321,9 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
         ],
         ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
         ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
-      })
-    ),
-  ])
+      });
+
+  return Promise.all([dispatch(fetchCurrentUser()), dispatch(listingsQuery)])
     .then(response => {
       // const currentUser = response[0]?.data?.data;
       return response[1]?.data?.data;

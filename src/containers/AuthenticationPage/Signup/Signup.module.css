@@ -60,6 +60,14 @@
 }
 
 /* ================ Brand Signup ================ */
+/* An invitation's brand loading: centered in the whole sign-up area. */
+.spinner {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .brandSignup {
   .content {
     @media (--viewportMedium) {

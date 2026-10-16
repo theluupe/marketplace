@@ -106,6 +106,7 @@ The negotiation process has two modes: **forward** (customer requests, provider 
 
 - **User types:** `buyer`, `creative-seller`, `studio-brand`
 - **Listing types:** `product-listing`, `hidden-product-listing`, `service-listing`, `portfolio-showcase`, `profile-listing`
+  - `portfolio-showcase` (Portfolio) is **switched off** by `PORTFOLIO_ENABLED` in `src/util/featureFlags.js`: code and data kept, no portfolio shown or uploaded (Manage listings keeps a Portfolio tab that only says portfolios are paused). Don't read Portfolio code as live; see `spec/v0/hide-portfolio.md`.
 - **Seller/Community statuses:** `APPLIED`, `APPROVED`, `WAITLISTED`
 - **Brand membership:** `BASIC`, `TALENT_SUITE`
 - **Seller membership:** `BASIC`, `CONNECT`, `PRO`

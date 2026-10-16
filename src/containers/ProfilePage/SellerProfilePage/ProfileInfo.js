@@ -183,7 +183,8 @@ function ProfileInfo({
   const hasBio = !!bio;
   const hasPortfolioURL = !!portfolioURL;
   const parsedPortfolioURL = `${isValidURL(portfolioURL) ? '' : 'http://'}${portfolioURL}`;
-  const parsedPortfolioLabel = stripUrl(portfolioURL);
+  // stripUrl throws without a URL.
+  const parsedPortfolioLabel = hasPortfolioURL ? stripUrl(portfolioURL) : '';
   const parsedBookingFormURL = `https://theluupe.typeform.com/booking#creatorname=${displayName}&creatorid=${userId}`;
 
   const toggleFavorites = () => onToggleFavorites(isFavorite);
@@ -266,14 +267,23 @@ function ProfileInfo({
             <p className={css.creativeSpecialtyLabel}>{creativeSpecialty}</p>
             <p className={classNames(css.addressLabel, css.desktopOnly)}>{address}</p>
             {hasBio && <ExpandableBio className={css.bioLabel} bio={bio} />}
+            {/* The portfolio website, labelled (spec/v0/hide-portfolio.md §3.10). Chosen over a
+                "View portfolio" button next to "Request to book". */}
             {hasPortfolioURL && (
               <Button
                 type="link"
                 target="_blank"
+                rel="noopener noreferrer"
                 href={parsedPortfolioURL}
                 className={css.portfolioLink}
               >
-                {parsedPortfolioLabel}
+                <span className={css.portfolioLinkText}>
+                  <span className={css.portfolioLinkLabel}>
+                    <FormattedMessage id="ProfilePage.portfolioWebsiteLabel" />
+                  </span>
+                  {` · ${parsedPortfolioLabel}`}
+                </span>
+                <span aria-hidden="true">↗</span>
               </Button>
             )}
           </>

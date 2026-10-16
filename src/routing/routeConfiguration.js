@@ -1,6 +1,7 @@
 import React from 'react';
 import loadable from '@loadable/component';
 
+import { PORTFOLIO_ENABLED } from '../util/featureFlags';
 import getPageDataLoadingAPI from '../containers/pageDataLoadingAPI';
 import NotFoundPage from '../containers/NotFoundPage/NotFoundPage';
 import PreviewResolverPage from '../containers/PreviewResolverPage/PreviewResolverPage';
@@ -122,22 +123,34 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       name: 'ListingBasePage',
       component: RedirectToLandingPage,
     },
+    // While Portfolio is switched off (see util/featureFlags.js), its wizard routes render Not
+    // Found. They stay registered: without them, /l/portfolio/new would fall through to
+    // ListingPage and /l/portfolio/:id/edit/details to the upstream EditListingPage. Off, New has
+    // no `auth` (a logged-out visitor gets Not Found, not the login page) and Edit no `loadData`.
     {
       path: '/l/portfolio/new',
       name: 'NewPortfolioListingPage',
-      auth: true,
-      component: () => (
-        <NamedRedirect
-          name="EditPortfolioListingPage"
-          params={{ id: draftId, mode: 'new', tab: 'details' }}
-        />
-      ),
+      ...(PORTFOLIO_ENABLED
+        ? {
+            auth: true,
+            component: () => (
+              <NamedRedirect
+                name="EditPortfolioListingPage"
+                params={{ id: draftId, mode: 'new', tab: 'details' }}
+              />
+            ),
+          }
+        : { component: props => <NotFoundPage {...props} /> }),
     },
     {
       path: '/l/portfolio/:id/:mode/:tab',
       name: 'EditPortfolioListingPage',
-      component: EditPortfolioListingPage,
-      loadData: pageDataLoadingAPI.EditPortfolioListingPage.loadData,
+      ...(PORTFOLIO_ENABLED
+        ? {
+            component: EditPortfolioListingPage,
+            loadData: pageDataLoadingAPI.EditPortfolioListingPage.loadData,
+          }
+        : { component: props => <NotFoundPage {...props} /> }),
     },
     {
       path: '/l/products/:mode/:tab',

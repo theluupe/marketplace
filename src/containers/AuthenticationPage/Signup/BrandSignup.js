@@ -37,7 +37,7 @@ const BrandSignup = ({ from, brandStudioId, invitationBrand }) => {
 
   if (isInvitation && !isBrandLoaded) {
     return (
-      <div className={css.brandSignup}>
+      <div className={css.spinner}>
         <IconSpinner />
       </div>
     );

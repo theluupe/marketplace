@@ -1,13 +1,20 @@
 import React from 'react';
 
 import { FormattedMessage } from '../../util/reactIntl';
-import { LISTING_TAB_TYPES, LISTING_GRID_ROLE } from '../../util/types';
+import { LISTING_TAB_TYPES, LISTING_GRID_ROLE, isListingTabShown } from '../../util/types';
 
 import { H3, PaginationLinks } from '../';
 
 import css from './ListingTabs.module.css';
 
+// The tabs are filtered once, here, rather than in each role's branch: a switched-off tab is
+// hidden by isListingTabShown (util/types.js), which says which roles still show it.
 export function getTabsFeaturesForRole(role, hideReviews) {
+  const features = getAllTabsFeaturesForRole(role, hideReviews);
+  return { ...features, tabs: features.tabs.filter(tab => isListingTabShown(tab.key, role)) };
+}
+
+function getAllTabsFeaturesForRole(role, hideReviews) {
   switch (role) {
     case LISTING_GRID_ROLE.FAVORITE:
       return {

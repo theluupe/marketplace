@@ -383,6 +383,16 @@
   }
 }
 
+.portfolioLinkText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portfolioLinkLabel {
+  font-weight: var(--fontWeightSemiBold);
+}
+
 .actionsContainer {
   display: flex;
   flex-direction: row;
