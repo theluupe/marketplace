@@ -31,7 +31,12 @@ const initiateLoginAs = require('./api/initiate-login-as');
 const loginAs = require('./api/login-as');
 const transactionLineItems = require('./api/transaction-line-items');
 const initiatePrivileged = require('./api/initiate-privileged');
-const { verifySlackRequestMiddleware, slackInteractivity } = require('./api/slack');
+const invitationBrand = require('./api/invitation-brand');
+const {
+  slackBodyParser,
+  verifySlackRequestMiddleware,
+  slackInteractivity,
+} = require('./api/slack');
 const { generateDownloadUrls } = require('./api/digital-product-download');
 const { referralProgramOptIn } = require('./api/referral-manager');
 const {
@@ -65,8 +70,7 @@ function authenticateApiKey(req, res, next) {
 // ================ API router Slack integration manager: ================ //
 router.post(
   '/slack/interactivity',
-  bodyParser.json(),
-  bodyParser.urlencoded({ extended: true }),
+  slackBodyParser,
   verifySlackRequestMiddleware,
   slackInteractivity
 );
@@ -99,6 +103,7 @@ router.get('/initiate-login-as', initiateLoginAs);
 router.get('/login-as', loginAs);
 router.post('/transaction-line-items', transactionLineItems);
 router.post('/initiate-privileged', initiatePrivileged);
+router.get('/invitation-brand/:brandStudioId', invitationBrand);
 router.post('/phototag-keywords', phototagKeywords);
 router.post('/referral-program/opt-in', referralProgramOptIn);
 router.post('/transaction/product-download', generateDownloadUrls);
@@ -108,7 +113,8 @@ router.post('/transloadit-params', transloaditParams);
 router.post('/validate-license-deal', validateLicenseDeal);
 
 // Scripts Retries:
-router.get(
+// A POST: it changes data (spec/v0/login-and-registration.md §7.4, decision 4).
+router.post(
   '/scrips-retry/brandUserAssignment/:brandStudioId/:userId',
   authenticateApiKey,
   retryBrandUserAssignmentScript

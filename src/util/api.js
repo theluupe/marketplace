@@ -148,6 +148,14 @@ export const createUserWithIdp = body => {
   return post('/api/auth/create-user-with-idp', body);
 };
 
+// An invitation link's brand: { companyName }, or a 404 error for a brand the webapp doesn't know.
+// See `server/api/invitation-brand.js`.
+export const fetchInvitationBrand = brandStudioId => {
+  return request(`/api/invitation-brand/${encodeURIComponent(brandStudioId)}`, {
+    method: methods.GET,
+  });
+};
+
 export const createUploadSignature = body => {
   return post('/api/transloadit-params', body);
 };

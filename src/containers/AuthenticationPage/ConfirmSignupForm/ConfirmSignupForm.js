@@ -34,7 +34,12 @@ const ConfirmSignupFormComponent = props => (
   <FinalForm
     {...props}
     mutators={{ ...arrayMutators }}
-    initialValues={{ userType: props.preselectedUserType || getSoleUserTypeMaybe(props.userTypes) }}
+    initialValues={{
+      userType: props.preselectedUserType || getSoleUserTypeMaybe(props.userTypes),
+      // A webapp brand's admin registers it with its webapp name, locked below
+      // (spec/v0/login-and-registration.md §4.5.3).
+      ...(props.authInfo?.isBrandAdmin ? { pub_brandName: props.authInfo.companyName } : {}),
+    }}
     render={formRenderProps => {
       const {
         rootClassName,
@@ -101,11 +106,14 @@ const ConfirmSignupFormComponent = props => (
         <Form className={classes} onSubmit={handleSubmit}>
           {showDefaultUserFields ? (
             <div className={css.defaultUserFields}>
+              {/* Auth0's email, not editable: the server ignores it and Sharetribe takes the
+                  login's own (spec/v0/login-and-registration.md §2.6.4). */}
               <FieldTextInput
                 type="email"
                 id={formId ? `${formId}.email` : 'email'}
                 name="email"
                 autoComplete="email"
+                disabled
                 label={intl.formatMessage({
                   id: 'ConfirmSignupForm.emailLabel',
                 })}
@@ -175,14 +183,20 @@ const ConfirmSignupFormComponent = props => (
             <div className={css.customFields}>
               {userFieldProps.map(fieldProps => {
                 const { preselectedUserType, authInfo } = props;
-                const { brandStudioId } = authInfo;
-                const isBrandAdmin = !brandStudioId;
+                const { brandStudioId, isBrandAdmin: isWebappBrandAdmin } = authInfo;
+                // A new brand (no brand id yet), or a webapp brand's admin registering it.
+                const isBrandAdmin = !brandStudioId || !!isWebappBrandAdmin;
                 const fieldKey = fieldProps.fieldConfig.key;
                 const showField = isStudioBrand(preselectedUserType)
                   ? getBrandUserFieldInputs(fieldKey, isBrandAdmin)
                   : true;
                 return showField ? (
-                  <CustomExtendedDataField {...fieldProps} formId={formId} key={fieldKey} />
+                  <CustomExtendedDataField
+                    {...fieldProps}
+                    formId={formId}
+                    key={fieldKey}
+                    disabled={!!isWebappBrandAdmin && fieldKey === 'brandName'}
+                  />
                 ) : null;
               })}
             </div>

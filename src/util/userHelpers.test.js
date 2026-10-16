@@ -2,6 +2,7 @@ import {
   pickUserFieldsData,
   initialValuesForUserFields,
   getPropsForCustomUserFieldInputs,
+  isBrandProfileIncomplete,
 } from './userHelpers';
 
 import { fakeIntl } from './testData';
@@ -349,5 +350,30 @@ describe('userHelpers', () => {
       const filteredConfig2 = expectedUserFieldInput(2, ['c', 'd']).filter(filterFn);
       expect(inputConfig2).toEqual(filteredConfig2);
     });
+  });
+});
+
+// spec/v0/login-and-registration.md §4.5.4
+describe('isBrandProfileIncomplete', () => {
+  const user = (publicData, metadata) => ({ attributes: { profile: { publicData, metadata } } });
+  const BRAND = { userType: 'studio-brand', brandName: 'Acme' };
+
+  it.each([
+    ["a brand's admin with only its name", true, user(BRAND, { isBrandAdmin: true })],
+    [
+      'an admin with a website',
+      false,
+      user({ ...BRAND, brandWebsite: 'acme.com' }, { isBrandAdmin: true }),
+    ],
+    [
+      'an admin with an industry',
+      false,
+      user({ ...BRAND, brandIndustry: 'fashion' }, { isBrandAdmin: true }),
+    ],
+    ['a member', false, user(BRAND, { isBrandAdmin: false })],
+    ['a buyer', false, user({ userType: 'buyer' }, { isBrandAdmin: true })],
+    ['nobody', false, null],
+  ])('%s: %s', (_, incomplete, currentUser) => {
+    expect(isBrandProfileIncomplete(currentUser)).toBe(incomplete);
   });
 });

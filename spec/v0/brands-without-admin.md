@@ -47,6 +47,9 @@ that answer.
 
 **File:** `server/scripts/events/notifyUserCreated.js`, `getExtendedData`, the invitation branch.
 
+> **Moved (2026-10-16):** this code is now in `server/api-util/brandJoin.js` (`joinBrand`), run during sign-up
+> instead of by the job ([`login-and-registration.md`](./login-and-registration.md) §4.5.1).
+
 **Change:**
 - **When `isBrandAdmin` is `true`:**
   - skip `getBrandData`: there is no admin to copy from, and no admin list to join;
@@ -55,6 +58,8 @@ that answer.
     The empty `brandUsers` matters: the next person to join adds themselves to it, and `addBrandUser` spreads it.
     **Changed 2026-10-13:** it starts with the brand's members who signed up here before it, not `[]`
     ([`webapp-user-first-sign-up.md`](./webapp-user-first-sign-up.md) §2.3).
+    **Changed 2026-10-15:** a joiner no longer adds themselves to the list; each join rebuilds it from the brand's
+    members ([`login-and-registration.md`](./login-and-registration.md) §9.4.4).
 - **When it is `false` or missing:** exactly today's code. A webapp without the change returns no flag, so the
   two can be deployed in either order.
 - **In `addBrandUser`** (the Sharetribe helper at the top of the file), read `brandUsers || []`, so an admin whose
@@ -91,6 +96,8 @@ back to the webapp once, unchanged.
   for its admin on Sharetribe, so it still refuses a brand with no admin. The webapp disables the tool on such a
   brand instead, with a message saying why ([webapp spec](../../../webapp/spec/brands-without-admin.md) §2.4). The
   proper fix waits for Studio ([`spec/v1/studio-brand-onboarding-changes.md`](../v1/studio-brand-onboarding-changes.md) §2.3).
+  **Replaced (2026-10-16):** the tool now checks the brand in the webapp and works for a brand with no admin
+  ([`login-and-registration.md`](./login-and-registration.md) §7.4).
 - **The sign-up page**, which doesn't name the brand ("You've been invited to join a project on The Luupe").
 - **`studioHelper.js` swallowing the webapp's errors** (`{data: {}}`): a failed join still looks like a success.
   Popup Studio's summary shows it, as the person stays "No account" on its next Refresh.
@@ -184,6 +191,7 @@ back to the webapp once, unchanged.
 ### Not changed (spot-check for regressions)
 
 - **"Assign an existing buyer to a brand"** (the webapp's buyer tool, backed by `retryBrandUserAssignment.js`): still
-  refuses a brand with no admin. The webapp disables it for such a brand (§3).
+  refuses a brand with no admin. The webapp disables it for such a brand (§3). Replaced since
+  ([`login-and-registration.md`](./login-and-registration.md) §7.4).
 - **The sign-up page** for an invitation: same copy, without the brand's name.
 - **Creators' and buyers' sign-ups**: unchanged.

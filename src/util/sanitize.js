@@ -216,10 +216,11 @@ const sanitizeConfiguredPublicData = (publicData, config = {}) => {
  * unknown keys.
  *
  * Writers (server-side, all via Integration API):
- *   - server/scripts/events/notifyUserCreated.js  — brandUsers, membership, isBrandAdmin,
- *     communityId, studioId
- *   - server/scripts/events/notifyUserUpdated.js  — membership, sellerStatus, communityStatus,
+ *   - server/api-util/brandJoin.js                — brandUsers, membership, isBrandAdmin, studioId
+ *   - server/scripts/events/notifyUserCreated.js  — membership, sellerStatus, communityStatus,
  *     appliedAt
+ *   - server/scripts/events/notifyUserUpdated.js  — membership, sellerStatus, communityStatus,
+ *     appliedAt, communityId
  *   - server/api/slack/slackInteractivity.js      — sellerStatus, communityStatus, reviewedAt,
  *     profileListingId, communityId, studioId
  *   - operator-set in Sharetribe Console          — isLuupeAdmin

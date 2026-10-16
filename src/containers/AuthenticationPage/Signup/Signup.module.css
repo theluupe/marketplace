@@ -54,6 +54,11 @@
   margin-bottom: 48px;
 }
 
+.loginPrompt {
+  margin: 24px 0 0;
+  text-align: center;
+}
+
 /* ================ Brand Signup ================ */
 .brandSignup {
   .content {

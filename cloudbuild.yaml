@@ -9,18 +9,8 @@ steps:
         echo "$$MARKET_CONFIG" > ./.env.production
     secretEnv: ['MARKET_CONFIG']
 
-  - id: 'debug-secrets'
-    waitFor: ['store-market-secrets']
-    name: 'node:24.13.0'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Contents of .env.production after modification:"
-        cat ./.env.production
-
   - id: 'build'
-    waitFor: ['debug-secrets']
+    waitFor: ['store-market-secrets']
     name: 'gcr.io/cloud-builders/docker'
     args:
       [

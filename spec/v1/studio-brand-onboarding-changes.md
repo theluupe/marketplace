@@ -45,6 +45,9 @@ WEBAPI_URL=https://studio-api.theluupe.com
 > which goes further: an admin joiner also gets the brand's name (`companyName`) and an empty `brandUsers`, and skips
 > `getBrandData`. The "current behavior" below predates it. When Studio replaces the webapp, its answer needs the same
 > `isBrandAdmin` and `companyName`.
+>
+> **Moved (2026-10-16):** the join and this code left the job for `server/api-util/brandJoin.js` (`joinBrand`), run during
+> sign-up ([`../v0/login-and-registration.md`](../v0/login-and-registration.md) §4.5.1).
 
 **File:** `server/scripts/events/notifyUserCreated.js`
 
@@ -139,6 +142,10 @@ async addStudioBrandUser(brandStudioId, data) {
 
 ### 2.3 Brand validation for buyer assignment
 
+> **Built against the webapp (2026-10-16)** by [`../v0/login-and-registration.md`](../v0/login-and-registration.md) §7.4:
+> the tool asks the webapp's `GET /brand/:brandId` instead of `validateBrand()`, and joins through the shared
+> `joinBrand`. The "current behavior" below predates it. When Studio replaces the webapp, its API needs the same route.
+
 **File:** `server/api/scripts-retry/retryBrandUserAssignment.js`
 
 **Current behavior:** `validateBrand()` checks for brand existence by querying Sharetribe for users with `meta_isBrandAdmin: true` and `priv_brandStudioId` matching:
@@ -207,6 +214,13 @@ async validateBrand(brandId) {
 > answer's `companyName` instead of `''`, and an admin starts `brandUsers` with the brand's existing members
 > ([`../v0/webapp-user-first-sign-up.md`](../v0/webapp-user-first-sign-up.md) §2.3). Studio's answer needs `companyName`
 > for members too.
+>
+> **Changed again (2026-10-15):** a member joiner no longer adds themselves to the admin's `brandUsers`; the list is
+> rebuilt from the brand's members at each join, and the admin's brand edits go to those members
+> ([`../v0/login-and-registration.md`](../v0/login-and-registration.md) §9.4.4, §4.5.7).
+>
+> **Moved (2026-10-16):** the join and this code left the job for `server/api-util/brandJoin.js` (`joinBrand`), run during
+> sign-up ([`../v0/login-and-registration.md`](../v0/login-and-registration.md) §4.5.1).
 
 **File:** `server/scripts/events/notifyUserCreated.js`
 
@@ -253,8 +267,8 @@ async function getBrandData(userId, brandStudioId) {
 | `.env` | Update `WEBAPI_URL` to Studio API | Phase 1 (Marketplace cutover) |
 | `server/api-util/studioHelper.js` | Add `isBrandAdmin` to `addStudioBrandUser()` return | Phase 2 |
 | `server/api-util/studioHelper.js` | Add `validateBrand()` method | Phase 2 |
-| `server/scripts/events/notifyUserCreated.js` | Use `isBrandAdmin` from Studio response instead of hardcoding `false` | Phase 2 |
-| `server/api/scripts-retry/retryBrandUserAssignment.js` | Replace Sharetribe-based brand validation with Studio API call | Phase 2 |
+| `server/api-util/brandJoin.js` (was `notifyUserCreated.js`) | Use `isBrandAdmin` from Studio response instead of hardcoding `false` | Phase 2 |
+| `server/api/scripts-retry/retryBrandUserAssignment.js` | Replace Sharetribe-based brand validation with Studio API call (done against the webapp, 2026-10-16) | Phase 2 |
 
 ### What does NOT change
 

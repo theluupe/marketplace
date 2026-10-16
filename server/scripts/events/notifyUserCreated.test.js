@@ -1,155 +1,205 @@
-jest.mock('../../api-util/analytics', () => ({}));
-jest.mock('../../api-util/auth0Helper', () => ({}));
-jest.mock('../../api-util/referralManager', () => ({}));
-jest.mock('../../api-util/slackHelper', () => ({}));
+jest.mock('../../api-util/analytics', () => ({
+  identifyUserEvent: jest.fn(),
+  trackManagementAPIEvent: jest.fn(),
+}));
+jest.mock('../../api-util/auth0Helper', () => ({ updateAuth0User: jest.fn() }));
+jest.mock('../../api-util/referralManager', () => ({ ReferralAPIManagerClient: jest.fn() }));
+jest.mock('../../api-util/slackHelper', () => ({
+  slackSellerValidationWorkflow: jest.fn(),
+  slackUserCreatedErrorWorkflow: jest.fn(),
+}));
+jest.mock('../../api-util/creatorApproval', () => ({
+  approveCommunity: jest.fn(),
+  approveSeller: jest.fn(),
+}));
+jest.mock('../../api/auth/webappSignup', () => ({ lookUpWebappUser: jest.fn() }));
 jest.mock('../../api-util/scriptManager', () => ({ integrationSdkInit: jest.fn() }));
 jest.mock('../../api-util/studioHelper', () => ({
   StudioManagerClient: jest.fn(),
-  STUDIO_USER_TYPE: { BRAND: 'BRAND' },
+  STUDIO_USER_TYPE: { BRAND: 'BRAND', CREATOR: 'CREATOR' },
 }));
 
-const { BRAND_MEMBERSHIP_TYPES, USER_TYPES } = require('../../api-util/metadataHelper');
+const { updateAuth0User } = require('../../api-util/auth0Helper');
+const { approveCommunity, approveSeller } = require('../../api-util/creatorApproval');
+const {
+  slackSellerValidationWorkflow,
+  slackUserCreatedErrorWorkflow,
+} = require('../../api-util/slackHelper');
+const { lookUpWebappUser } = require('../../api/auth/webappSignup');
+const { USER_TYPES } = require('../../api-util/metadataHelper');
+const { ReferralAPIManagerClient } = require('../../api-util/referralManager');
 const { integrationSdkInit } = require('../../api-util/scriptManager');
 const { StudioManagerClient } = require('../../api-util/studioHelper');
-const { getExtendedData } = require('./notifyUserCreated');
+const { analyzeEvent } = require('./notifyUserCreated');
 
-const BRAND_ID = 'brand-1';
-const JOINER_ID = 'joiner-1';
-const ADMIN_ID = 'admin-1';
-
-// A person who signed up through a brand's invitation link.
-const joiner = {
-  email: 'jo@example.com',
-  identityProviders: [{ userId: 'auth0|jo' }],
-  profile: {
-    firstName: 'Jo',
-    lastName: 'Iner',
-    publicData: { userType: USER_TYPES.BRAND },
-    privateData: { brandStudioId: BRAND_ID },
-  },
-};
-
-const adminFields = {
-  brandName: 'Acme',
-  brandWebsite: 'acme.com',
-  aboutUs: 'About Acme',
-  brandIndustry: 'Fashion',
-};
-const brandAdmin = metadata => ({
-  id: { uuid: ADMIN_ID },
-  attributes: { profile: { publicData: adminFields, metadata } },
-});
-
-describe('notifyUserCreated getExtendedData, invitation sign-up', () => {
+describe('notifyUserCreated, a buyer or a brand user', () => {
   let sdk;
+  let qualifyReferral;
 
-  const webappAnswers = answer => {
-    StudioManagerClient.mockImplementation(() => ({
-      studioBrandUserInit: jest.fn().mockResolvedValue(answer),
-    }));
-  };
+  const created = userType => ({
+    attributes: {
+      resourceType: 'user',
+      eventType: 'user/created',
+      resourceId: { uuid: 'buyer-1' },
+      resource: {
+        attributes: {
+          email: 'bo@example.com',
+          identityProviders: [{ userId: 'auth0|bo' }],
+          profile: {
+            firstName: 'Bo',
+            lastName: 'Yer',
+            displayName: 'Bo Y',
+            publicData: { userType },
+            privateData: {},
+          },
+        },
+      },
+    },
+  });
 
   beforeEach(() => {
-    sdk = { users: { query: jest.fn(), updateProfile: jest.fn().mockResolvedValue({}) } };
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    sdk = { users: { updateProfile: jest.fn().mockResolvedValue({}) } };
     integrationSdkInit.mockReturnValue(sdk);
+    qualifyReferral = jest.fn();
+    ReferralAPIManagerClient.mockImplementation(() => ({ qualifyReferral }));
   });
 
-  const marketplaceUsers = ids => ({ data: { data: ids.map(uuid => ({ id: { uuid } })) } });
-
   it.each([
-    ['no members yet', [JOINER_ID], []],
-    [
-      'members who signed up before it',
-      ['member-1', JOINER_ID, 'member-2'],
-      ['member-1', 'member-2'],
-    ],
-  ])(
-    "makes the webapp's admin the brand's admin, with its name and %s, without looking for another",
-    async (_, brandUserIds, expectedBrandUsers) => {
-      webappAnswers({
-        communityId: 'community-1',
-        studioId: 'studio-1',
-        isBrandAdmin: true,
-        companyName: 'Acme',
-      });
-      sdk.users.query.mockResolvedValue(marketplaceUsers(brandUserIds));
-
-      const result = await getExtendedData(JOINER_ID, joiner);
-
-      expect(result).toEqual({
-        publicData: { brandName: 'Acme' },
-        metadata: {
-          brandUsers: expectedBrandUsers,
-          membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-          isBrandAdmin: true,
-          communityId: 'community-1',
-          studioId: 'studio-1',
-        },
-      });
-      expect(sdk.users.query).toHaveBeenCalledTimes(1);
-      expect(sdk.users.query).toHaveBeenCalledWith({ priv_brandStudioId: BRAND_ID });
-      expect(sdk.users.updateProfile).not.toHaveBeenCalled();
+    ['a buyer', 'the referral code is saved', USER_TYPES.BUYER, { code: 'R1' }],
+    ['a buyer', 'the referral call fails', USER_TYPES.BUYER, null],
+    ['a brand user', 'the referral code is saved', USER_TYPES.BRAND, { code: 'R1' }],
+  ])("writes %s's ids and names to Auth0 when %s", async (_, __, userType, referral) => {
+    if (referral) {
+      qualifyReferral.mockResolvedValue(referral);
+    } else {
+      qualifyReferral.mockRejectedValue(new Error('down'));
     }
-  );
 
-  it.each([
-    ["the webapp's brand name", { isBrandAdmin: false, companyName: 'Acme' }, 'Acme'],
-    ['an empty name when the webapp sends none', {}, ''],
-  ])('gives a member of a brand with no Marketplace admin yet %s', async (_, answer, brandName) => {
-    webappAnswers({ communityId: 'community-1', studioId: 'studio-1', ...answer });
-    sdk.users.query.mockResolvedValue(marketplaceUsers([]));
+    await analyzeEvent(created(userType));
 
-    const result = await getExtendedData(JOINER_ID, joiner);
-
-    expect(result.publicData).toEqual({
-      brandName,
-      brandWebsite: '',
-      aboutUs: '',
-      brandIndustry: '',
+    expect(updateAuth0User).toHaveBeenCalledTimes(1);
+    expect(updateAuth0User).toHaveBeenCalledWith({
+      auth0UserId: 'auth0|bo',
+      marketId: 'buyer-1',
+      firstName: 'Bo',
+      lastName: 'Yer',
+      displayName: 'Bo Y',
+      userType,
     });
-    expect(result.metadata.isBrandAdmin).toBe(false);
-    expect(sdk.users.updateProfile).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['a member (isBrandAdmin: false)', { isBrandAdmin: false, companyName: 'Acme' }],
-    ['a webapp without the change (no flag)', {}],
-  ])("copies the admin's brand fields and joins the admin's list for %s", async (_, answer) => {
-    webappAnswers({ communityId: 'community-1', studioId: 'studio-1', ...answer });
-    sdk.users.query.mockResolvedValue({
-      data: { data: [brandAdmin({ brandUsers: ['member-1'] })] },
+  // spec/v0/login-and-registration.md §4.5.1: the sign-up joins them.
+  it("never joins a brand user's brand", async () => {
+    qualifyReferral.mockResolvedValue({ code: 'R1' });
+
+    await analyzeEvent(created(USER_TYPES.BRAND));
+
+    expect(StudioManagerClient).not.toHaveBeenCalled();
+    expect(sdk.users.updateProfile).toHaveBeenCalledTimes(1);
+    expect(sdk.users.updateProfile).toHaveBeenCalledWith({
+      id: 'buyer-1',
+      privateData: { referralCode: 'R1' },
     });
+  });
+});
 
-    const result = await getExtendedData(JOINER_ID, joiner);
+// spec/v0/login-and-registration.md §6.4.2
+describe('notifyUserCreated, a creator', () => {
+  let sdk;
 
-    expect(result).toEqual({
-      publicData: adminFields,
-      metadata: {
-        membership: BRAND_MEMBERSHIP_TYPES.BASIC,
-        isBrandAdmin: false,
-        communityId: 'community-1',
-        studioId: 'studio-1',
+  const creatorCreated = {
+    attributes: {
+      resourceType: 'user',
+      eventType: 'user/created',
+      resourceId: { uuid: 'creator-1' },
+      resource: {
+        attributes: {
+          email: 'cy@example.com',
+          identityProviders: [{ userId: 'auth0|cy' }],
+          profile: {
+            firstName: 'Cy',
+            lastName: 'Ator',
+            displayName: 'Cy A',
+            publicData: { userType: USER_TYPES.SELLER, portfolioURL: 'cy.com' },
+            privateData: {},
+          },
+        },
       },
-    });
-    expect(sdk.users.query).toHaveBeenCalledWith(
-      { priv_brandStudioId: BRAND_ID, meta_isBrandAdmin: true },
-      { expand: true }
-    );
-    expect(sdk.users.updateProfile).toHaveBeenCalledWith(
-      { id: ADMIN_ID, metadata: { brandUsers: ['member-1', JOINER_ID] } },
-      { expand: true }
+    },
+  };
+  const COMMUNITY = { communityId: 12, studioId: 'studio-1', communityStatus: 'APPROVED' };
+  const SELLER = { profileListingId: 'listing-1', sellerStatus: 'APPROVED', reviewedAt: 'today' };
+
+  beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    sdk = { users: { updateProfile: jest.fn().mockResolvedValue({}) } };
+    integrationSdkInit.mockReturnValue(sdk);
+    const qualifyReferral = jest.fn().mockResolvedValue({ code: 'R1' });
+    ReferralAPIManagerClient.mockImplementation(() => ({ qualifyReferral }));
+    lookUpWebappUser.mockResolvedValue({ type: 'CREATOR', loginMatches: true });
+    approveCommunity.mockResolvedValue(COMMUNITY);
+    approveSeller.mockResolvedValue(SELLER);
+  });
+
+  const writtenMetadata = () =>
+    sdk.users.updateProfile.mock.calls.find(([params]) => params.metadata)[0].metadata;
+
+  it('approves one the webapp knows, as a seller and for the community, with no Slack message', async () => {
+    await analyzeEvent(creatorCreated);
+
+    expect(lookUpWebappUser).toHaveBeenCalledWith('cy@example.com', 'auth0|cy');
+    expect(writtenMetadata()).toEqual({ membership: 'BASIC', ...COMMUNITY, ...SELLER });
+    expect(slackSellerValidationWorkflow).not.toHaveBeenCalled();
+    expect(updateAuth0User).toHaveBeenCalledWith(
+      expect.objectContaining({
+        studioId: 'studio-1',
+        communityId: 12,
+        sellerStatus: 'APPROVED',
+        communityStatus: 'APPROVED',
+      })
     );
   });
 
-  it('adds the joiner when the admin has no brandUsers list', async () => {
-    webappAnswers({ communityId: 'community-1', studioId: 'studio-1' });
-    sdk.users.query.mockResolvedValue({ data: { data: [brandAdmin({})] } });
+  it.each([
+    [
+      'nobody the webapp knows (or a failed lookup)',
+      () => lookUpWebappUser.mockResolvedValue(null),
+    ],
+    [
+      'a webapp brand user',
+      () => lookUpWebappUser.mockResolvedValue({ type: 'BRAND', loginMatches: true }),
+    ],
+    [
+      "a webapp creator whose login isn't theirs",
+      () => lookUpWebappUser.mockResolvedValue({ type: 'CREATOR', loginMatches: false }),
+    ],
+    ['a webapp creator the webapp fails to join', () => approveCommunity.mockResolvedValue(null)],
+  ])('sends %s to Slack as an application', async (_, webappAnswers) => {
+    webappAnswers();
 
-    await getExtendedData(JOINER_ID, joiner);
+    await analyzeEvent(creatorCreated);
 
-    expect(sdk.users.updateProfile).toHaveBeenCalledWith(
-      { id: ADMIN_ID, metadata: { brandUsers: [JOINER_ID] } },
-      { expand: true }
+    expect(writtenMetadata()).toMatchObject({
+      sellerStatus: 'APPLIED',
+      communityStatus: 'APPLIED',
+    });
+    expect(approveSeller).not.toHaveBeenCalled();
+    expect(slackSellerValidationWorkflow).toHaveBeenCalledWith(
+      'creator-1',
+      'Cy A',
+      'cy@example.com',
+      'cy.com',
+      false
     );
+  });
+
+  it('sends the usual alert when the seller approval fails after the community', async () => {
+    approveSeller.mockRejectedValue(new Error('Sharetribe down'));
+
+    await analyzeEvent(creatorCreated);
+
+    expect(slackUserCreatedErrorWorkflow).toHaveBeenCalledWith('creator-1');
+    expect(slackSellerValidationWorkflow).not.toHaveBeenCalled();
   });
 });

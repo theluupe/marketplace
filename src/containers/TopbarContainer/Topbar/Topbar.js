@@ -19,6 +19,7 @@ import {
 } from '../../../components';
 import { getSearchPageResourceLocatorStringParams } from '../../SearchPage/SearchPage.shared';
 
+import LoginNotice from './LoginNotice';
 import MenuIcon from './MenuIcon';
 import SearchIcon from './SearchIcon';
 import TopbarSearchForm from './TopbarSearchForm/TopbarSearchForm';
@@ -398,6 +399,7 @@ const TopbarComponent = props => {
         sendVerificationEmailInProgress={sendVerificationEmailInProgress}
         sendVerificationEmailError={sendVerificationEmailError}
       />
+      <LoginNotice onManageDisableScrolling={onManageDisableScrolling} />
 
       <GenericError show={showGenericError} />
     </div>

@@ -55,6 +55,10 @@ on a redirect) and returns `data.user`, or `null`.
 | `type: 'CREATOR'` | `userType: 'creative-seller'`, no `brandStudioId` | The creator sign-up. They start "applied" and the team approves them in Slack, as for any creator; the webapp's `addCreator` then updates their existing user. No auto-approval (Rafael, 2026-10-13) |
 | Anything else, no answer, or an error | What it gets today | What it shows today |
 
+> **To change (2026-10-14):** [`login-and-registration.md`](./login-and-registration.md) §4.5.3 and §6 refine this table
+> (errors for another brand's link, the new-brand form for a brand's admin, a login check, webapp creators approved
+> automatically, webapp users in no brand as buyers), and §4.5.1 moves the brand join into the sign-up itself.
+
 **Never blocks the sign-up.** The client's response interceptor already swallows the webapp's errors and returns
 `{ data: {} }`, which reads as "not found"; anything else that throws is logged and ignored.
 
@@ -71,6 +75,9 @@ history state. So the cookie's type always wins there, whether they started from
 
 **File:** `server/scripts/events/notifyUserCreated.js`.
 
+> **Moved (2026-10-16):** this code is now in `server/api-util/brandJoin.js` (`joinBrand`), run during sign-up
+> instead of by the job ([`login-and-registration.md`](./login-and-registration.md) §4.5.1).
+
 - **A member whose brand has no Marketplace admin yet** takes `brandName` from the webapp's `companyName`, which the
   join answer already carries ([`brands-without-admin.md`](./brands-without-admin.md) §2.1). The other brand fields
   stay empty, as today. When the admin signs up and fills them in, `notifyUserUpdated` copies them to the members
@@ -83,7 +90,8 @@ history state. So the cookie's type always wins there, whether they started from
 
 ## 3. What doesn't change
 
-- **What follows the confirm page:** `createWithIdp` creates the Sharetribe account, `notifyUserCreated` reports it
+- **What follows the confirm page** (until 2026-10-16; the join now runs during sign-up, `server/api-util/brandJoin.js`,
+  [`login-and-registration.md`](./login-and-registration.md) §4.5.1): `createWithIdp` creates the Sharetribe account, `notifyUserCreated` reports it
   to the webapp's `POST /brand/{brandStudioId}/user`, which finds the existing user in that brand and answers with
   their `studioId`, `communityId`, `isBrandAdmin` and `companyName` (the webapp's session makes that path save their
   `marketId`), and the job writes the metadata as for any member.

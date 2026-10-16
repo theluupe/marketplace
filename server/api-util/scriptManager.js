@@ -8,6 +8,7 @@ const EVENTS_BATCH_SIZE = 10;
 const MS_IN_MINUTE = 60 * 1000; // (1 minutes = 60 seconds) && (1 second = 1000 ms) && (1 minute = 60*1000 ms)
 const POLL_TIMEOUT_LIMIT = 5 * MS_IN_MINUTE; // 5 minutes
 const RESTART_COUNTER_TIMEOUT = 15 * MS_IN_MINUTE; // 15 minutes
+const SEQUENCE_RETRY_WAIT = 1 * MS_IN_MINUTE; // A failed read of the saved place is retried each minute
 
 function clearIdleTimer() {
   if (IDLE_TIMER) {
@@ -72,19 +73,31 @@ async function generateScript(SCRIPT_NAME, queryEvents, analyzeEventsBatch, anal
     const dev = process.env.REACT_APP_ENV === 'development';
     // Start polling from current time on, when there's no stored state
     const startTime = new Date();
-    // Polling interval (in ms) when all events have been fetched.
-    // PROD: Keeping this at 1 minute or more is a good idea.
-    // DEV: We use 10 seconds so that the data is printed without much delay.
-    const pollIdleWait = 5 * MS_IN_MINUTE;
+    // Polling interval (in ms) when all events have been fetched: 2 minutes
+    // (spec/v0/login-and-registration.md §9.4.1). DEV uses 30 seconds for every wait (below).
+    const pollIdleWait = 2 * MS_IN_MINUTE;
     // Polling interval (in ms) when a full page of events is received and there may be more
     const pollWait = 1 * MS_IN_MINUTE;
     // Sequence Queue management
     const saveLastEventSequenceId = sequenceId =>
       studioManagerClient.updateScriptSequence(SCRIPT_NAME, { sequenceId });
+    // Waits for the saved place (spec/v0/login-and-registration.md §9.4.2): starting from "now"
+    // after a failed read would skip every event since the last save, for good. Only a successful
+    // answer with no place stored (the script's very first run) starts from "now". Until then the
+    // script doesn't poll, so events wait and none is lost.
     const loadLastEventSequenceId = async () => {
-      const { sequenceId } = await studioManagerClient.getScriptSequence(SCRIPT_NAME);
-      if (sequenceId === 0) return null;
-      return sequenceId;
+      for (;;) {
+        try {
+          const { success, sequenceId } = await studioManagerClient.getScriptSequence(SCRIPT_NAME);
+          if (success === true) return sequenceId || null;
+          console.error(`--- [pollLoop] | [${SCRIPT_NAME}] - Failed to load the saved place`);
+        } catch (error) {
+          console.error(
+            `--- [pollLoop] | [${SCRIPT_NAME}] - Failed to load the saved place: ${error?.message}`
+          );
+        }
+        await new Promise(resolve => setTimeout(resolve, SEQUENCE_RETRY_WAIT));
+      }
     };
 
     const pollLoop = async sequenceId => {
@@ -166,7 +179,7 @@ async function generateScript(SCRIPT_NAME, queryEvents, analyzeEventsBatch, anal
         `--- [pollLoop] | [${SCRIPT_NAME}] - Resuming event polling from last seen event with sequence ID ${lastSequenceId}`
       );
     } else {
-      console.log(`--- [pollLoop] | [${SCRIPT_NAME}] - No state found or failed to load state.`);
+      console.log(`--- [pollLoop] | [${SCRIPT_NAME}] - No saved place: this is the first run.`);
       console.log(`--- [pollLoop] | [${SCRIPT_NAME}] - Starting event polling from current time.`);
     }
     pollLoop(lastSequenceId);

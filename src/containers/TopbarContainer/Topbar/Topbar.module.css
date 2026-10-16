@@ -309,3 +309,8 @@
     margin: 0;
   }
 }
+
+/* The one-time notice after a login through a brand link (LoginNotice.js) */
+.loginNotice {
+  margin: 24px 0 0 0;
+}

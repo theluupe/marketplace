@@ -8,11 +8,16 @@ import isEmpty from 'lodash/isEmpty';
 import { useConfiguration } from '../../context/configurationContext';
 import { camelize } from '../../util/string';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
-import { propTypes } from '../../util/types';
+import { propTypes, USER_TYPES } from '../../util/types';
 import { ensureCurrentUser, getFeaturedListingsProps } from '../../util/data';
 import { isTooManyEmailVerificationRequestsError } from '../../util/errors';
-import { isStudioBrand, isCreativeSeller } from '../../util/userHelpers';
-import { authenticationInProgress, signupWithIdp } from '../../ducks/auth.duck';
+import {
+  isStudioBrand,
+  isCreativeSeller,
+  isBuyer,
+  isBrandProfileIncomplete,
+} from '../../util/userHelpers';
+import { authenticationInProgress, logout, signupWithIdp } from '../../ducks/auth.duck';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { sendVerificationEmail } from '../../ducks/user.duck';
 import { fetchFeaturedListings } from '../../ducks/featuredListings.duck';
@@ -20,10 +25,12 @@ import { makeGetListingsByIdSelector } from '../../ducks/marketplaceData.duck';
 
 import {
   Heading,
+  InlineTextButton,
   Page,
   IconSpinner,
   NamedRedirect,
   ResponsiveBackgroundImageContainer,
+  SocialLoginButton,
   Marquee,
   Modal,
   LayoutSingleColumn,
@@ -80,7 +87,7 @@ const BlankPage = props => {
  * based on the preselected user type. Inlined here per spec §3.3 Option 2C.
  */
 const SignupBody = props => {
-  const { userType, from, brandStudioId, idpAuthError } = props;
+  const { userType, from, brandStudioId, invitationBrand, idpAuthError } = props;
   const isBrand = isStudioBrand(userType);
   return (
     <div className={css.signupForm}>
@@ -90,13 +97,92 @@ const SignupBody = props => {
         </div>
       )}
       {isBrand ? (
-        <BrandSignup from={from} brandStudioId={brandStudioId} />
+        <BrandSignup from={from} brandStudioId={brandStudioId} invitationBrand={invitationBrand} />
       ) : (
         <BaseSignup from={from} />
       )}
     </div>
   );
 };
+
+// The confirm page's switch: each type and the one it switches to.
+const SWITCHABLE_USER_TYPES = {
+  [USER_TYPES.BUYER]: USER_TYPES.SELLER,
+  [USER_TYPES.SELLER]: USER_TYPES.BUYER,
+};
+
+// The sign-up's page-level messages share this layout (spec/v0/login-and-registration.md §8.5).
+const AuthNotice = ({ titleId, textId, children }) => (
+  <div className={css.signupForm}>
+    <Heading as="h1" rootClassName={css.signupWithIdpTitle}>
+      <FormattedMessage id={titleId} />
+    </Heading>
+    {textId ? (
+      <p className={css.noticeText}>
+        <FormattedMessage id={textId} />
+      </p>
+    ) : null}
+    {children}
+  </div>
+);
+
+// `/confirm` once its cookie is gone (it lasts 15 minutes), or opened directly: a way back in rather
+// than an empty page (spec/v0/login-and-registration.md §2.6.3). Most people are still logged in
+// at Auth0, so Continue brings them straight back to the form.
+const ConfirmSessionExpired = ({ from }) => (
+  <AuthNotice titleId="AuthenticationPage.confirmExpiredTitle">
+    <SSOButton isLogin from={from}>
+      <FormattedMessage id="AuthenticationPage.confirmExpiredContinue" />
+    </SSOButton>
+  </AuthNotice>
+);
+
+// Set by loginWithIdp.js in `st-autherror` for a second login method whose email already has an
+// account (spec/v0/login-and-registration.md §8.3, BR22), or a login the webapp says isn't the
+// person's (§6.4.1). The server's codes are in server/api/auth/webappSignup.js.
+const SECOND_LOGIN_ERROR_CODE = 'second-login';
+// A sign-up the server refused (createUserWithIdp.js): the error's `message` is the page's code.
+const SIGNUP_REFUSED = 'SignupRefused';
+const SESSION_EXPIRED_CODE = 'session-expired';
+
+// A brand user's join failed, at sign-up or at a later login: the server logged them out again
+// (server/api/auth/finishSignup.js). Try again is a login, which runs the join again
+// (spec/v0/login-and-registration.md §4.5.1); they're still logged in at Auth0, so it's quick.
+const UNFINISHED_SIGNUP_CODE = 'unfinished-signup';
+const UnfinishedSignup = ({ from }) => (
+  <AuthNotice
+    titleId="AuthenticationPage.unfinishedSignupTitle"
+    textId="AuthenticationPage.unfinishedSignupText"
+  >
+    <div className={css.noticeAction}>
+      <SSOButton isLogin from={from}>
+        <FormattedMessage id="AuthenticationPage.unfinishedSignupTryAgain" />
+      </SSOButton>
+    </div>
+  </AuthNotice>
+);
+
+// A brand link this person can't use (spec/v0/login-and-registration.md §4.5.6): another brand's
+// invitation, or the new-brand link for a member of a webapp brand. It doesn't say why.
+const INVITATION_ERROR_CODE = 'invitation';
+// An invitation whose brand the webapp doesn't know, refused at /confirm (§4.5.2, BR8): the
+// invitation page shows the same message.
+const INVALID_INVITATION_CODE = 'invalid-invitation';
+
+// The person is still logged in at Auth0 with the second account, so "Log in" would land here
+// again: Log out ends that session (and Auth0's), and the next login asks which account to use.
+const SecondLoginError = ({ onLogout }) => (
+  <AuthNotice
+    titleId="AuthenticationPage.secondLoginTitle"
+    textId="AuthenticationPage.secondLoginText"
+  >
+    <div className={css.noticeAction}>
+      <SocialLoginButton onClick={onLogout}>
+        <FormattedMessage id="AuthenticationPage.secondLoginLogout" />
+      </SocialLoginButton>
+    </div>
+  </AuthNotice>
+);
 
 /**
  * TheLuupe ConfirmIdProviderInfoForm — replaces upstream's deleted
@@ -106,7 +192,7 @@ const SignupBody = props => {
  * `AuthenticationPage.helpers.js`) which handles `brandStudioId`, `location`,
  * and `newsletterOptIn` injection into privateData.
  */
-const ConfirmIdProviderInfoForm = props => {
+export const ConfirmIdProviderInfoForm = props => {
   const {
     userType,
     authInfo,
@@ -120,8 +206,19 @@ const ConfirmIdProviderInfoForm = props => {
   const preselectedUserType = userTypes.find(conf => conf.userType === userType)?.userType || null;
   const idp = authInfo ? authInfo.idpId.replace(/^./, str => str.toUpperCase()) : null;
 
-  const showBrandExperience = isStudioBrand(preselectedUserType);
-  const showSellerExperience = isCreativeSeller(preselectedUserType);
+  // Buyer ⇄ creator in place (spec/v0/login-and-registration.md §2.6.1): "Log in" with no account
+  // comes back as a buyer, and a tile can be the wrong one. Not for brands, nor when the webapp
+  // chose the type. The form is remounted with the other type, so the first type's fields never
+  // reach the account; the type is only sent on submit.
+  const [chosenUserType, setChosenUserType] = useState(preselectedUserType);
+  const switchUserType = SWITCHABLE_USER_TYPES[chosenUserType];
+  const showUserTypeSwitch =
+    !!switchUserType &&
+    !authInfo?.userTypeFromWebapp &&
+    userTypes.some(conf => conf.userType === switchUserType);
+
+  const showBrandExperience = isStudioBrand(chosenUserType);
+  const showSellerExperience = isCreativeSeller(chosenUserType);
   const showInfoSection = showBrandExperience || showSellerExperience;
 
   const rootStyles = classNames(css.confirmFormRoot, {
@@ -172,17 +269,46 @@ const ConfirmIdProviderInfoForm = props => {
           <FormattedMessage id="AuthenticationPage.confirmSignupInfoText" />
         </p>
         {confirmErrorMessage}
+        {authInfo?.userTypeNotice && !showBrandExperience ? (
+          // The webapp chose the type (spec/v0/login-and-registration.md §6.4.2, §6.4.3).
+          <p className={css.userTypeNotice}>
+            <FormattedMessage
+              id={
+                showSellerExperience
+                  ? 'AuthenticationPage.setUpAsCreator'
+                  : 'AuthenticationPage.setUpAsBuyer'
+              }
+            />
+          </p>
+        ) : null}
         <ConfirmSignupForm
+          key={chosenUserType}
           className={css.form}
           onSubmit={onSubmit}
           inProgress={authInProgress}
           termsAndConditions={termsAndConditions}
           authInfo={authInfo}
           idp={idp}
-          preselectedUserType={preselectedUserType}
+          preselectedUserType={chosenUserType}
           userTypes={userTypes}
           userFields={userFields}
         />
+        {showUserTypeSwitch ? (
+          <p className={css.userTypeSwitch}>
+            <FormattedMessage
+              id={`AuthenticationPage.switchTo${
+                isBuyer(switchUserType) ? 'Buyer' : 'Seller'
+              }Prompt`}
+            />{' '}
+            <InlineTextButton type="button" onClick={() => setChosenUserType(switchUserType)}>
+              <FormattedMessage
+                id={`AuthenticationPage.switchTo${
+                  isBuyer(switchUserType) ? 'Buyer' : 'Seller'
+                }Link`}
+              />
+            </InlineTextButton>
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -236,6 +362,8 @@ export const AuthenticationPageComponent = props => {
     sendVerificationEmailError,
     onResendVerificationEmail,
     onManageDisableScrolling,
+    onLogout,
+    invitationBrand,
     pageAssetsData,
     pageAssetsFetchInProgress,
     pageAssetsFetchError,
@@ -268,6 +396,18 @@ export const AuthenticationPageComponent = props => {
   // (i.e. `from` is present). We must also check the `emailVerified`
   // flag only when the current user is fully loaded.
   const showEmailVerification = !isLogin && currentUserLoaded && !user.attributes.emailVerified;
+  const refusalCode = confirmError?.name === SIGNUP_REFUSED ? confirmError.message : null;
+  // Only after mounting, like the expired page: the cookie is read in the browser.
+  const isSecondLogin =
+    (mounted && authError?.code === SECOND_LOGIN_ERROR_CODE) ||
+    refusalCode === SECOND_LOGIN_ERROR_CODE;
+  const isSessionExpired = (mounted && !authInfo) || refusalCode === SESSION_EXPIRED_CODE;
+  const isUnfinishedSignup =
+    (mounted && authError?.code === UNFINISHED_SIGNUP_CODE) ||
+    refusalCode === UNFINISHED_SIGNUP_CODE;
+  const isInvitationError =
+    (mounted && authError?.code === INVITATION_ERROR_CODE) || refusalCode === INVITATION_ERROR_CODE;
+  const isInvalidInvitation = refusalCode === INVALID_INVITATION_CODE;
 
   const marketplaceName = config.marketplaceName;
   const schemaTitle = isLogin
@@ -295,6 +435,13 @@ export const AuthenticationPageComponent = props => {
         topbarClasses={topbarClasses}
       />
     );
+  }
+
+  // Right after a sign-up that made them a brand's admin with only its name, they complete its
+  // profile first (spec/v0/login-and-registration.md §4.5.4). With an unverified email they see the
+  // verification page instead, whose "Later" leads there too.
+  if (isConfirm && shouldRedirectToLandingPage && isBrandProfileIncomplete(currentUser)) {
+    return <NamedRedirect name="ProfileSettingsPage" />;
   }
 
   if (shouldRedirectToFrom) {
@@ -369,7 +516,21 @@ export const AuthenticationPageComponent = props => {
           sizes="100%"
           useOverlay
         >
-          {showEmailVerification ? (
+          {isSecondLogin ? (
+            <SecondLoginError onLogout={onLogout} />
+          ) : isUnfinishedSignup ? (
+            <UnfinishedSignup from={from} />
+          ) : isInvitationError ? (
+            <AuthNotice
+              titleId="AuthenticationPage.invitationErrorTitle"
+              textId="AuthenticationPage.invitationErrorText"
+            />
+          ) : isInvalidInvitation ? (
+            <AuthNotice
+              titleId="AuthenticationPage.invalidInvitationTitle"
+              textId="AuthenticationPage.invalidInvitationText"
+            />
+          ) : showEmailVerification ? (
             <EmailVerificationInfo
               name={user.attributes.profile.firstName}
               email={<span className={css.email}>{user.attributes.email}</span>}
@@ -377,6 +538,9 @@ export const AuthenticationPageComponent = props => {
               resendErrorMessage={resendErrorMessage}
               sendVerificationEmailInProgress={sendVerificationEmailInProgress}
             />
+          ) : isConfirm && isSessionExpired ? (
+            // Only after mounting: the cookie is read in the browser, so the server never has it.
+            <ConfirmSessionExpired from={from} />
           ) : isConfirm ? (
             <ConfirmIdProviderInfoForm
               userType={userType}
@@ -391,6 +555,7 @@ export const AuthenticationPageComponent = props => {
               userType={userType}
               from={from}
               brandStudioId={brandStudioId}
+              invitationBrand={invitationBrand}
               idpAuthError={authError}
             />
           )}
@@ -459,6 +624,7 @@ const AuthenticationPage = props => {
   const pageAssetsData = useSelector(state => state.hostedAssets?.pageAssetsData);
   const pageAssetsFetchInProgress = useSelector(state => state.hostedAssets?.inProgress);
   const pageAssetsFetchError = useSelector(state => state.hostedAssets?.error);
+  const invitationBrand = useSelector(state => state.AuthenticationPage?.invitationBrand);
   const featuredListingData = useSelector(state => state.featuredListings || {});
 
   // TheLuupe: memoised getListingsById per Stage B step 8 / spec §4.2.
@@ -473,6 +639,7 @@ const AuthenticationPage = props => {
   const onResendVerificationEmail = useCallback(() => dispatch(sendVerificationEmail()), [
     dispatch,
   ]);
+  const onLogout = useCallback(() => dispatch(logout()), [dispatch]);
   const onManageDisableScrolling = useCallback(
     (componentId, disableScrolling) =>
       dispatch(manageDisableScrolling(componentId, disableScrolling)),
@@ -497,11 +664,13 @@ const AuthenticationPage = props => {
       pageAssetsData={pageAssetsData}
       pageAssetsFetchInProgress={pageAssetsFetchInProgress}
       pageAssetsFetchError={pageAssetsFetchError}
+      invitationBrand={invitationBrand}
       featuredListingData={featuredListingData}
       getListingEntitiesById={getListingEntitiesById}
       submitSingupWithIdp={submitSingupWithIdp}
       onResendVerificationEmail={onResendVerificationEmail}
       onManageDisableScrolling={onManageDisableScrolling}
+      onLogout={onLogout}
       onFetchFeaturedListings={onFetchFeaturedListings}
     />
   );

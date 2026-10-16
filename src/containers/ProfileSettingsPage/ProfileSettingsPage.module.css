@@ -29,3 +29,20 @@
   float: right;
   flex-shrink: 0;
 }
+
+/* "Complete your brand profile", for a brand's new admin (spec/v0/login-and-registration.md §4.5.4) */
+.brandProfileBanner {
+  margin: 24px 0 0 0;
+  padding: 16px 24px;
+  border-radius: var(--borderRadiusMedium);
+  background-color: var(--colorGrey50);
+}
+
+.brandProfileBannerTitle {
+  margin: 0;
+  font-weight: var(--fontWeightBold);
+}
+
+.brandProfileBannerText {
+  margin: 4px 0 0 0;
+}
