@@ -9,10 +9,11 @@ import { createResourceLocatorString } from '../../util/routes';
 import {
   GRID_STYLE_MASONRY,
   GRID_STYLE_SQUARE,
-  LISTING_GRID_DEFAULTS,
   LISTING_GRID_ROLE,
   LISTING_TAB_TYPES,
   LISTING_TYPES,
+  isListingTabPaused,
+  resolveListingTabType,
 } from '../../util/types';
 import { listingsQueryParamsHandler } from '../../util/urlHelpers';
 import { PAGE_MODE_EDIT, PAGE_MODE_NEW } from '../../containers/BatchEditListingPage/constants';
@@ -48,9 +49,8 @@ export const ListingTabs = ({
   const history = useHistory();
 
   const listingsAreLoaded = !queryInProgress;
-  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(role);
   const listingsQueryParams = listingsQueryParamsHandler(queryParams);
-  const currentListingType = queryParams.pub_listingType || defaultListingType;
+  const currentListingType = resolveListingTabType(queryParams.pub_listingType, role);
   const hasNoResults = listingsAreLoaded && !items.length;
   const withCategories = !!(categories && categories.length);
   const enableGrid = listingsAreLoaded && !queryListingsError;
@@ -161,7 +161,8 @@ export const ListingTabs = ({
               />
             )}
           </div>
-          {enableListingManagement && (
+          {/* A paused tab's buttons would open its switched-off wizard — see util/featureFlags.js. */}
+          {enableListingManagement && !isListingTabPaused(currentListingType) && (
             <div className={css.ctaWrapper}>
               <Space size="middle">
                 <AntButton

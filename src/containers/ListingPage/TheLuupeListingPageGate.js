@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { PORTFOLIO_ENABLED } from '../../util/featureFlags';
 import { LISTING_TYPES } from '../../util/types';
 import { NO_ACCESS_PAGE_FORBIDDEN_LISTING_TYPE } from '../../util/urlHelpers';
 import { NamedRedirect } from '../../components';
@@ -10,7 +11,9 @@ import { NamedRedirect } from '../../components';
  * Order of checks (matters):
  *   1. PORTFOLIO listings — never render a ListingPage; redirect to the author's
  *      ProfilePage with `pub_listingType=portfolio-showcase&pub_listingId=<id>` so
- *      the profile page knows which portfolio item to highlight.
+ *      the profile page knows which portfolio item to highlight. While Portfolio is
+ *      switched off (see util/featureFlags.js), with no search: the profile opens on
+ *      its default tab.
  *   2. PROFILE listings — auto-created when a seller is approved; redirect to the
  *      author's ProfilePage.
  *   3. HIDDEN_PRODUCT listings — operator-hidden products. Only the owner or a
@@ -43,7 +46,11 @@ const TheLuupeListingPageGate = ({
       <NamedRedirect
         name="ProfilePage"
         params={{ id: authorId }}
-        search={`?pub_listingType=portfolio-showcase&pub_listingId=${rawParams.id}`}
+        search={
+          PORTFOLIO_ENABLED
+            ? `?pub_listingType=portfolio-showcase&pub_listingId=${rawParams.id}`
+            : undefined
+        }
       />
     );
   }

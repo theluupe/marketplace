@@ -4,6 +4,26 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Hide Portfolio behind a flag] — 2026-10-16
+
+Spec: `spec/v0/hide-portfolio.md`.
+
+### Changed
+
+- **Portfolio (`portfolio-showcase` listings) is switched off** by one hardcoded constant, `PORTFOLIO_ENABLED = false` in the new `src/util/featureFlags.js`. Setting it to `true` and deploying restores the feature; no code or data was removed.
+- The rule lives in three helpers in `src/util/types.js` (`isListingTabShown`, `isListingTabPaused`, `resolveListingTabType`), and `LISTING_GRID_DEFAULTS.TYPE` follows the flag. Every gate reads those.
+- **Profile:** no Portfolio tab; Shop is the default. A Portfolio URL is queried and shown as Shop (`ProfilePage.duck.js` `loadData`, `SellerProfilePage.js`).
+- **Manage listings:** Shop is the default. The Portfolio tab stays, showing only a message that portfolios are paused, with "your collections are saved" only for a creative who has some. Its loader queries only the count (one listing, no images); no "Add New" or "Manage" buttons (`ManageListingsPage.js`, its duck, `ListingTabs.js`).
+- **A portfolio listing's own URL** redirects to the creative's profile with no search (`TheLuupeListingPageGate.js`).
+- **The upload wizard's routes** (`/l/portfolio/new`, `/l/portfolio/:id/:mode/:tab`) stay registered and render Not Found (`routeConfiguration.js`).
+- **Permanent, not behind the flag:** the creative's portfolio website on the profile is a labelled link, "Portfolio · domain ↗", instead of the bare domain (`ProfileInfo.js`).
+
+### Fixed
+
+- `ProfileInfo.js` no longer calls `stripUrl` without a website, which threw for a creative with none.
+
+---
+
 ## [Upstream Merge v10.14.0 → v11.0.2] — 2026-05-11
 
 Merged 244 upstream commits spanning seven Sharetribe releases (`v10.14.0`, `v10.14.1`, `v10.15.0`, `v11.0.0` major, `v11.0.1`, `v11.0.2`) plus point fixes. Bumped version to `11.0.2-theluuupe.1`. Resolution plan, decisions, and per-conflict resolutions documented in [`spec/upstream-merge/upstream-merge-v10.14-to-v11.0.2.md`](./spec/upstream-merge/upstream-merge-v10.14-to-v11.0.2.md).

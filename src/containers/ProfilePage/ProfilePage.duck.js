@@ -10,7 +10,12 @@ import {
   isUserAuthorized,
   isCreativeSellerApproved,
 } from '../../util/userHelpers';
-import { LISTING_GRID_DEFAULTS, LISTING_GRID_ROLE, LISTING_TAB_TYPES } from '../../util/types';
+import {
+  LISTING_GRID_DEFAULTS,
+  LISTING_GRID_ROLE,
+  LISTING_TAB_TYPES,
+  isListingTabShown,
+} from '../../util/types';
 import { RESULT_PAGE_SIZE } from '../ManageListingsPage/ManageListingsPage.duck';
 
 const { UUID } = sdkTypes;
@@ -307,12 +312,18 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
   const originalQueryParams = parse(search);
   const page = originalQueryParams.page || 1;
   const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.PROFILE);
+  const requestedListingType = originalQueryParams.pub_listingType;
+  // A tab the profile doesn't show (Portfolio, while it's switched off — see util/featureFlags.js)
+  // is queried as the default tab, so the server never fetches listings no tab displays.
+  const isHiddenListingType =
+    requestedListingType != null &&
+    !isListingTabShown(requestedListingType, LISTING_GRID_ROLE.PROFILE);
   const queryParams = {
     ...originalQueryParams,
     page,
     perPage: RESULT_PAGE_SIZE,
-    ...(originalQueryParams.pub_listingType == null &&
-    originalQueryParams.pub_categoryLevel1 == null
+    ...((requestedListingType == null && originalQueryParams.pub_categoryLevel1 == null) ||
+    isHiddenListingType
       ? { pub_listingType: defaultListingType }
       : {}),
   };

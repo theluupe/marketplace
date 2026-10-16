@@ -6,14 +6,16 @@ import { useRouteConfiguration } from '../../../context/routeConfigurationContex
 import { handleToggleFavorites } from '../../../util/favorites';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { createResourceLocatorString } from '../../../util/routes';
+import { PORTFOLIO_ENABLED } from '../../../util/featureFlags';
 import {
   GRID_STYLE_SQUARE,
   REVIEW_TYPE_OF_PROVIDER,
   REVIEW_TYPE_OF_CUSTOMER,
-  LISTING_GRID_DEFAULTS,
   LISTING_GRID_ROLE,
   LISTING_TAB_TYPES,
   LISTING_TYPES,
+  isListingTabShown,
+  resolveListingTabType,
 } from '../../../util/types';
 
 import {
@@ -70,8 +72,11 @@ function SellerProfilePage({
   const intl = useIntl();
 
   const enableListingTabs = !userShowError && !queryCreativeProfileError;
-  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.PROFILE);
-  const currentListingType = queryParams.pub_listingType || defaultListingType;
+  // queryParams is the last listings query (ProfilePage.duck.js), not the URL.
+  const currentListingType = resolveListingTabType(
+    queryParams.pub_listingType,
+    LISTING_GRID_ROLE.PROFILE
+  );
   const userId = profileUser?.id?.uuid;
   const reviewsOfProvider = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_PROVIDER);
   const reviewsOfCustomer = reviews.filter(r => r.attributes.type === REVIEW_TYPE_OF_CUSTOMER);
@@ -169,6 +174,17 @@ function SellerProfilePage({
         const invalidListingType = !(
           listingTypeParamValue && Object.values(LISTING_TAB_TYPES).includes(listingTypeParamValue)
         );
+        if (!PORTFOLIO_ENABLED) {
+          // Shop is the default tab — see util/featureFlags.js. loadData has already swapped a
+          // Portfolio URL's type for Shop, so this only covers a missing or unknown type.
+          if (
+            invalidListingType ||
+            !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.PROFILE)
+          ) {
+            updateProductRoute();
+          }
+          break;
+        }
         const invalidCategoryType =
           listingTypeParamValue === LISTING_TAB_TYPES.PORTFOLIO && !queryParams.pub_listingId;
         const listingsAvailable = !queryInProgress && !!currentCategory;

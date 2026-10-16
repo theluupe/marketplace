@@ -33,6 +33,7 @@ import {
 } from 'prop-types';
 import Decimal from 'decimal.js';
 import { types as sdkTypes } from './sdkLoader';
+import { PORTFOLIO_ENABLED } from './featureFlags';
 import {
   getAllTransitionsForEveryProcess,
   TX_TRANSITION_ACTORS,
@@ -777,7 +778,8 @@ export const LISTING_GRID_DEFAULTS = {
       case LISTING_GRID_ROLE.FAVORITE:
         return LISTING_TAB_TYPES.PRODUCT;
       default:
-        return LISTING_TAB_TYPES.PORTFOLIO;
+        // Shop while Portfolio is switched off — see util/featureFlags.js.
+        return PORTFOLIO_ENABLED ? LISTING_TAB_TYPES.PORTFOLIO : LISTING_TAB_TYPES.PRODUCT;
     }
   },
   CATEGORY: categories => (categories && categories.length ? categories[0].id : null),
@@ -788,6 +790,23 @@ export const LISTING_GRID_ROLE = {
   MANAGE: 'MANAGE',
   PROFILE: 'PROFILE',
 };
+
+// Only Portfolio can be switched off. Manage listings still shows its tab, paused; the other pages hide it —
+// see util/featureFlags.js.
+export const isListingTabShown = (listingTabType, role) =>
+  PORTFOLIO_ENABLED ||
+  listingTabType !== LISTING_TAB_TYPES.PORTFOLIO ||
+  role === LISTING_GRID_ROLE.MANAGE;
+
+// A shown tab whose content is replaced by a "paused" message (ManageListingsPage).
+export const isListingTabPaused = listingTabType =>
+  !PORTFOLIO_ENABLED && listingTabType === LISTING_TAB_TYPES.PORTFOLIO;
+
+// The tab a page shows: the one the URL asks for, if that page shows it; otherwise the role's default.
+export const resolveListingTabType = (requestedType, role) =>
+  requestedType && isListingTabShown(requestedType, role)
+    ? requestedType
+    : LISTING_GRID_DEFAULTS.TYPE(role);
 
 export const LISTING_TABS_PRODUCT_CATEGORIES = [
   {

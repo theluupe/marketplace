@@ -7,11 +7,14 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { createResourceLocatorString, pathByRouteName } from '../../util/routes';
+import { PORTFOLIO_ENABLED } from '../../util/featureFlags';
 import {
   GRID_STYLE_SQUARE,
-  LISTING_GRID_DEFAULTS,
   LISTING_GRID_ROLE,
   LISTING_TAB_TYPES,
+  isListingTabPaused,
+  isListingTabShown,
+  resolveListingTabType,
 } from '../../util/types';
 import { hasPermissionToPostListings } from '../../util/userHelpers';
 import { NO_ACCESS_PAGE_POST_LISTINGS } from '../../util/urlHelpers';
@@ -95,8 +98,12 @@ export const ManageListingsPageComponent = props => {
     scrollingDisabled,
     onManageDisableScrolling,
   } = props;
-  const defaultListingType = LISTING_GRID_DEFAULTS.TYPE(LISTING_GRID_ROLE.MANAGE);
-  const currentListingType = queryParams.pub_listingType || defaultListingType;
+  // queryParams is the last listings query (ManageListingsPage.duck.js), not the URL.
+  const currentListingType = resolveListingTabType(
+    queryParams.pub_listingType,
+    LISTING_GRID_ROLE.MANAGE
+  );
+  const isPausedTab = isListingTabPaused(currentListingType);
 
   const currentCategory = useMemo(
     () => getCurrentCategory(listings, currentListingType, queryParams),
@@ -140,6 +147,17 @@ export const ManageListingsPageComponent = props => {
         const invalidListingType = !(
           listingTypeParamValue && Object.values(LISTING_TAB_TYPES).includes(listingTypeParamValue)
         );
+        if (!PORTFOLIO_ENABLED) {
+          // Shop is the default tab — see util/featureFlags.js. A Portfolio URL stays: its tab is
+          // shown here, paused.
+          if (
+            invalidListingType ||
+            !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.MANAGE)
+          ) {
+            updateProductRoute();
+          }
+          break;
+        }
         const invalidCategoryType =
           listingTypeParamValue === LISTING_TAB_TYPES.PORTFOLIO && !queryParams.pub_listingId;
         const listingsAvailable = !queryInProgress && !!currentCategory;
@@ -232,6 +250,16 @@ export const ManageListingsPageComponent = props => {
     </H3>
   );
 
+  // The paused tab shows only a message (see util/featureFlags.js). The loader queried only its
+  // count; "your collections are saved" is said only when that count loaded and is above 0.
+  const hasPausedCollections =
+    isPausedTab && !queryInProgress && !queryListingsError && pagination?.totalItems > 0;
+  const noResultsMessageId = !isPausedTab
+    ? 'ManageListingsPage.noResults'
+    : hasPausedCollections
+    ? 'ManageListingsPage.portfolioPausedCollectionsSaved'
+    : 'ManageListingsPage.portfolioPaused';
+
   const onTabChange = key => {
     switch (key) {
       case LISTING_TAB_TYPES.PORTFOLIO:
@@ -258,19 +286,21 @@ export const ManageListingsPageComponent = props => {
         }
         footer={<FooterContainer />}
       >
+        {/* The paused tab never renders listings: the counted one stays in the store, and at one
+            per page its pagination would show a page link per collection. */}
         <ListingTabs
-          items={items}
-          pagination={pagination}
+          items={isPausedTab ? [] : items}
+          pagination={isPausedTab ? null : pagination}
           queryInProgress={queryInProgress}
-          queryListingsError={queryListingsError}
+          queryListingsError={isPausedTab ? null : queryListingsError}
           queryParams={queryParams}
           onTabChange={onTabChange}
-          categories={links}
+          categories={isPausedTab ? [] : links}
           currentCategory={currentCategory}
           listingRenderer={listingRenderer}
           role={LISTING_GRID_ROLE.MANAGE}
           title={titleRenderer}
-          noResultsMessageId="ManageListingsPage.noResults"
+          noResultsMessageId={noResultsMessageId}
           loadingMessageId="ManageListingsPage.loadingOwnListings"
           errorMessageId="ManageListingsPage.queryError"
         />
