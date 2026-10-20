@@ -7,7 +7,6 @@ const {
   SELLER_STATUS,
   SELLER_MEMBERSHIP_TYPES,
 } = require('../../api-util/metadataHelper');
-const { ReferralAPIManagerClient: RAMClient } = require('../../api-util/referralManager');
 const { integrationSdkInit, generateScript } = require('../../api-util/scriptManager');
 const {
   slackSellerValidationWorkflow,
@@ -88,28 +87,6 @@ async function identifyUserHandler(userId, userAttributes) {
   }
 }
 
-async function referralProgramOptIn(userId, email, firstName, lastName) {
-  try {
-    const integrationSdk = integrationSdkInit();
-    const referralManagerClient = new RAMClient();
-    const rfUser = await referralManagerClient.qualifyReferral(userId, email, firstName, lastName);
-    const { code } = rfUser || {};
-    await integrationSdk.users.updateProfile({
-      id: userId,
-      privateData: {
-        referralCode: code,
-      },
-    });
-  } catch (error) {
-    slackUserCreatedErrorWorkflow(userId);
-    console.error(
-      `[notifyUserCreated] Error qualifying referral (won't stop excecution) | userId: ${userId} | Error:`,
-      error
-    );
-  }
-  return;
-}
-
 const analyzeEvent = async event => {
   const integrationSdk = integrationSdkInit();
   const { resourceType, eventType } = event.attributes;
@@ -125,13 +102,14 @@ const analyzeEvent = async event => {
     const isSeller = userType === USER_TYPES.SELLER;
     identifyUserHandler(userId, user.attributes);
     try {
-      await referralProgramOptIn(userId, email, firstName, lastName);
       // Brand users are joined during sign-up (spec/v0/login-and-registration.md §4.5.1). The
       // `user/updated` event of the join's write brings their `studioId` to Auth0 and joins their
       // community (notifyUserUpdated.js).
       if (isBuyer || isBrand) {
-        // Written here, not left to the `user/updated` event of the referral code, which never
-        // comes when the referral call fails (spec/v0/login-and-registration.md §2.6.5).
+        // Written here (spec/v0/login-and-registration.md §2.6.5). It used to be left to the
+        // `user/updated` event of the referral code's write, which never came when the referral
+        // call failed. Since spec/v0/remove-referral-factory.md the job writes nothing to their
+        // profile, so no such event comes at all.
         await updateAuth0User({
           auth0UserId: identityProviders[0].userId,
           marketId: userId,

@@ -38,7 +38,6 @@ const {
   slackInteractivity,
 } = require('./api/slack');
 const { generateDownloadUrls } = require('./api/digital-product-download');
-const { referralProgramOptIn } = require('./api/referral-manager');
 const {
   retryProductListingCreatedScript,
   retryUserCreatedScript,
@@ -105,7 +104,6 @@ router.post('/transaction-line-items', transactionLineItems);
 router.post('/initiate-privileged', initiatePrivileged);
 router.get('/invitation-brand/:brandStudioId', invitationBrand);
 router.post('/phototag-keywords', phototagKeywords);
-router.post('/referral-program/opt-in', referralProgramOptIn);
 router.post('/transaction/product-download', generateDownloadUrls);
 router.post('/transition-privileged', transitionPrivileged);
 router.post('/delete-account', deleteAccount);

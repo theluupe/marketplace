@@ -3,7 +3,6 @@ jest.mock('../../api-util/analytics', () => ({
   trackManagementAPIEvent: jest.fn(),
 }));
 jest.mock('../../api-util/auth0Helper', () => ({ updateAuth0User: jest.fn() }));
-jest.mock('../../api-util/referralManager', () => ({ ReferralAPIManagerClient: jest.fn() }));
 jest.mock('../../api-util/slackHelper', () => ({
   slackSellerValidationWorkflow: jest.fn(),
   slackUserCreatedErrorWorkflow: jest.fn(),
@@ -27,14 +26,12 @@ const {
 } = require('../../api-util/slackHelper');
 const { lookUpWebappUser } = require('../../api/auth/webappSignup');
 const { USER_TYPES } = require('../../api-util/metadataHelper');
-const { ReferralAPIManagerClient } = require('../../api-util/referralManager');
 const { integrationSdkInit } = require('../../api-util/scriptManager');
 const { StudioManagerClient } = require('../../api-util/studioHelper');
 const { analyzeEvent } = require('./notifyUserCreated');
 
 describe('notifyUserCreated, a buyer or a brand user', () => {
   let sdk;
-  let qualifyReferral;
 
   const created = userType => ({
     attributes: {
@@ -61,46 +58,32 @@ describe('notifyUserCreated, a buyer or a brand user', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     sdk = { users: { updateProfile: jest.fn().mockResolvedValue({}) } };
     integrationSdkInit.mockReturnValue(sdk);
-    qualifyReferral = jest.fn();
-    ReferralAPIManagerClient.mockImplementation(() => ({ qualifyReferral }));
   });
 
-  it.each([
-    ['a buyer', 'the referral code is saved', USER_TYPES.BUYER, { code: 'R1' }],
-    ['a buyer', 'the referral call fails', USER_TYPES.BUYER, null],
-    ['a brand user', 'the referral code is saved', USER_TYPES.BRAND, { code: 'R1' }],
-  ])("writes %s's ids and names to Auth0 when %s", async (_, __, userType, referral) => {
-    if (referral) {
-      qualifyReferral.mockResolvedValue(referral);
-    } else {
-      qualifyReferral.mockRejectedValue(new Error('down'));
+  it.each([['a buyer', USER_TYPES.BUYER], ['a brand user', USER_TYPES.BRAND]])(
+    "writes %s's ids and names to Auth0",
+    async (_, userType) => {
+      await analyzeEvent(created(userType));
+
+      expect(updateAuth0User).toHaveBeenCalledTimes(1);
+      expect(updateAuth0User).toHaveBeenCalledWith({
+        auth0UserId: 'auth0|bo',
+        marketId: 'buyer-1',
+        firstName: 'Bo',
+        lastName: 'Yer',
+        displayName: 'Bo Y',
+        userType,
+      });
     }
+  );
 
-    await analyzeEvent(created(userType));
-
-    expect(updateAuth0User).toHaveBeenCalledTimes(1);
-    expect(updateAuth0User).toHaveBeenCalledWith({
-      auth0UserId: 'auth0|bo',
-      marketId: 'buyer-1',
-      firstName: 'Bo',
-      lastName: 'Yer',
-      displayName: 'Bo Y',
-      userType,
-    });
-  });
-
-  // spec/v0/login-and-registration.md §4.5.1: the sign-up joins them.
+  // spec/v0/login-and-registration.md §4.5.1: the sign-up joins them. Since
+  // spec/v0/remove-referral-factory.md the job writes nothing to their profile at all.
   it("never joins a brand user's brand", async () => {
-    qualifyReferral.mockResolvedValue({ code: 'R1' });
-
     await analyzeEvent(created(USER_TYPES.BRAND));
 
     expect(StudioManagerClient).not.toHaveBeenCalled();
-    expect(sdk.users.updateProfile).toHaveBeenCalledTimes(1);
-    expect(sdk.users.updateProfile).toHaveBeenCalledWith({
-      id: 'buyer-1',
-      privateData: { referralCode: 'R1' },
-    });
+    expect(sdk.users.updateProfile).not.toHaveBeenCalled();
   });
 });
 
@@ -135,8 +118,6 @@ describe('notifyUserCreated, a creator', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     sdk = { users: { updateProfile: jest.fn().mockResolvedValue({}) } };
     integrationSdkInit.mockReturnValue(sdk);
-    const qualifyReferral = jest.fn().mockResolvedValue({ code: 'R1' });
-    ReferralAPIManagerClient.mockImplementation(() => ({ qualifyReferral }));
     lookUpWebappUser.mockResolvedValue({ type: 'CREATOR', loginMatches: true });
     approveCommunity.mockResolvedValue(COMMUNITY);
     approveSeller.mockResolvedValue(SELLER);

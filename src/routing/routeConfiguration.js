@@ -39,7 +39,6 @@ const PaymentMethodsPage = loadable(() => import(/* webpackChunkName: "PaymentMe
 const PrivacyPolicyPage = loadable(() => import(/* webpackChunkName: "PrivacyPolicyPage" */ '../containers/PrivacyPolicyPage/PrivacyPolicyPage'));
 const ProfilePage = loadable(() => import(/* webpackChunkName: "ProfilePage" */ '../containers/ProfilePage/ProfilePage'));
 const ProfileSettingsPage = loadable(() => import(/* webpackChunkName: "ProfileSettingsPage" */ '../containers/ProfileSettingsPage/ProfileSettingsPage'));
-const ReferralProgramPage = loadable(() => import(/* webpackChunkName: "ReferralProgramPage" */ '../containers/ReferralProgramPage/ReferralProgramPage'));
 const RequestQuotePage = loadable(() => import(/* webpackChunkName: "RequestQuotePage" */ '../containers/RequestQuotePage/RequestQuotePage'));
 const SearchPageWithMap = loadable(() => import(/* webpackChunkName: "SearchPageWithMap" */ /* webpackPrefetch: true */  '../containers/SearchPage/SearchPageWithMap'));
 const SearchPageWithGrid = loadable(() => import(/* webpackChunkName: "SearchPageWithGrid" */ /* webpackPrefetch: true */  '../containers/SearchPage/SearchPageWithGrid'));
@@ -351,14 +350,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       authPage: 'LoginPage',
       component: PaymentMethodsPage,
       loadData: pageDataLoadingAPI.PaymentMethodsPage.loadData,
-    },
-    {
-      path: '/referral-program',
-      name: 'ReferralProgramPage',
-      auth: true,
-      authPage: 'LoginPage',
-      component: ReferralProgramPage,
-      loadData: pageDataLoadingAPI.ReferralProgramPage.loadData,
     },
 
     /**

@@ -180,23 +180,6 @@ SLACK_LISTING_MANAGER_CHANNEL_ID
 
 ---
 
-## Referral Program (Referral Factory)
-
-Users are auto-enrolled in the referral program via [Referral Factory](https://referral-factory.com/).
-
-- Referral code stored in `user.privateData.referralCode` after first opt-in.
-- Qualification (conversion) is recorded when a purchase completes.
-- Endpoint: `POST /api/referral-manager`
-
-### Required environment variables
-
-```
-REFERRAL_FACTORY_API_KEY
-REFERRAL_CAMPAIGN_ID
-```
-
----
-
 ## Event-Driven Scripts
 
 `server/api-util/scriptManager.js` runs a long-polling loop against the Sharetribe Integration API, processing events in batches of 10. It self-heals if the SDK goes idle (3 retries before forced reinit).
@@ -274,6 +257,7 @@ Tracking which design documents in `spec/` have been implemented in this codebas
 | [spec/v0/webapp-user-first-sign-up.md](./spec/v0/webapp-user-first-sign-up.md) | ✅ Implemented (2026-10-13) | For Popup Studio's user sync, against the webapp. When `loginWithIdp` finds no Sharetribe account, it asks the webapp's new `POST /user/lookup` (`StudioManagerClient.lookupUser`, 5 s timeout) and a webapp brand member gets `userType: 'studio-brand'` with their brand's id in `st-authinfo`, a creator `creative-seller`; anyone else, or a failed lookup, as before. The confirm page already follows the cookie. `notifyUserCreated`: a member of a brand with no Marketplace admin takes the webapp's `companyName`; an admin starts `brandUsers` with the brand's existing members. Waiting on the webapp's deploy; either can go first. Manual Testing Plan in its §6. |
 | [spec/v0/login-and-registration.md](./spec/v0/login-and-registration.md) | ✅ Implemented (2026-10-16) | Phases 1–3 on PROD after QA (§12); phase 4, a one-off clean-up of duplicate profile listings on PROD (§11.5), still to run. Security: Slack approvals checked by signature (`SLACK_SIGNING_SECRET`), redirects after login stay on the site, the server decides the sign-up's type and brand, no API key in the logs, no secrets in the build log. Sign-up: a brand user joins their brand during sign-up (`server/api-util/brandJoin.js`), with Try again when it fails; invitation pages name the brand or refuse an unknown one; webapp creators are approved automatically; the buyer/creator switch on `/confirm`; the second-login and expired-session pages. Job: polls every 2 minutes from its saved place, runs the Circle step for brand users; Slack approvals act once. The webapp part: `webapp/spec/marketplace-login-and-registration.md` |
 | [spec/v0/hide-portfolio.md](./spec/v0/hide-portfolio.md) | ✅ Implemented (2026-10-16) | One hardcoded constant, `PORTFOLIO_ENABLED = false` in `src/util/featureFlags.js`, switches off the `portfolio-showcase` listing type, read through three helpers in `src/util/types.js` (`isListingTabShown`, `isListingTabPaused`, `resolveListingTabType`). Profile: no Portfolio tab, Shop the default, Portfolio URLs queried and shown as Shop. Manage listings: Shop the default; the Portfolio tab only says portfolios are paused ("your collections are saved" when the count says so), with no Add New/Manage. A portfolio listing's URL redirects to the profile; the wizard routes render Not Found. Code and data kept; `true` restores it. Permanently: the portfolio website is a labelled link under the bio. No Manual Testing Plan, by Rafael's call. |
+| [spec/v0/remove-referral-factory.md](./spec/v0/remove-referral-factory.md) | ✅ Implemented (2026-10-19) | Referral Factory removed, code and all (no flag): the API client (`server/api-util/referralManager.js`), `POST /api/referral-program/opt-in`, its CSP entry, the sign-up job's referral step in `notifyUserCreated.js` (a buyer or brand user now gets no Sharetribe write from the job), and the "Refer & Earn" page with its three links and 4 `en.json` keys (`/referral-program` is Not Found). Existing `privateData.referralCode` stays. `login-and-registration.md` amended (J9 resolved). Rollout: `REFARRAL_API_TOKEN` and `REFARRAL_CAMPAIGN_ID` come off Cloud Run only after the PROD deploy. Gates only, by Rafael's call. The webapp part: `webapp/spec/remove-referral-leftovers.md` |
 
 ### Pending
 

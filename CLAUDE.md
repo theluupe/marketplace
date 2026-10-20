@@ -146,10 +146,6 @@ Interactive button responses (approve/reject) are handled at `POST /api/slack/in
 
 Custom per-user price negotiated outside the platform. Stored in `listing.privateData.customLicenseDeals[]`. Validated server-side at `POST /api/validate-license-deal` before checkout.
 
-### Referral program
-
-Powered by [Referral Factory](https://referral-factory.com/). `POST /api/referral-manager` opts users in on first call and stores their referral code in `user.privateData.referralCode`. Qualification is recorded when a purchase is completed.
-
 ### Event-driven scripts
 
 `server/api-util/scriptManager.js` polls the Sharetribe Integration API for events and dispatches them to scripts in `server/scripts/events/`. The integration SDK is a singleton with self-healing reconnect logic (up to 3 retries before forced reinit). These scripts handle: seller approval notifications, portfolio listing updates, brand user assignment.

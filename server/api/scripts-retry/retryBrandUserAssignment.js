@@ -75,8 +75,8 @@ const retryBrandUserAssignmentScript = async (req, res) => {
       });
     }
 
-    // The sign-up's join, not the job's sign-up handler: no second referral step or Segment
-    // identify (§7.4, decision 2). It writes the type and the brand only when it works, so a
+    // The sign-up's join, not the job's sign-up handler: no second Segment identify (§7.4,
+    // decision 2). It writes the type and the brand only when it works, so a
     // failure leaves the buyer as they were, and says so (decision 3). In a brand with no admin at
     // all, the webapp gives them the seat (decision 6).
     const joined = await joinBrand(userId, brandStudioId);
