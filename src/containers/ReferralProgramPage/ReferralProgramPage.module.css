@@ -1,9 +1,0 @@
-@import '../../styles/customMediaQueries.css';
-
-.root {
-  min-height: 1400px;
-
-  @media (--viewportSmall) {
-    min-height: 1200px;
-  }
-}

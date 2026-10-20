@@ -1070,7 +1070,6 @@
   "ProfileSettingsPage.profileSettingsTabTitle": "Profile settings",
   "ProfileSettingsPage.title": "Profile settings",
   "ProfileSettingsPage.viewProfileLink": "View your profile",
-  "ReferralProgramPage.title": "Refer & Earn",
   "RequestChangesForm.messagePlaceholder": "Describe what should be fixed…",
   "RequestChangesForm.messageRequired": "You need to describe the changes you'd like to be made.",
   "RequestChangesForm.submit": "Send the request",
@@ -1351,7 +1350,6 @@
   "TopbarDesktop.logo": "{marketplaceName}",
   "TopbarDesktop.logout": "Log out",
   "TopbarDesktop.profileSettingsLink": "Profile settings",
-  "TopbarDesktop.referralProgram": "Refer & Earn",
   "TopbarDesktop.screenreader.profileMenu": "Open profile menu",
   "TopbarDesktop.screenreader.search": "Search",
   "TopbarDesktop.screenreader.topbarNavigation": "Top bar navigation",
@@ -1367,7 +1365,6 @@
   "TopbarMobileMenu.logoutLink": "Log out",
   "TopbarMobileMenu.newListingLink": "Manage your shop (COMING SOON)",
   "TopbarMobileMenu.profileSettingsLink": "Profile settings",
-  "TopbarMobileMenu.referralProgram": "Refer & Earn",
   "TopbarMobileMenu.signupLink": "Sign up",
   "TopbarMobileMenu.signupOrLogin": "{signup} or {login}",
   "TopbarMobileMenu.studioLink": "Luupe Studio",
@@ -1654,7 +1651,6 @@
   "UserNav.accountSettings": "Account settings",
   "UserNav.favoriteListings": "Favorites",
   "UserNav.profileSettings": "Profile settings",
-  "UserNav.referralProgram": "Refer & Earn",
   "UserNav.screenreader.userNav": "User profile navigation",
   "UserNav.yourListings": "Your listings"
 }

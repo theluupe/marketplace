@@ -4,6 +4,27 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Remove Referral Factory] — 2026-10-19
+
+Spec: `spec/v0/remove-referral-factory.md`.
+
+### Removed
+
+- **The Referral Factory integration**, code and all (no flag): the API client (`server/api-util/referralManager.js`), `POST /api/referral-program/opt-in` (`server/api/referral-manager.js`) and its CSP entry (`*.referral-factory.com` in `frame-src`).
+- **The sign-up job's referral step** (`notifyUserCreated.js`). A new buyer or brand user now gets no Sharetribe write from the job; Auth0 was already written directly. The Segment events `REFERRAL_PROGRAM | Auto opt-in` and `REFERRAL_PROGRAM | Referral qualified` stop.
+- **The "Refer & Earn" page** (`ReferralProgramPage`) and its three links (desktop menu, mobile menu, account tabs), with its 4 `en.json` keys. `/referral-program` shows Not Found.
+- The "Referral program" sections of `CLAUDE.md` and `TL_README.md`, which named an endpoint and env vars that didn't exist.
+
+### Not changed
+
+- Existing users' `privateData.referralCode` stays in Sharetribe; nothing reads it.
+
+### Rollout
+
+- After the PROD deploy, `REFARRAL_API_TOKEN` and `REFARRAL_CAMPAIGN_ID` come off Cloud Run (spec §7). Not before: every sign-up would send a Slack error alert.
+
+---
+
 ## [Hide Portfolio behind a flag] — 2026-10-16
 
 Spec: `spec/v0/hide-portfolio.md`.

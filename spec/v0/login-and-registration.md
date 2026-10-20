@@ -18,6 +18,11 @@
 >
 > **Builds on:** the review of 2026-10-14, and [`webapp-user-first-sign-up.md`](./webapp-user-first-sign-up.md),
 > which added the webapp lookup at sign-up.
+>
+> **⚠️ Amended 2026-10-19:** Referral Factory is removed by
+> [`remove-referral-factory.md`](./remove-referral-factory.md). The job no longer has a referral step and writes no
+> referral code. This spec's mentions of them (§1.1, §1.2, §2.2, §2.4, §2.5 decision 8, §4.5.1, §7.3, §7.4 decision 2,
+> §9.3, §10.2.4, §11.8) describe the job before that removal and are left as they were. J9 (§9.2) is resolved by it.
 
 ---
 
@@ -736,7 +741,7 @@ its poll time, and the Cloud Run settings it runs on.
 | J6 | **Request-based billing gives no CPU between requests:** on a quiet site the job's waits and work stall until someone opens a page | **Solved by the Cloud Run settings** (§9.4.5) |
 | J7 | **Webapp failures are silent:** the client's empty answer reads as success, so no alert is sent | **Fix in the job** (§9.4.3). The sign-up's own calls are handled in §3.6.3, §4.5.1 and §7.4; the API key in the client's logs is §10 |
 | J8 | **The admin's `brandUsers` is read, changed and written back:** two members joining at once can drop one of them for good. Joining during sign-up (§4.5.1) makes it likelier | **Fix** (§9.4.4) |
-| J9 | **The referral client has no timeout:** a hung call stalls a whole loop | **Left to the Referral Factory spec** |
+| J9 | **The referral client has no timeout:** a hung call stalls a whole loop | **Left to the Referral Factory spec.** **Resolved 2026-10-19:** the client was removed ([`remove-referral-factory.md`](./remove-referral-factory.md)) |
 
 ### 9.3 Each user type: what stays in the job
 

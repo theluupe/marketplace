@@ -85,7 +85,6 @@ const defaultDirectives = {
     '*.vimeo.com',
     '*.dailymotion.com',
     '*.twitch.tv',
-    '*.referral-factory.com',
     'https://bid.g.doubleclick.net',
     'https://td.doubleclick.net',
   ],
