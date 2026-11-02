@@ -74,6 +74,9 @@ const defaultDirectives = {
     // Transloadit - needed for file uploads via Uppy
     'api2.transloadit.com',
     '*.transloadit.com',
+
+    // Unbounce - embed view/activation events (script included in src/util/includeScripts.js)
+    '*.events.ubembed.com',
   ],
   fontSrc: [self, data, 'assets-sharetribecom.sharetribe.com', 'fonts.gstatic.com'],
   formAction: [self],
@@ -87,6 +90,9 @@ const defaultDirectives = {
     '*.twitch.tv',
     'https://bid.g.doubleclick.net',
     'https://td.doubleclick.net',
+
+    // Unbounce - embedded popups and forms (e.g. book-a-demo)
+    '*.pages.ubembed.com',
   ],
   imgSrc: [
     self,
@@ -136,6 +142,9 @@ const defaultDirectives = {
     'js.stripe.com',
     // Plausible analytics
     'plausible.io',
+    // Unbounce - embed loader and its assets
+    '*.js.ubembed.com',
+    'assets.ubembed.com',
   ],
   styleSrc: [
     self,

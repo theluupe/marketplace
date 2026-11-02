@@ -4,6 +4,19 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Allow Unbounce in the CSP] — 2026-10-23
+
+### Changed
+
+- **`server/csp.js` now lists Unbounce**, which `src/util/includeScripts.js` has loaded on every page all along (it runs the book-a-demo popups and forms): `*.js.ubembed.com` and `assets.ubembed.com` in `script-src`, `*.pages.ubembed.com` in `frame-src`, `*.events.ubembed.com` in `connect-src`.
+- Why: PROD serves the CSP as report-only, so nothing was blocked, but every page view made the browser report the violations and the server logged each one: about 6,700 `CSP:` lines a day, most of the Marketplace's log volume. Switching the CSP to blocking mode would have broken the Unbounce forms.
+
+### Not changed
+
+- The CSP mode (`REACT_APP_CSP`) and every other directive. The remaining reports (inline scripts, `connect.facebook.net`) are rare and left as they are.
+
+---
+
 ## [Remove Referral Factory] — 2026-10-19
 
 Spec: `spec/v0/remove-referral-factory.md`.

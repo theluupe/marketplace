@@ -115,6 +115,16 @@ The negotiation process has two modes: **forward** (customer requests, provider 
 
 The app fetches live configuration from Sharetribe on every full-page load via `sdk.asset*`. These override local files in `src/config/`. The merge logic lives in `src/util/configHelpers.js` (`mergeConfig`). Access config in components via `useConfiguration()`.
 
+### robots.txt — no QA site is crawled
+
+**No QA (or other non-production) host may be crawled.** `/robots.txt` says `Disallow: /` whenever `APP_ENV` isn't `production`; production keeps allowing the crawl. Crawlers on QA waste its resources (on the landing site they helped run QA out of memory) and index content that duplicates production.
+
+- **Key it to `APP_ENV`, never `NODE_ENV`**: QA builds run with `NODE_ENV=production` too.
+- **A missing robots.txt means "allow all"**, so a new app or host gets one before its first QA deploy.
+- **A login check must let `/robots.txt` through**: a redirect to the login page hides the Disallow.
+
+Here: `server/resources/robotsTxt.js`, routed in `server/index.js` (and `server/apiServer.js` in development).
+
 ## TheLuupe-specific features
 
 ### Digital product upload & download
