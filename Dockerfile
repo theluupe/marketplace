@@ -19,4 +19,7 @@ ENV PORT=8080
 # so `yarn build` below would fail without them. Force-install everything.
 RUN yarn install --production=false
 RUN yarn build
-CMD ["yarn", "start"]
+# Node runs as the container's main process, not under `yarn start`: on SIGTERM yarn passes the signal on and then
+# exits at once, and when the main process exits Cloud Run stops the container, so the graceful shutdown in
+# server/index.js (stop taking requests, let running ones finish) never got to run.
+CMD ["node", "server/index.js"]
