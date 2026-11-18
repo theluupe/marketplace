@@ -23,6 +23,15 @@
 > [`remove-referral-factory.md`](./remove-referral-factory.md). The job no longer has a referral step and writes no
 > referral code. This spec's mentions of them (§1.1, §1.2, §2.2, §2.4, §2.5 decision 8, §4.5.1, §7.3, §7.4 decision 2,
 > §9.3, §10.2.4, §11.8) describe the job before that removal and are left as they were. J9 (§9.2) is resolved by it.
+>
+> **⚠️ Amended 2026-11-11:** account linking (§8.3) now has its own spec,
+> [`account-linking.md`](./account-linking.md) (🟡 Pending): a forced link through a Marketplace page replaces the
+> Rule and its extension. Its step 0 (2026-11-12) removes the Rule and deletes the extension's apps ahead of the rest,
+> which retires S9 (§10.1); the Rule's repo copies go when the Action is added.
+>
+> **⚠️ Amended 2026-11-13:** that spec's grill merges the existing duplicate pairs **before** it goes live (its D20),
+> and gives the second-login page (§8.3, BR22) new copy as its safety net (its D25, §6.1). The copy changes in that
+> spec's phase 3; this spec's text below is left as built.
 
 ---
 
@@ -656,6 +665,19 @@ elsewhere: the notice for a brand link (§4.5.5), Try again for an unfinished br
 
 ### 8.3 Account linking
 
+> **⚠️ 2026-11-11:** designed in [`account-linking.md`](./account-linking.md) (🟡 Pending). Once it ships, a second
+> login method goes to a linking page instead of the page below, which stays as its safety net. The text below is as
+> written on 2026-10-15/16.
+>
+> **⚠️ 2026-11-13:** the duplicate pairs made before it are merged before it ships (that spec's §8, D20), so none is
+> exempt. The page below gets new copy, with its Log out kept (that spec's §6.1, D25): **"This email already has a
+> Luupe account"**, *"That account uses a different login method: your password if you just used Google, or Google if
+> you just used your password. Log out first, then choose one: log in with that other method to go straight to your
+> account, or log in the same way again and we'll connect the two, so both methods work from then on. Still stuck?
+> Write to us at hi@theluupe.com."* It replaces the copy decided below, which said linking had failed. It also covers
+> §6.4.1's case, a login that isn't the Auth0 account the webapp has for the person: that too is a second account
+> with the same email.
+
 **Out of this spec:** Rafael handles it separately (2026-10-15). The facts, for that work:
 
 - **Today:** a legacy Auth0 Rule plus the "Account Link" extension, hosted on Auth0's webtask platform
@@ -664,8 +686,9 @@ elsewhere: the notice for a brand link (§4.5.5), Try again for an unfinished br
   to the extension to log in with the first account, then joins the two into one Auth0 user, which keeps the original
   id. It's offered only on that first login; skipping it leaves two accounts. Any error in it fails the login. It
   holds a hard-coded client secret (§10).
-- **From 2026-11-18 Auth0 stops running Rules:** every second login method becomes a separate Auth0 user. The webapp
-  shows its 409 page; the Marketplace shows the page below. Popup Studio's people (password accounts, `LeBook_123`) who
+- **From 2026-11-18 Auth0 stops running Rules** *(wrong, corrected 2026-11-12: Rules run until 2028-01-31; the Rule
+  is removed on purpose, [`account-linking.md`](./account-linking.md) D8)*: every second login method becomes a
+  separate Auth0 user. The webapp shows its 409 page; the Marketplace shows the page below. Popup Studio's people (password accounts, `LeBook_123`) who
   click "Continue with Google" are the likely group.
 - **Options weighed:** linking by hand through Auth0's Management API; rebuilding the linking as a post-login Action
   with a page of ours; linking automatically by email, which is **unsafe** while Auth0's email verification is off
@@ -700,12 +723,18 @@ session and Auth0's, then goes to the home page), so their next login asks which
 | "We couldn't finish creating your account" + Try again | The brand join fails | §4.5.1 |
 | "This invitation link isn't valid…" | An unknown brand id | §4.5.2 |
 | "We couldn't use this invitation… your contact at The Luupe" | Another brand's link, or a member using the new-brand link | §4.5.6 |
-| "Something went wrong… link your accounts… support team" + Log out | A second login method, or a login that isn't the platform's | §8.3, §6.4.1 |
+| "Something went wrong… link your accounts… support team" + Log out *(becomes "This email already has a Luupe account…" with [`account-linking.md`](./account-linking.md) §6.1)* | A second login method, or a login that isn't the platform's | §8.3, §6.4.1 |
 | One-time notice "You're registered as a buyer/creator…" | An existing account opens a brand link | §4.5.5 |
 | Banners on `/confirm` ("set up as a creator/buyer account") | The webapp chose the type | §4.5.3, §6.4 |
 
-Building note: the page-level ones (session expired, the brand join, the invitation error, the second login) can be one
+Building note: the page-level ones (session expired, the brand join, the invitation errors, the second login) can be one
 page with variants, sharing a layout.
+
+As built (Rafael, 2026-11-17): those five are laid out like the 404 page (the `PageMessage` component), without the
+sign-up's background box and banner: a small blue label, the title, the text and the button, centered. The labels:
+**Sign-up error** (session expired, the brand join), **Invitation error** (both invitation errors), **Login error** (the
+second login). The invalid invitation shows it both after `/confirm` refuses and on the invitation page itself. The
+generic login failure ("Failed to authenticate…", a red line above the sign-up choices) stays as it was.
 
 ## 9. The sync behind sign-up
 
@@ -1045,7 +1074,7 @@ Console and Auth0's dashboard for QA, a few new email addresses (`you+mtp1@…`)
 | # | Action | Expected |
 |---|---|---|
 | 12 | Sign up with a **password**, using your Google account's address. Log out | — |
-| 13 | **Log in** → "Continue with Google", same address. If Auth0 offers to link the accounts (the Rule runs until 2026-11-18), skip it | *"Something went wrong."*, the support line and **Log out**; no form (**R6**: review the copy) |
+| 13 | **Log in** → "Continue with Google", same address. If Auth0 offers to link the accounts (until the Rule is removed, [`account-linking.md`](./account-linking.md) step 0), skip it | *"Something went wrong."*, the support line and **Log out**; no form (**R6**: review the copy; done 2026-11-13 by [`account-linking.md`](./account-linking.md) §6.1, and once that ships this row gives the linking page instead) |
 | 14 | Click **Log out** | The home page. **Log in** asks for a login again instead of reusing Google |
 | 15 | Log in with the password | Row 12's account |
 

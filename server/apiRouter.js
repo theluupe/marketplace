@@ -51,6 +51,7 @@ const transitionPrivileged = require('./api/transition-privileged');
 const transloaditParams = require('./api/transloadit-params');
 const validateLicenseDeal = require('./api/validate-license-deal');
 const phototagKeywords = require('./api/phototag-keywords');
+const accountLinking = require('./api/account-linking');
 
 const router = express.Router();
 
@@ -109,6 +110,11 @@ router.post('/transition-privileged', transitionPrivileged);
 router.post('/delete-account', deleteAccount);
 router.post('/transloadit-params', transloaditParams);
 router.post('/validate-license-deal', validateLicenseDeal);
+
+// Account linking's page (spec/v0/account-linking.md §5.1): public, each call needs the Auth0 Action's signed token
+router.post('/account-linking/session', accountLinking.session);
+router.post('/account-linking/continue', accountLinking.continueLogin);
+router.post('/account-linking/cancel', accountLinking.cancel);
 
 // Scripts Retries:
 // A POST: it changes data (spec/v0/login-and-registration.md §7.4, decision 4).

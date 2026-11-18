@@ -1,0 +1,69 @@
+@import '../../styles/customMediaQueries.css';
+
+/* The 404 page's rules (NotFoundPage.module.css: root, content, number, heading, description), copied rather than
+   composed so the pages' CSS chunks don't depend on each other's order. Its "404" composes a font style that
+   doesn't exist, so it shows at body size: the label matches that. */
+
+.root {
+  /* Expand to the available space */
+  flex-grow: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content {
+  max-width: 587px;
+  width: 80%;
+  margin-top: 60px;
+  margin-bottom: 60px;
+
+  @media (--viewportMedium) {
+    margin-top: 10vh;
+  }
+}
+
+.label {
+  text-align: center;
+  color: var(--marketplaceColor);
+  margin: 1px 0 0 0;
+
+  @media (--viewportMedium) {
+    margin: 0;
+  }
+}
+
+.title {
+  composes: marketplaceModalTitleStyles from global;
+  text-align: center;
+  margin-top: 16px;
+
+  @media (--viewportMedium) {
+    margin-top: 22px;
+  }
+}
+
+.text {
+  text-align: center;
+
+  & > p {
+    margin: 16px 0 0;
+
+    @media (--viewportMedium) {
+      margin-top: 24px;
+    }
+  }
+}
+
+.actions {
+  max-width: 335px;
+  margin: 40px auto 0 auto;
+
+  /* A button narrower than the column sits in its middle: the login button's wrapper is 200px wide
+     from the medium breakpoint (SSOButton.module.css). Full-width buttons are unaffected. */
+  & > * {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

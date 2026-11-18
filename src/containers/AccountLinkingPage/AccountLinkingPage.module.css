@@ -1,0 +1,41 @@
+@import '../../styles/customMediaQueries.css';
+
+/* The layout is PageMessage's (the 404 page's); these are the page's own pieces */
+
+.loading {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  padding: 10vh 0;
+}
+
+.error {
+  color: var(--colorFail);
+}
+
+.actionFailed {
+  margin: 24px 0 0;
+  text-align: center;
+  color: var(--colorFail);
+}
+
+.email {
+  font-weight: var(--fontWeightSemiBold);
+}
+
+.methods {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hint {
+  composes: marketplaceModalHelperText from global;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.cancel {
+  margin-top: 24px;
+  text-align: center;
+}
