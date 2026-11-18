@@ -121,7 +121,16 @@ AUTH0_DOMAIN          # e.g. your-tenant.auth0.com
 AUTH0_CLIENT_ID
 AUTH0_CLIENT_SECRET
 AUTH0_CALLBACK_URL    # Must match Auth0 app settings
+AUTH0_LINKING_TOKEN_SECRET  # Account linking: the secret the Auth0 Action signs the page's token with, one per environment; on QA/PROD in the Secret Manager secret with the other Auth0 settings (spec/v0/account-linking.md §7.2)
 ```
+
+### Account linking
+
+A login with a second method for an email that already has an account goes to `/account-linking`, where the person
+logs in with the existing account to join the two (spec/v0/account-linking.md). The Auth0 Action that sends them there
+lives in the webapp and Studio repos; here are the page's endpoints (`server/api/account-linking.js`) and the token check
+(`server/api-util/accountLinking.js`). Cancel deletes the new Auth0 account, so the Marketplace's Auth0 app holds
+`delete:users` in Auth0's dashboard.
 
 ---
 
@@ -265,3 +274,5 @@ Tracking which design documents in `spec/` have been implemented in this codebas
 | ---- | ------ | ----- |
 | [spec/v1/studio-brand-onboarding-changes.md](./spec/v1/studio-brand-onboarding-changes.md) | 🟡 Pending | Read `isBrandAdmin` from Studio's `POST /brand/:brandId/member` response (already read from the webapp's answer since [spec/v0/brands-without-admin.md](./spec/v0/brands-without-admin.md); Studio's answer needs the same `isBrandAdmin` and `companyName`); validate empty brands via Studio's `GET /api/v1/management/brand/:brandId`; surface in `getBrandData()`. Companion: [studio/spec/v2/marketplace-integration.md](../studio/spec/v2/marketplace-integration.md). |
 | [spec/v1/storage-manager-v2-integration.md](./spec/v1/storage-manager-v2-integration.md) | 🟡 Pending | Switch `notifyProductListingCreated`, `notifyProductListingRejected`, and `digital-product-download` to the new storage-manager `/api/v2/*` API. New marketplace-driven cleanup cron replaces the in-storage-manager Sharetribe SDK call. Companion: [storage-manager/spec/v2/storage-manager-v2.md](../storage-manager/spec/v2/storage-manager-v2.md). |
+| [spec/v0/account-linking.md](./spec/v0/account-linking.md) | 🟡 Pending | Replaces Auth0's "Account Link" extension (a deprecated Rule whose leaked secret can't be changed; Rules run until 2028-01-31). A login whose email an older account has goes to a new Marketplace page (`/account-linking`), must log in with that account's methods only, and is joined into it by a new post-login Action; Cancel deletes the new Auth0 user and shows an error. The Action's code lives in the webapp and Studio repos (tests in Studio). Step 0 removes the Rule, the extension's apps and the unused Auth0 apps and APIs ahead of the build, tightens the kept apps and the tenant, and sets Auth0 up for Studio on PROD. The duplicate pairs that already exist are merged before go-live, in the same release, so nobody is exempt; the apps' "second account" pages stay as a safety net with new copy. |
+| [spec/v0/auth0-log-stream.md](./spec/v0/auth0-log-stream.md) | ⏸️ Parked | Parked 2026-11-16, not built: account linking logs its own steps in the Marketplace instead (its D15). Would keep Auth0's logs (5 days on our plan) in Google Cloud Logging: a new `POST /api/auth0-log-stream` checks a bearer token (`AUTH0_LOG_STREAM_TOKEN`) and writes each event Auth0's HTTP log stream sends as one structured log line; one stream per tenant (QA, PROD), set up in Auth0's dashboard; kept 30 days, with a count of Auth0's rate-limit entries. |
