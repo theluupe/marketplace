@@ -120,6 +120,7 @@ describe('the brand pages', () => {
   it("say an invitation isn't valid, with no sign-up, for a brand the webapp doesn't know", async () => {
     await renderBrandPage({ params: INVITATION, brand: { notFound: true } });
 
+    expect(screen.getByText('AuthenticationPage.noticeLabelInvitation')).toBeInTheDocument();
     expect(screen.getByText('AuthenticationPage.invalidInvitationTitle')).toBeInTheDocument();
     expect(signupButton()).toBeNull();
     expect(screen.queryByText('AuthenticationPage.loginLinkPrompt')).toBeNull();
@@ -190,11 +191,14 @@ describe('a second login method', () => {
       );
     });
 
-    expect(screen.getByText('AuthenticationPage.secondLoginTitle')).toBeInTheDocument();
-    expect(screen.getByText('AuthenticationPage.secondLoginText')).toBeInTheDocument();
+    expect(screen.getByText('AuthenticationPage.existingAccountLabel')).toBeInTheDocument();
+    expect(screen.getByText('AuthenticationPage.existingAccountTitle')).toBeInTheDocument();
+    expect(screen.getByText('AuthenticationPage.existingAccountText')).toBeInTheDocument();
     expect(screen.queryByText('AuthenticationPage.signupBuyerTile')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'AuthenticationPage.secondLoginLogout' }));
+    await user.click(
+      screen.getByRole('button', { name: 'AuthenticationPage.existingAccountLogout' })
+    );
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
@@ -203,9 +207,19 @@ describe('a second login method', () => {
 // spec/v0/login-and-registration.md §4.5.1
 describe('an error page at login', () => {
   it.each([
-    ['a brand join that still fails (§4.5.1)', 'unfinished-signup', 'unfinishedSignupTitle'],
-    ["a brand link they can't use (§4.5.6)", 'invitation', 'invitationErrorTitle'],
-  ])('shows %s instead of the sign-up', async (_, code, title) => {
+    [
+      'a brand join that still fails (§4.5.1)',
+      'unfinished-signup',
+      'unfinishedSignupTitle',
+      'noticeLabelSignup',
+    ],
+    [
+      "a brand link they can't use (§4.5.6)",
+      'invitation',
+      'invitationErrorTitle',
+      'noticeLabelInvitation',
+    ],
+  ])('shows %s instead of the sign-up', async (_, code, title, label) => {
     Cookies.set('st-autherror', `j:${JSON.stringify({ code })}`);
 
     await act(async () => {
@@ -220,6 +234,7 @@ describe('an error page at login', () => {
       );
     });
 
+    expect(screen.getByText(`AuthenticationPage.${label}`)).toBeInTheDocument();
     expect(screen.getByText(`AuthenticationPage.${title}`)).toBeInTheDocument();
     expect(screen.queryByText('AuthenticationPage.signupBuyerTile')).toBeNull();
   });
@@ -288,7 +303,7 @@ describe('right after a sign-up', () => {
 describe('a refused sign-up', () => {
   it.each([
     ['session-expired', 'AuthenticationPage.confirmExpiredTitle'],
-    ['second-login', 'AuthenticationPage.secondLoginTitle'],
+    ['second-login', 'AuthenticationPage.existingAccountTitle'],
     ['unfinished-signup', 'AuthenticationPage.unfinishedSignupTitle'],
     ['invitation', 'AuthenticationPage.invitationErrorTitle'],
     ['invalid-invitation', 'AuthenticationPage.invalidInvitationTitle'],

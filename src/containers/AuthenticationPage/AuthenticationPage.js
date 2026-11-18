@@ -34,6 +34,7 @@ import {
   Marquee,
   Modal,
   LayoutSingleColumn,
+  PageMessage,
 } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
@@ -111,30 +112,36 @@ const SWITCHABLE_USER_TYPES = {
   [USER_TYPES.SELLER]: USER_TYPES.BUYER,
 };
 
-// The sign-up's page-level messages share this layout (spec/v0/login-and-registration.md §8.5).
-const AuthNotice = ({ titleId, textId, children }) => (
-  <div className={css.signupForm}>
-    <Heading as="h1" rootClassName={css.signupWithIdpTitle}>
-      <FormattedMessage id={titleId} />
-    </Heading>
+// The sign-up's page-level messages share this layout (spec/v0/login-and-registration.md §8.5): the
+// 404 page's (PageMessage), a small label, the title and the text, centered, without the sign-up's
+// background box and banner. Rafael's call, 2026-11-17 (spec/v0/account-linking.md §6.1).
+const AuthNotice = ({ labelId, titleId, textId, actions }) => (
+  <PageMessage
+    label={<FormattedMessage id={labelId} />}
+    title={<FormattedMessage id={titleId} />}
+    actions={actions}
+  >
     {textId ? (
-      <p className={css.noticeText}>
+      <p>
         <FormattedMessage id={textId} />
       </p>
     ) : null}
-    {children}
-  </div>
+  </PageMessage>
 );
 
 // `/confirm` once its cookie is gone (it lasts 15 minutes), or opened directly: a way back in rather
 // than an empty page (spec/v0/login-and-registration.md §2.6.3). Most people are still logged in
 // at Auth0, so Continue brings them straight back to the form.
 const ConfirmSessionExpired = ({ from }) => (
-  <AuthNotice titleId="AuthenticationPage.confirmExpiredTitle">
-    <SSOButton isLogin from={from}>
-      <FormattedMessage id="AuthenticationPage.confirmExpiredContinue" />
-    </SSOButton>
-  </AuthNotice>
+  <AuthNotice
+    labelId="AuthenticationPage.noticeLabelSignup"
+    titleId="AuthenticationPage.confirmExpiredTitle"
+    actions={
+      <SSOButton isLogin from={from}>
+        <FormattedMessage id="AuthenticationPage.confirmExpiredContinue" />
+      </SSOButton>
+    }
+  />
 );
 
 // Set by loginWithIdp.js in `st-autherror` for a second login method whose email already has an
@@ -151,37 +158,40 @@ const SESSION_EXPIRED_CODE = 'session-expired';
 const UNFINISHED_SIGNUP_CODE = 'unfinished-signup';
 const UnfinishedSignup = ({ from }) => (
   <AuthNotice
+    labelId="AuthenticationPage.noticeLabelSignup"
     titleId="AuthenticationPage.unfinishedSignupTitle"
     textId="AuthenticationPage.unfinishedSignupText"
-  >
-    <div className={css.noticeAction}>
+    actions={
       <SSOButton isLogin from={from}>
         <FormattedMessage id="AuthenticationPage.unfinishedSignupTryAgain" />
       </SSOButton>
-    </div>
-  </AuthNotice>
+    }
+  />
 );
 
 // A brand link this person can't use (spec/v0/login-and-registration.md §4.5.6): another brand's
 // invitation, or the new-brand link for a member of a webapp brand. It doesn't say why.
 const INVITATION_ERROR_CODE = 'invitation';
-// An invitation whose brand the webapp doesn't know, refused at /confirm (§4.5.2, BR8): the
-// invitation page shows the same message.
+// An invitation whose brand the webapp doesn't know (§4.5.2, BR8): refused at /confirm, or found out
+// by the invitation page itself (`invitationBrand.notFound`). Both show the same notice.
 const INVALID_INVITATION_CODE = 'invalid-invitation';
 
 // The person is still logged in at Auth0 with the second account, so "Log in" would land here
 // again: Log out ends that session (and Auth0's), and the next login asks which account to use.
+// Its copy is the safety net's (spec/v0/account-linking.md §6.1, D25), under new keys: Sharetribe
+// Console hosts the old `secondLogin*` keys with the old copy, and hosted texts win over en.json.
+// One paragraph, like the webapp's /error-account (Rafael, 2026-11-17).
 const SecondLoginError = ({ onLogout }) => (
   <AuthNotice
-    titleId="AuthenticationPage.secondLoginTitle"
-    textId="AuthenticationPage.secondLoginText"
-  >
-    <div className={css.noticeAction}>
+    labelId="AuthenticationPage.existingAccountLabel"
+    titleId="AuthenticationPage.existingAccountTitle"
+    textId="AuthenticationPage.existingAccountText"
+    actions={
       <SocialLoginButton onClick={onLogout}>
-        <FormattedMessage id="AuthenticationPage.secondLoginLogout" />
+        <FormattedMessage id="AuthenticationPage.existingAccountLogout" />
       </SocialLoginButton>
-    </div>
-  </AuthNotice>
+    }
+  />
 );
 
 /**
@@ -407,7 +417,15 @@ export const AuthenticationPageComponent = props => {
     refusalCode === UNFINISHED_SIGNUP_CODE;
   const isInvitationError =
     (mounted && authError?.code === INVITATION_ERROR_CODE) || refusalCode === INVITATION_ERROR_CODE;
-  const isInvalidInvitation = refusalCode === INVALID_INVITATION_CODE;
+  // The invitation page once its brand is loaded (BrandSignup shows a spinner until then)
+  const isInvitationNotFound =
+    isSignup &&
+    isBrand &&
+    !!brandStudioId &&
+    invitationBrand?.brandStudioId === brandStudioId &&
+    !invitationBrand.inProgress &&
+    !!invitationBrand.notFound;
+  const isInvalidInvitation = refusalCode === INVALID_INVITATION_CODE || isInvitationNotFound;
 
   const marketplaceName = config.marketplaceName;
   const schemaTitle = isLogin
@@ -492,6 +510,29 @@ export const AuthenticationPageComponent = props => {
     />
   );
 
+  // The page-level notices, in their order of precedence; the expired session only once the email
+  // verification (which sits in the sign-up's box) isn't due.
+  const notice = isSecondLogin ? (
+    <SecondLoginError onLogout={onLogout} />
+  ) : isUnfinishedSignup ? (
+    <UnfinishedSignup from={from} />
+  ) : isInvitationError ? (
+    <AuthNotice
+      labelId="AuthenticationPage.noticeLabelInvitation"
+      titleId="AuthenticationPage.invitationErrorTitle"
+      textId="AuthenticationPage.invitationErrorText"
+    />
+  ) : isInvalidInvitation ? (
+    <AuthNotice
+      labelId="AuthenticationPage.noticeLabelInvitation"
+      titleId="AuthenticationPage.invalidInvitationTitle"
+      textId="AuthenticationPage.invalidInvitationText"
+    />
+  ) : !showEmailVerification && isConfirm && isSessionExpired ? (
+    // Only after mounting: the cookie is read in the browser, so the server never has it.
+    <ConfirmSessionExpired from={from} />
+  ) : null;
+
   return (
     <Page
       title={schemaTitle}
@@ -508,59 +549,46 @@ export const AuthenticationPageComponent = props => {
         topbar={<TopbarContainer className={topbarClasses} />}
         footer={<FooterContainer />}
       >
-        <ResponsiveBackgroundImageContainer
-          className={css.root}
-          childrenWrapperClassName={css.contentContainer}
-          as="section"
-          image={config.branding.brandImage}
-          sizes="100%"
-          useOverlay
-        >
-          {isSecondLogin ? (
-            <SecondLoginError onLogout={onLogout} />
-          ) : isUnfinishedSignup ? (
-            <UnfinishedSignup from={from} />
-          ) : isInvitationError ? (
-            <AuthNotice
-              titleId="AuthenticationPage.invitationErrorTitle"
-              textId="AuthenticationPage.invitationErrorText"
-            />
-          ) : isInvalidInvitation ? (
-            <AuthNotice
-              titleId="AuthenticationPage.invalidInvitationTitle"
-              textId="AuthenticationPage.invalidInvitationText"
-            />
-          ) : showEmailVerification ? (
-            <EmailVerificationInfo
-              name={user.attributes.profile.firstName}
-              email={<span className={css.email}>{user.attributes.email}</span>}
-              onResendVerificationEmail={onResendVerificationEmail}
-              resendErrorMessage={resendErrorMessage}
-              sendVerificationEmailInProgress={sendVerificationEmailInProgress}
-            />
-          ) : isConfirm && isSessionExpired ? (
-            // Only after mounting: the cookie is read in the browser, so the server never has it.
-            <ConfirmSessionExpired from={from} />
-          ) : isConfirm ? (
-            <ConfirmIdProviderInfoForm
-              userType={userType}
-              authInfo={authInfo}
-              submitSingupWithIdp={submitSingupWithIdp}
-              authInProgress={authInProgress}
-              confirmError={confirmError}
-              termsAndConditions={termsAndConditions}
-            />
-          ) : (
-            <SignupBody
-              userType={userType}
-              from={from}
-              brandStudioId={brandStudioId}
-              invitationBrand={invitationBrand}
-              idpAuthError={authError}
-            />
-          )}
-        </ResponsiveBackgroundImageContainer>
-        <Marquee />
+        {notice || (
+          <>
+            <ResponsiveBackgroundImageContainer
+              className={css.root}
+              childrenWrapperClassName={css.contentContainer}
+              as="section"
+              image={config.branding.brandImage}
+              sizes="100%"
+              useOverlay
+            >
+              {showEmailVerification ? (
+                <EmailVerificationInfo
+                  name={user.attributes.profile.firstName}
+                  email={<span className={css.email}>{user.attributes.email}</span>}
+                  onResendVerificationEmail={onResendVerificationEmail}
+                  resendErrorMessage={resendErrorMessage}
+                  sendVerificationEmailInProgress={sendVerificationEmailInProgress}
+                />
+              ) : isConfirm ? (
+                <ConfirmIdProviderInfoForm
+                  userType={userType}
+                  authInfo={authInfo}
+                  submitSingupWithIdp={submitSingupWithIdp}
+                  authInProgress={authInProgress}
+                  confirmError={confirmError}
+                  termsAndConditions={termsAndConditions}
+                />
+              ) : (
+                <SignupBody
+                  userType={userType}
+                  from={from}
+                  brandStudioId={brandStudioId}
+                  invitationBrand={invitationBrand}
+                  idpAuthError={authError}
+                />
+              )}
+            </ResponsiveBackgroundImageContainer>
+            <Marquee />
+          </>
+        )}
       </LayoutSingleColumn>
       <Modal
         id="AuthenticationPage.tos"

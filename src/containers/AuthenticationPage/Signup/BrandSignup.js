@@ -12,8 +12,9 @@ import css from './Signup.module.css';
 
 // The new-brand link and an invitation link (spec/v0/login-and-registration.md §4.5.2). An invitation
 // names its brand, which the page's loadData asks for (`invitationBrand`, AuthenticationPage.duck.js);
-// a brand the webapp doesn't know gets no sign-up button. If the webapp can't be asked, the page
-// keeps its generic invitation: a failure never reads as an invalid link.
+// a brand the webapp doesn't know gets the page's invalid-invitation notice instead of this
+// (AuthenticationPage.js), with no sign-up button. If the webapp can't be asked, the page keeps its
+// generic invitation: a failure never reads as an invalid link.
 const BrandTitle = ({ isInvitation, companyName }) => {
   if (!isInvitation) {
     return <FormattedMessage id="AuthenticationPage.signupNewBrandTitle" />;
@@ -32,27 +33,13 @@ const BrandSignup = ({ from, brandStudioId, invitationBrand }) => {
   const IMG_URL = `https://storage.googleapis.com/${process.env.REACT_APP_MARKETPLACE_BRANDING_BUCKET}/assets/img/marketplace/6446ca8583d63a9bae7ecfc45b0eb4be.png`;
   const fromMaybe = from ? { from } : null;
   const isInvitation = !!brandStudioId;
-  const { companyName, notFound, inProgress } = invitationBrand || {};
+  const { companyName, inProgress } = invitationBrand || {};
   const isBrandLoaded = invitationBrand?.brandStudioId === brandStudioId && !inProgress;
 
   if (isInvitation && !isBrandLoaded) {
     return (
       <div className={css.spinner}>
         <IconSpinner />
-      </div>
-    );
-  }
-  if (isInvitation && notFound) {
-    return (
-      <div className={css.brandSignup}>
-        <div className={css.content}>
-          <Heading as="h1" rootClassName={css.title}>
-            <FormattedMessage id="AuthenticationPage.invalidInvitationTitle" />
-          </Heading>
-          <Heading as="h3" rootClassName={css.subtitle}>
-            <FormattedMessage id="AuthenticationPage.invalidInvitationText" />
-          </Heading>
-        </div>
       </div>
     );
   }
