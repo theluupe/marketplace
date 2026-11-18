@@ -156,6 +156,12 @@ export const fetchInvitationBrand = brandStudioId => {
   });
 };
 
+// The account-linking page's three calls (spec/v0/account-linking.md §5.1): each sends the token the Auth0
+// Action signed. See `server/api/account-linking.js`.
+export const accountLinkingSession = body => post('/api/account-linking/session', body);
+export const accountLinkingContinue = body => post('/api/account-linking/continue', body);
+export const accountLinkingCancel = body => post('/api/account-linking/cancel', body);
+
 export const createUploadSignature = body => {
   return post('/api/transloadit-params', body);
 };

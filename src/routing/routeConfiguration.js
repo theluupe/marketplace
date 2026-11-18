@@ -14,6 +14,7 @@ import { NamedRedirect } from '../components';
 
 const pageDataLoadingAPI = getPageDataLoadingAPI();
 
+const AccountLinkingPage = loadable(() => import(/* webpackChunkName: "AccountLinkingPage" */ '../containers/AccountLinkingPage/AccountLinkingPage'));
 const AuthenticationPage = loadable(() => import(/* webpackChunkName: "AuthenticationPage" */ '../containers/AuthenticationPage/AuthenticationPage'));
 const CheckoutPage = loadable(() => import(/* webpackChunkName: "CheckoutPage" */ '../containers/CheckoutPage/CheckoutPage'));
 const CMSPage = loadable(() => import(/* webpackChunkName: "CMSPage" */ '../containers/CMSPage/CMSPage'));
@@ -392,6 +393,14 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
       component: AuthenticationPage,
       extraProps: { tab: 'confirm' },
       loadData: pageDataLoadingAPI.AuthenticationPage.loadData,
+    },
+    // Where the Auth0 Action sends a login whose email already has an account (spec/v0/account-linking.md §5).
+    // Public, like the login pages: the person has no Marketplace login yet.
+    {
+      path: '/account-linking',
+      name: 'AccountLinkingPage',
+      component: AccountLinkingPage,
+      loadData: pageDataLoadingAPI.AccountLinkingPage.loadData,
     },
 
     /**
