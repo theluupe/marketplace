@@ -79,6 +79,18 @@ exports.error = (e, code, data) => {
   console.error(data);
 };
 
+/**
+ * Logs one structured line, for something worth reading later that isn't an error (use `error` for those). Cloud Run
+ * reads a JSON line on stdout as a log entry with that severity, searchable by its fields in Logs Explorer
+ * (e.g. `jsonPayload.source="account-linking"`; spec/v0/account-linking.md §5.6).
+ *
+ * @param {String} message What happened
+ * @param {Object} data Fields to search by. Never personal data or secrets: the lines are kept 30 days.
+ */
+exports.info = (message, data = {}) => {
+  console.log(JSON.stringify({ severity: 'INFO', message, ...data })); // eslint-disable-line no-console
+};
+
 exports.devLogger = (...args) => {
   if (DEV && VERBOSE) {
     console.log(...args); // eslint-disable-line no-console

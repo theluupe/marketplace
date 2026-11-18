@@ -10,7 +10,9 @@ function getClient() {
       domain: process.env.AUTH0_API_DOMAIN,
       clientId: process.env.AUTH0_MARKETPLACE_CLIENT_ID,
       clientSecret: process.env.AUTH0_MARKETPLACE_CLIENT_SECRET,
-      scope: 'read:users update:users',
+      // No `scope`: node-auth0 v4 ignores it and asks Auth0 for the audience only, so the token carries every scope
+      // this app is granted in Auth0's dashboard: read:users, update:users and delete:users
+      // (spec/v0/account-linking.md §7.2). The grant there is the only limit.
     };
     client = new ManagementClient(opts);
   }
@@ -58,6 +60,24 @@ async function updateAuth0User({
   }
 }
 
+/** An Auth0 user by id, or null if Auth0 has none (404). Other failures throw. */
+async function getAuth0User(id) {
+  try {
+    const { data } = await getClient().users.get({ id });
+    return data;
+  } catch (error) {
+    if (error && error.statusCode === 404) return null;
+    throw error;
+  }
+}
+
+/** Deletes an Auth0 user. Account linking's Cancel only, after its checks (spec/v0/account-linking.md §5.4). */
+async function deleteAuth0User(id) {
+  await getClient().users.delete({ id });
+}
+
 module.exports = {
   updateAuth0User,
+  getAuth0User,
+  deleteAuth0User,
 };
