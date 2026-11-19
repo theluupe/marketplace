@@ -7,7 +7,6 @@ import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { isScrollingDisabled, manageDisableScrolling } from '../../ducks/ui.duck';
 import { FormattedMessage, useIntl } from '../../util/reactIntl';
 import { createResourceLocatorString, pathByRouteName } from '../../util/routes';
-import { PORTFOLIO_ENABLED } from '../../util/featureFlags';
 import {
   GRID_STYLE_SQUARE,
   LISTING_GRID_ROLE,
@@ -147,22 +146,25 @@ export const ManageListingsPageComponent = props => {
         const invalidListingType = !(
           listingTypeParamValue && Object.values(LISTING_TAB_TYPES).includes(listingTypeParamValue)
         );
-        if (!PORTFOLIO_ENABLED) {
-          // Shop is the default tab — see util/featureFlags.js. A Portfolio URL stays: its tab is
-          // shown here, paused.
-          if (
-            invalidListingType ||
-            !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.MANAGE)
-          ) {
-            updateProductRoute();
-          }
+        // A missing or unknown tab goes to Shop, the default (LISTING_GRID_DEFAULTS.TYPE in
+        // util/types.js).
+        if (
+          invalidListingType ||
+          !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.MANAGE)
+        ) {
+          updateProductRoute();
           break;
         }
+        // A paused tab (Portfolio switched off — see util/featureFlags.js) shows only its message:
+        // no collection to open.
+        if (isListingTabPaused(listingTypeParamValue)) {
+          break;
+        }
+        // Portfolio with no collection in the URL opens the first one.
         const invalidCategoryType =
           listingTypeParamValue === LISTING_TAB_TYPES.PORTFOLIO && !queryParams.pub_listingId;
         const listingsAvailable = !queryInProgress && !!currentCategory;
-        const shouldUpdateRoute = invalidListingType || (invalidCategoryType && listingsAvailable);
-        if (shouldUpdateRoute) {
+        if (invalidCategoryType && listingsAvailable) {
           updatePortfolioRoute(currentCategory);
         }
         break;

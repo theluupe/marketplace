@@ -19,7 +19,7 @@ jest.mock('../../ducks/user.duck', () => ({
 // live in their own file.
 const config = { accessControl: { marketplace: { private: false } } };
 
-const queriedListingType = search => {
+const queriedParams = search => {
   const sdk = {
     users: { show: jest.fn(() => Promise.resolve({ data: { data: { attributes: {} } } })) },
     listings: { query: jest.fn(() => Promise.resolve({ data: { data: [], meta: {} } })) },
@@ -29,9 +29,11 @@ const queriedListingType = search => {
   const dispatch = createFakeDispatch(getState, sdk);
   return loadData({ id: 'author-id' }, search, config)(dispatch, getState, sdk).then(() => {
     expect(sdk.listings.query).toHaveBeenCalledTimes(1);
-    return sdk.listings.query.mock.calls[0][0].pub_listingType;
+    return sdk.listings.query.mock.calls[0][0];
   });
 };
+
+const queriedListingType = search => queriedParams(search).then(params => params.pub_listingType);
 
 const portfolioUrl = '?pub_listingType=portfolio-showcase&pub_listingId=listing-id';
 const shopUrl = '?pub_listingType=product-listing&pub_categoryLevel1=photos';
@@ -44,10 +46,22 @@ describe('ProfilePage loadData', () => {
     expect(await queriedListingType(shopUrl)).toBe('product-listing');
   });
 
-  it('Portfolio switched on: a Portfolio URL and an empty URL query Portfolio', async () => {
+  it('Portfolio switched on: a Portfolio query asks for the 400 px grid image and the 750 px preview', async () => {
+    mockPortfolioEnabled = true;
+    const portfolio = await queriedParams(portfolioUrl);
+    expect(portfolio['fields.image']).toEqual(
+      expect.arrayContaining(['variants.portfolio-grid', 'variants.scaled-medium'])
+    );
+    expect(portfolio['imageVariant.portfolio-grid']).toBe('w:400;h:1200;fit:scale');
+    const shop = await queriedParams(shopUrl);
+    expect(shop['fields.image']).not.toContain('variants.portfolio-grid');
+    expect(shop['imageVariant.portfolio-grid']).toBeUndefined();
+  });
+
+  it('Portfolio switched on: a Portfolio URL queries Portfolio; an empty URL queries Shop, the default', async () => {
     mockPortfolioEnabled = true;
     expect(await queriedListingType(portfolioUrl)).toBe('portfolio-showcase');
-    expect(await queriedListingType('')).toBe('portfolio-showcase');
+    expect(await queriedListingType('')).toBe('product-listing');
     expect(await queriedListingType(shopUrl)).toBe('product-listing');
   });
 });

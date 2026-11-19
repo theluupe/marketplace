@@ -6,7 +6,6 @@ import { useRouteConfiguration } from '../../../context/routeConfigurationContex
 import { handleToggleFavorites } from '../../../util/favorites';
 import { FormattedMessage, useIntl } from '../../../util/reactIntl';
 import { createResourceLocatorString } from '../../../util/routes';
-import { PORTFOLIO_ENABLED } from '../../../util/featureFlags';
 import {
   GRID_STYLE_SQUARE,
   REVIEW_TYPE_OF_PROVIDER,
@@ -174,22 +173,21 @@ function SellerProfilePage({
         const invalidListingType = !(
           listingTypeParamValue && Object.values(LISTING_TAB_TYPES).includes(listingTypeParamValue)
         );
-        if (!PORTFOLIO_ENABLED) {
-          // Shop is the default tab — see util/featureFlags.js. loadData has already swapped a
-          // Portfolio URL's type for Shop, so this only covers a missing or unknown type.
-          if (
-            invalidListingType ||
-            !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.PROFILE)
-          ) {
-            updateProductRoute();
-          }
+        // A missing, unknown or hidden tab goes to Shop, the default (LISTING_GRID_DEFAULTS.TYPE in
+        // util/types.js). With Portfolio switched off (util/featureFlags.js), loadData has already
+        // swapped a Portfolio URL's type for Shop.
+        if (
+          invalidListingType ||
+          !isListingTabShown(listingTypeParamValue, LISTING_GRID_ROLE.PROFILE)
+        ) {
+          updateProductRoute();
           break;
         }
+        // Portfolio with no collection in the URL opens the first one.
         const invalidCategoryType =
           listingTypeParamValue === LISTING_TAB_TYPES.PORTFOLIO && !queryParams.pub_listingId;
         const listingsAvailable = !queryInProgress && !!currentCategory;
-        const shouldUpdateRoute = invalidListingType || (invalidCategoryType && listingsAvailable);
-        if (shouldUpdateRoute) {
+        if (invalidCategoryType && listingsAvailable) {
           updatePortfolioRoute(currentCategory);
         }
         break;

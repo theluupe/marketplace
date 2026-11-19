@@ -4,6 +4,26 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Portfolio back on, Shop stays the default tab] — 2026-11-19
+
+Spec: `spec/v0/hide-portfolio.md` §9.
+
+### Changed
+
+- **`PORTFOLIO_ENABLED` is `true`** (`src/util/featureFlags.js`). The profile's Portfolio tab, the Portfolio tab on Manage listings with "Add New" and "Manage", the upload wizard and the redirect of a portfolio listing's URL to its collection are back. Existing collections reappear as they were. The switch stays: `false` and a deploy hides Portfolio again.
+- **Shop stays the default tab** on the profile and on Manage listings, with Portfolio on (`LISTING_GRID_DEFAULTS.TYPE` returns Shop for every role). A profile that opened on Portfolio would ask Sharetribe for every image of every collection, and most creatives have no collections.
+- **A URL with no tab, or an unknown one, goes to Shop** on both pages (the `default:` branch of their URL-fixing `useEffect`). It used to go to Portfolio. A Portfolio URL with no collection still opens the first collection.
+- **Portfolio images load as they near the screen** (`ImageCard.js`, `loading="lazy"`), not the whole collection at once. In the masonry layout each image keeps its height free before it loads (CSS `aspect-ratio` from the image's size), or every unsized image would count as on screen.
+- **One smaller grid image for both layouts:** a new custom variant, `portfolio-grid` (`src/util/portfolioImage.js`), uncropped, 400 px wide, requested by the profile's and Manage listings' Portfolio queries only. Masonry shows it as is; the square layout crops it in CSS (`object-fit: cover`), so switching layouts downloads nothing new. It replaces `scaled-medium` (a 750 px box) in masonry and the `listing-card` square crop in the square layout.
+- **The preview loads the 750 px image (`scaled-medium`) only when it opens.** On the profile it used to ask for `scaled-xlarge`, which the profile's query never requested, so it showed the grid image. On Manage listings it goes from 2400 px to 750 px.
+- **Masonry grids have two columns from 550 px** (`MasonryGridWrapper.js`, was 750 px), like the square grids, on the profile, Manage listings and the search page. Between 550 and 750 px masonry was one column up to about 700 px wide.
+
+### Not changed
+
+- The labelled portfolio website link on the profile, and everything the switch does when it's `false`.
+
+---
+
 ## [Allow Unbounce in the CSP] — 2026-10-23
 
 ### Changed

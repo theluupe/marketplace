@@ -63,4 +63,16 @@ describe('ManageListingsPage loadData', () => {
     });
     expect(await ownListingsQueries('')).toEqual([]);
   });
+
+  it('Portfolio switched on: a Portfolio query asks for the 400 px grid image and the 750 px preview', async () => {
+    mockPortfolioEnabled = true;
+    const [portfolio] = await ownListingsQueries(portfolioUrl);
+    expect(portfolio['fields.image']).toEqual(
+      expect.arrayContaining(['variants.portfolio-grid', 'variants.scaled-medium'])
+    );
+    expect(portfolio['imageVariant.portfolio-grid']).toBe('w:400;h:1200;fit:scale');
+    const [shop] = await ownListingsQueries(shopUrl);
+    expect(shop['fields.image']).not.toContain('variants.portfolio-grid');
+    expect(shop['imageVariant.portfolio-grid']).toBeUndefined();
+  });
 });

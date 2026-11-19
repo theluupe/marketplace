@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { updatedEntities, denormalisedEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
 import { createImageVariantConfig } from '../../util/sdkLoader';
+import { portfolioGridImageField, portfolioGridImageVariant } from '../../util/portfolioImage';
 import { parse } from '../../util/urlHelpers';
 import { LISTING_TAB_TYPES, isListingTabPaused } from '../../util/types';
 
@@ -302,6 +303,7 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
   // listing, no images. It must be a real query, not a skipped one: its `pending` case is what
   // makes the tab current (the page reads the tab from `queryParams`, the last query, not the
   // URL) and clears the previous tab's listings. A skipped query (`condition`) does neither.
+  const isPortfolioTab = queryParams.pub_listingType === LISTING_TAB_TYPES.PORTFOLIO;
   const listingsQuery = isListingTabPaused(queryParams.pub_listingType)
     ? queryOwnListings({ pub_listingType: queryParams.pub_listingType, page: 1, perPage: 1 })
     : queryOwnListings({
@@ -318,9 +320,13 @@ export const loadData = (params, search, config) => (dispatch, getState, sdk) =>
           // Cropped variants for listing thumbnail images
           `variants.${variantPrefix}`,
           `variants.${variantPrefix}-2x`,
+
+          // Portfolio also asks for its 400 px grid image — util/portfolioImage.js.
+          ...(isPortfolioTab ? [portfolioGridImageField] : []),
         ],
         ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
         ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
+        ...(isPortfolioTab ? portfolioGridImageVariant : {}),
       });
 
   return Promise.all([dispatch(fetchCurrentUser()), dispatch(listingsQuery)])

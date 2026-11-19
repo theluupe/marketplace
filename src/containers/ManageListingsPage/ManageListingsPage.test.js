@@ -125,6 +125,13 @@ describe('ManageListingsPage, Portfolio switched on', () => {
     mockPortfolioEnabled = true;
   });
 
+  it('opens on Shop: a URL with no tab is rewritten to Shop', async () => {
+    await renderPage({ queryParams: {} });
+    expect(selectedTab()).toHaveTextContent('Shop');
+    expect(location.search).toContain('pub_listingType=product-listing');
+    expect(location.search).not.toContain('portfolio-showcase');
+  });
+
   it('shows the collections and both buttons on the Portfolio tab', async () => {
     await renderPage({
       queryParams: { pub_listingType: 'portfolio-showcase', pub_listingId: 'collection-1' },

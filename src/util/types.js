@@ -773,15 +773,9 @@ export const LISTING_TAB_TYPES = {
 };
 
 export const LISTING_GRID_DEFAULTS = {
-  TYPE: role => {
-    switch (role) {
-      case LISTING_GRID_ROLE.FAVORITE:
-        return LISTING_TAB_TYPES.PRODUCT;
-      default:
-        // Shop while Portfolio is switched off — see util/featureFlags.js.
-        return PORTFOLIO_ENABLED ? LISTING_TAB_TYPES.PORTFOLIO : LISTING_TAB_TYPES.PRODUCT;
-    }
-  },
+  // Shop is every grid's default tab, with Portfolio on or off. A profile that opened on Portfolio would ask
+  // Sharetribe for every image of every collection, and most creatives have none (spec/v0/hide-portfolio.md §9).
+  TYPE: () => LISTING_TAB_TYPES.PRODUCT,
   CATEGORY: categories => (categories && categories.length ? categories[0].id : null),
 };
 

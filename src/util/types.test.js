@@ -61,9 +61,10 @@ describe('Portfolio switched on', () => {
     mockPortfolioEnabled = true;
   });
 
-  it('LISTING_GRID_DEFAULTS.TYPE is Portfolio, except on favourites', () => {
-    expect(LISTING_GRID_DEFAULTS.TYPE(PROFILE)).toBe(PORTFOLIO);
-    expect(LISTING_GRID_DEFAULTS.TYPE(MANAGE)).toBe(PORTFOLIO);
+  // Shop stays the default with Portfolio on (spec/v0/hide-portfolio.md §9, 2026-11-19).
+  it('LISTING_GRID_DEFAULTS.TYPE is still Shop for every role', () => {
+    expect(LISTING_GRID_DEFAULTS.TYPE(PROFILE)).toBe(PRODUCT);
+    expect(LISTING_GRID_DEFAULTS.TYPE(MANAGE)).toBe(PRODUCT);
     expect(LISTING_GRID_DEFAULTS.TYPE(FAVORITE)).toBe(PRODUCT);
   });
 
@@ -77,9 +78,10 @@ describe('Portfolio switched on', () => {
     expect(isListingTabPaused(PORTFOLIO)).toBe(false);
   });
 
-  it('resolveListingTabType keeps Portfolio and defaults to it', () => {
+  it('resolveListingTabType keeps Portfolio and defaults to Shop', () => {
     expect(resolveListingTabType(PORTFOLIO, PROFILE)).toBe(PORTFOLIO);
-    expect(resolveListingTabType(undefined, PROFILE)).toBe(PORTFOLIO);
-    expect(resolveListingTabType(undefined, MANAGE)).toBe(PORTFOLIO);
+    expect(resolveListingTabType(PORTFOLIO, MANAGE)).toBe(PORTFOLIO);
+    expect(resolveListingTabType(undefined, PROFILE)).toBe(PRODUCT);
+    expect(resolveListingTabType(undefined, MANAGE)).toBe(PRODUCT);
   });
 });
