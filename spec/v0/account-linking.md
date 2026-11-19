@@ -673,8 +673,8 @@ copies went with the Action (§4.1).
 ## 8. The old pairs: merged before go-live (D4, D20, D26)
 
 The 213 pairs PROD had at the review (§1.3), plus those made since step 0 (about 2 a month, D6); QA has 10. With no
-exemption (D20), the Action treats every pair the same from go-live, so each pair is sorted first. QA's pairs go first,
-as the rehearsal (§10, phase 6).
+exemption (D20), the Action treats every pair the same from go-live, so each pair is sorted first. Only PROD's pairs
+are sorted (Rafael, 2026-11-19): 216 at the 2026-11-19 inventory (§10, phase 6.2).
 
 **Rafael's rule:** this is delicate. Nothing is linked or deleted until he has reviewed a summary of everything, and he
 makes every change.
@@ -731,8 +731,8 @@ and Rafael decides. Circle's own duplicates and email drift are out of this work
 
 ### 8.5 Order (D27)
 
-QA's pairs (inventory, summary, Rafael's decisions, merges, a login per app), then PROD's the same way with the Circle
-test before the merges. On go-live day, a **final sweep** for pairs made since the inventory comes right before the
+PROD's pairs only (Rafael, 2026-11-19; QA's rehearsal dropped): the inventory, the summary, Rafael's decisions, the
+Circle test, then the merges and a login per app. On go-live day, a **final sweep** for pairs made since the inventory comes right before the
 Action is attached, and a second one right after, for the minutes in between (§10, phase 7). A pair missed in that
 window loses no data, but its app data is reached through the wrong id until it's repointed by hand.
 
@@ -771,6 +771,10 @@ change in Auth0, every deploy and every commit. Each phase ends at a gate, and t
 - A. The webapp's rate-limit fix (D14, [webapp `spec/role-lookup-rate-limit.md`](../../../webapp/spec/role-lookup-rate-limit.md)):
   a failing test first, then the fix; Rafael deploys QA, then PROD. It doesn't depend on phases 1–5, and is on PROD
   before phase 7 (its gate). Built 2026-11-16 on the webapp's `dev`, uncommitted; next, Rafael's commit and deploys.
+  Merged into the webapp's `dev` 2026-11-17 (#1278); the Action's copy and the `/error-account` copy followed on
+  2026-11-18 (#1279). The webapp reaches PROD only through a version tag, and the last one (v10.5.2, 2026-11-09) came
+  before both, so the next tag carries the fix and the new copy together. It is cut in phase 7.1, not earlier: the copy
+  promises a link that only the Action makes.
 
 *Until 2026-11-16 a side track B copied Auth0's logs into Google Cloud; D15 dropped it.*
 
@@ -867,25 +871,74 @@ change in Auth0, every deploy and every commit. Each phase ends at a gate, and t
 - 5.1 (Rafael): the commit, on his ask; the deploy to QA with the variable; then the Action's `LINKING_PAGE_URL`
   switched to `https://market.qa.theluupe.com/account-linking` and redeployed, and the localhost logout URL replaced
   by QA's.
+  ✅ Done 2026-11-18 (Rafael): merged into `dev` (PR #158) and deployed to QA, `AUTH0_LINKING_TOKEN_SECRET` added to
+  QA's MARKET secret; the Action redeployed at 19:17 UTC (version 3) with the QA page's address. The localhost logout
+  URL stays next to QA's until phase 8. Confirmed by Claude the same day: in QA's Auth0 with the read-only app (the
+  Action first in the flow, its code identical to the repo's, `LINKING_PAGE_URL` changed at 19:16, QA's logout URL
+  allowed, no Rules left); on the QA site with anonymous calls (`robots.txt` disallows all, the page answers with
+  noindex, the bundle carries the new copy, the three endpoints answer a bad token with `expired`); and with one
+  Continue call carrying a token signed with the local secret and made-up account ids, which QA accepted and answered
+  with the token in `link_token` (QA's secret is the Action's, and D30 is live).
 - 5.2: §11 row 5 (webapp, Studio QA), and rows 1–4 again.
+  2026-11-19, Rafael: "it all worked perfectly". QA's Auth0 logs (read by Claude at 15:46 UTC) show one full run:
+  a password sign-up on the Marketplace, then Google from the webapp, linked by the Action into the password account
+  (`Link a User Account` by `Account linking (Action)`), and the login finishing in the webapp as the original:
+  rows 1–3 and row 5 for the webapp. Not in the logs since the switch: a Studio (QA) login, a run started from the
+  Marketplace site, and row 4's Google login after the link. Waived (Rafael, 2026-11-19).
 - 5.3 (Claude): the results written into this spec.
 - **Gate:** QA passes.
 
-**Phase 6: the old pairs (§8), QA then PROD**
+**Phase 6: the old pairs (§8), on PROD only**
 
-- 6.1: QA's 10 pairs, the rehearsal: Claude's inventory and summary (§8.1–§8.2), Rafael's decisions, his merges
-  (§8.3), and a login per app afterwards.
+- 6.1: dropped (Rafael, 2026-11-19: "QA is just for testing"; the old pairs are reviewed on PROD only). The Circle
+  test (6.3) makes the first real merge call, with Rafael's test emails, so it is the rehearsal.
 - 6.2: PROD's pairs: the inventory and the summary, each read on Rafael's go (§8.1).
-- 6.3 (Rafael, with Claude): the Circle test (§8.4), before any real merge.
-- 6.4 (Rafael): PROD's merges, from his decisions; a login per app on a merged pair.
+  ✅ Read on 2026-11-19, 17:07 to 17:10 UTC, on Rafael's go: Auth0 with the read-only app, the webapp's database
+  with a read-only role (`claude_readonly`, Rafael's), Sharetribe's Integration API with read calls only. The
+  summary is a Google Sheet in Rafael's Drive (`Auth0-LinkingAccounts` folder): one row per email, his decision per
+  row. 6,112 Auth0 users; 216 emails with two accounts each, none with more. 201 pairs where the newer account holds
+  no app data (left to the Action), 10 where only the newer does (merged by hand, keeping it), 5 where both do (his
+  call: the webapp on the older account, the Marketplace on the newer). §8.2's fourth group became a column (the apps
+  tied to the account that goes: 7 pairs). Found on the way: 11 Sharetribe users are linked to both Auth0 logins of
+  their pair, so the Marketplace keeps working whichever survives; 74 have no Auth0 login linked at all.
+  Then, at Rafael's ask, the sheet was split into two lists after a review of the 201: **Needs you** (17: 5 his call,
+  12 merged by hand) and **Left to the Action** (199, nothing to do). The review moved 2 pairs to Needs you: only their
+  newer account carries a Circle id in Auth0, and the webapp user it pointed to no longer exists. It also confirmed:
+  the Action doesn't carry the newer account's Auth0 metadata over (the link drops it; 3 of the 199 lose only
+  Marketplace details the Marketplace keeps itself); Sharetribe links a login with a verified email to the existing
+  Marketplace user by itself (all 11 double links came that way), and none of the 199 has an unverified older email
+  next to a Marketplace user that isn't linked to it, so none loses the Marketplace. 31 of the 199 have an unverified
+  older email: those people will likely use Forgot password on the linking page.
+- 6.4, as done (Rafael, 2026-11-19, before the Circle test): the 5 "his call" pairs were not linked. He kept the newer
+  account, moved the webapp user to it (`providerId`), and deleted the older account in Auth0. Claude's check: one
+  webapp user each, now on the newer account, its `marketId` the Sharetribe user's, which is linked to the newer login;
+  nothing points at the deleted accounts. **Roles don't move with an account**: the webapp's memberships are Auth0
+  roles, given by Circle's paywall webhook to the account the webapp user pointed to then (`manageMembership`,
+  `webapp/server/lib/circle.ts`). One of the 5 is Pro in Sharetribe and its kept account had no `role-pro`; Founding
+  Member can't be told for a deleted account. Deleting rather than linking also leaves one login method; a later login
+  with the other creates a new account, which the Action links once it's live. `role-pro` was then given back to the
+  Pro one (seen on its account the same evening).
+  The other 12, the same evening: one (a past member, "not part of the platform anymore") had both accounts deleted;
+  it held nothing in the webapp or the Marketplace. The 11 others were **linked**, the newer account kept as the
+  primary (its id unchanged, so the webapp, the Marketplace and Circle see no change). Six of them had an older
+  password account whose email was never verified, so to keep D26 Rafael first set a random password on each (18:37
+  to 18:41 UTC): the login survives but only Forgot password, which proves the email, opens it. Claude then made the
+  11 calls (`POST /api/v2/users/{newer}/identities`) with `update:users` lent to its PROD app for this alone, after a
+  pre-check of each pair, the first pair alone; then checked: each email has one Auth0 user with two logins, the
+  roles unchanged (no older account held any), the older ids gone as users of their own. Needs you is empty.
+- 6.3: dropped (Rafael, 2026-11-19). The hand merges didn't need it: all 16 kept the account the webapp points to.
+  What Circle does when the Action links (the original survives, the newer id goes) shows in production instead.
+  Founding Member for the 5 deleted accounts isn't looked into either (Rafael).
+- 6.4 (Rafael): PROD's merges, from his decisions; a login per app on a merged pair. ✅ Done 2026-11-19 (above).
 - **Gate:** Rafael has reviewed every pair's outcome.
 
-**Phase 7: PROD go-live, in one sitting** (starts once side track A is on PROD and phase 6 is done)
+**Phase 7: PROD go-live, in one sitting** (starts once phase 6 is done; side track A reaches PROD in 7.1, with the
+webapp's release)
 
 - 7.1 (Rafael): PROD's §7.1 steps 1–2, the Marketplace's PROD variable and its deploy. The page sits unused until the
   Action is attached. Also the webapp's deploy carrying the new `/error-account` copy (1.5): it promises that logging
   in the same way again connects the accounts, true only once the Action is live, so it reaches PROD here, not with an
-  earlier webapp release.
+  earlier webapp release. That release (the next version tag) also carries side track A (#1278), ahead of the Action.
 - 7.2 (Claude): the final sweep: pairs made since 6.2's inventory. Rafael decides on any whose newer account holds
   data, before 7.3.
 - 7.3 (Rafael): PROD's Action, first in the flow; the logout URL (§7.1, steps 3–4).

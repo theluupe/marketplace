@@ -12,6 +12,9 @@
 >
 > **Also, permanently (not behind the flag):** the creative's portfolio website (`portfolioURL`) gets a clearer place on
 > the public profile (§3.10). It's the replacement for Portfolio, so it stays when Portfolio comes back.
+>
+> **🔄 Back on since 2026-11-19 (§9):** `PORTFOLIO_ENABLED = true`, the switch kept. Shop stays the default tab with
+> Portfolio on, so a URL with no tab opens Shop on both pages.
 
 ---
 
@@ -30,6 +33,8 @@ listing is one named collection of images and videos owned by a creative.
 | **Checkout**: a portfolio listing can't be bought | `CheckoutPage.js` |
 | **Server**: an event script auto-approves new portfolio listings; a retry script migrates their order | `server/scripts/events/notifyPortfolioListingUpdated.js`, `server/api/scripts-retry/migratePortfolioOrder/` |
 
+(As it was before 2026-10-16. Since 2026-11-19, Shop is the default tab on both pages, with Portfolio on: §9.)
+
 **Not Portfolio, despite the name:** `portfolioURL`, the creative's external website link, shown on the profile
 (`ProfileInfo.js`) and in the Slack seller-approval message. The flag doesn't touch it: it's the new direction. Its
 presentation on the profile changes permanently (§3.10, decision 12).
@@ -42,7 +47,7 @@ presentation on the profile changes permanently (§3.10, decision 12).
 |---|---|
 | 1 | **Switch off, don't remove.** A constant hides the feature; every line of Portfolio code stays. (Unlike [disable-coupons.md](./disable-coupons.md), which removed its feature.) |
 | 2 | **The listing type only.** The flag doesn't touch `portfolioURL`. (Its presentation on the profile changes permanently, decision 12.) |
-| 3 | **Shop becomes the default tab** on the profile and on Manage listings. On the profile, a URL asking for the Portfolio tab (`?pub_listingType=portfolio-showcase`) lands on Shop; on Manage listings it lands on the paused tab (decision 11). **Accepted cost (grill, 2026-10-16):** a creative with a portfolio but no Shop listings now opens on Shop's empty state ("Nothing to see here yet — check back soon!"). Rejected: About as the default (buyers land a click away from products), and a per-creative default (the server would need an extra query before it could pick the tab, for a feature that is switched off). |
+| 3 | **Shop becomes the default tab** on the profile and on Manage listings. On the profile, a URL asking for the Portfolio tab (`?pub_listingType=portfolio-showcase`) lands on Shop; on Manage listings it lands on the paused tab (decision 11). **Accepted cost (grill, 2026-10-16):** a creative with a portfolio but no Shop listings now opens on Shop's empty state ("Nothing to see here yet — check back soon!"). Rejected: About as the default (buyers land a click away from products), and a per-creative default (the server would need an extra query before it could pick the tab, for a feature that is switched off). **Kept with Portfolio back on (2026-11-19, §9):** Shop is the default with either flag value. |
 | 4 | **A portfolio listing's own URL** redirects to the creative's profile, which opens on its default tab. |
 | 5 | **Typing a wizard URL** (`/l/portfolio/...`) shows the Not Found page. The two routes stay registered and render Not Found (§3.8): without them, the URLs would fall through to the generic listing routes, one of which is the upstream edit-listing wizard. |
 | 6 | **Data untouched.** Existing portfolio listings stay in Sharetribe as they are. Nothing is deleted or migrated, so turning the flag back on shows them again. |
@@ -69,11 +74,14 @@ of the rule.
  * Hardcoded switches for TheLuupe features. Changing a value needs a code change and a deploy.
  *
  * PORTFOLIO_ENABLED — the Portfolio feature (`portfolio-showcase` listings): the profile and Manage-listings tabs and
- * the upload wizard. `false` hides it, code and data kept: no Portfolio tab on the profile, and on Manage listings a
- * Portfolio tab that only says portfolios are paused. `true` restores it. See spec/v0/hide-portfolio.md.
+ * the upload wizard. `true` shows it. `false` hides it, code and data kept: no Portfolio tab on the profile, and on
+ * Manage listings a Portfolio tab that only says portfolios are paused. Switched off 2026-10-16, back on 2026-11-19.
+ * Either way Shop is the default tab (LISTING_GRID_DEFAULTS.TYPE in util/types.js). See spec/v0/hide-portfolio.md.
  */
-export const PORTFOLIO_ENABLED = false;
+export const PORTFOLIO_ENABLED = true;
 ```
+
+(Shipped `false` on 2026-10-16; `true` since 2026-11-19, §9.)
 
 This comment is the **canonical explanation**. Each gate's comment points here (`see util/featureFlags.js`) instead of
 restating it.
@@ -99,14 +107,9 @@ export const isListingTabPaused = listingTabType =>
   !PORTFOLIO_ENABLED && listingTabType === LISTING_TAB_TYPES.PORTFOLIO;
 
 export const LISTING_GRID_DEFAULTS = {
-  TYPE: role => {
-    switch (role) {
-      case LISTING_GRID_ROLE.FAVORITE:
-        return LISTING_TAB_TYPES.PRODUCT;
-      default:
-        return PORTFOLIO_ENABLED ? LISTING_TAB_TYPES.PORTFOLIO : LISTING_TAB_TYPES.PRODUCT;
-    }
-  },
+  // Shop for every role, with either flag value (§9, 2026-11-19). Shipped 2026-10-16 as
+  // `PORTFOLIO_ENABLED ? PORTFOLIO : PRODUCT` (FAVORITE: always PRODUCT).
+  TYPE: () => LISTING_TAB_TYPES.PRODUCT,
   // CATEGORY unchanged
 };
 
@@ -117,8 +120,8 @@ export const resolveListingTabType = (requestedType, role) =>
     : LISTING_GRID_DEFAULTS.TYPE(role);
 ```
 
-With the flag off, Shop is the default for every role, Manage listings included: a creative only reaches the paused
-tab by clicking it, or through an old Portfolio link.
+Shop is the default for every role, Manage listings included: with the flag off, a creative only reaches the paused
+tab by clicking it, or through an old Portfolio link. Since 2026-11-19 that holds with the flag on too (§9).
 
 An unknown type (`?pub_listingType=foo`) still passes through `resolveListingTabType` unchanged, as today. The pages'
 redirects (§3.5) deal with it as they already do.
@@ -158,23 +161,29 @@ to itself (the tab is shown), and §3.9 replaces its content.
 **Files:** the `useEffect` that fixes the URL, in `SellerProfilePage.js` (role `PROFILE`) and `ManageListingsPage.js`
 (role `MANAGE`).
 
-Its `default:` branch handles a missing, unknown or Portfolio tab, and today rewrites the URL to Portfolio
-(`updatePortfolioRoute`). With the flag off it rewrites to Shop instead, unless the page shows the tab:
+Its `default:` branch handles a missing, unknown or Portfolio tab, and before this spec rewrote the URL to Portfolio
+(`updatePortfolioRoute`). It rewrites to Shop instead, unless the page shows the tab. Shipped 2026-10-16 as an
+`if (!PORTFOLIO_ENABLED)` block in front of the old code; since 2026-11-19 (§9) one branch serves both flag values, so
+a missing or unknown tab goes to Shop with Portfolio on too:
 
 ```js
 default: {
   const invalidListingType = !(
     listingTypeParamValue && Object.values(LISTING_TAB_TYPES).includes(listingTypeParamValue)
   );
-  if (!PORTFOLIO_ENABLED) {
-    // Shop is the default tab — see util/featureFlags.js.
-    // role: LISTING_GRID_ROLE.PROFILE on the profile, LISTING_GRID_ROLE.MANAGE on Manage listings.
-    if (invalidListingType || !isListingTabShown(listingTypeParamValue, role)) {
-      updateProductRoute();
-    }
+  // role: LISTING_GRID_ROLE.PROFILE on the profile, LISTING_GRID_ROLE.MANAGE on Manage listings.
+  if (invalidListingType || !isListingTabShown(listingTypeParamValue, role)) {
+    updateProductRoute();
     break;
   }
-  // ...today's code, unchanged
+  // Manage listings only: a paused tab shows only its message, no collection to open.
+  if (isListingTabPaused(listingTypeParamValue)) break;
+  // Portfolio with no collection in the URL opens the first one.
+  if (listingTypeParamValue === LISTING_TAB_TYPES.PORTFOLIO && !queryParams.pub_listingId
+      && !queryInProgress && currentCategory) {
+    updatePortfolioRoute(currentCategory);
+  }
+  break;
 }
 ```
 
@@ -365,17 +374,17 @@ jest.mock('../util/featureFlags', () => ({
 
 Babel compiles each import of the constant into a property read at call time, so the getter is read on every call.
 
-| Gate | Flag off | Flag on (today) | File |
+| Gate | Flag off | Flag on | File |
 |---|---|---|---|
-| §3.2 `LISTING_GRID_DEFAULTS.TYPE` | `PROFILE`, `MANAGE` → Shop; `FAVORITE` → Shop | `PROFILE`, `MANAGE` → Portfolio; `FAVORITE` → Shop | new `src/util/types.test.js` |
+| §3.2 `LISTING_GRID_DEFAULTS.TYPE` | `PROFILE`, `MANAGE` → Shop; `FAVORITE` → Shop | Shop for every role (§9; was Portfolio for `PROFILE`, `MANAGE`) | new `src/util/types.test.js` |
 | §3.2 `isListingTabShown` | Portfolio: hidden for `PROFILE` and `FAVORITE`, shown for `MANAGE`; every other tab shown | every tab shown | same |
 | §3.2 `isListingTabPaused` | Portfolio paused; every other tab not | nothing paused | same |
-| §3.2 `resolveListingTabType` | Portfolio → Shop for `PROFILE`, stays for `MANAGE`; Shop stays; missing → Shop; unknown passes through | Portfolio stays; missing → Portfolio | same |
+| §3.2 `resolveListingTabType` | Portfolio → Shop for `PROFILE`, stays for `MANAGE`; Shop stays; missing → Shop; unknown passes through | Portfolio stays; missing → Shop (§9) | same |
 | §3.3 `getTabsFeaturesForRole` | the tab keys of §3.3 | today's keys (for `MANAGE`, the same two) | new `src/components/ListingTabs/GridHelpers.test.js` |
-| §3.6 profile `loadData` | a Portfolio URL and an empty URL both query `product-listing` | both query `portfolio-showcase` | new `src/containers/ProfilePage/ProfilePage.duck.test.js` |
+| §3.6 profile `loadData` | a Portfolio URL and an empty URL both query `product-listing` | a Portfolio URL queries `portfolio-showcase`; an empty URL queries `product-listing` (§9) | new `src/containers/ProfilePage/ProfilePage.duck.test.js` |
 | §3.6 manage `loadData` | a Portfolio URL queries `portfolio-showcase` with `perPage: 1` and no images; an empty URL queries nothing | a Portfolio URL queries `portfolio-showcase`; an empty URL queries nothing | new `src/containers/ManageListingsPage/ManageListingsPage.duck.test.js` |
-| §3.4, §3.5 profile page | no "Portfolio" tab; a Portfolio URL shows Shop and is rewritten to the Shop URL | the Portfolio tab is there and active | new `src/containers/ProfilePage/SellerProfilePage/SellerProfilePage.test.js` |
-| §3.4, §3.5, §3.9 Manage listings page | Shop is the default; a Portfolio URL stays on Portfolio, with no "Add New"/"Manage", no pills and no pagination; a count above 0 → the "collections are saved" message, 0 or a failed count → the short one, loading → the loading message; **the counted listing is never rendered** | the Portfolio tab shows the collections and both buttons | new `src/containers/ManageListingsPage/ManageListingsPage.test.js` (render) |
+| §3.4, §3.5 profile page | no "Portfolio" tab; a Portfolio URL shows Shop and is rewritten to the Shop URL | the Portfolio tab is there and active; a URL with no tab opens Shop and is rewritten to it (§9) | new `src/containers/ProfilePage/SellerProfilePage/SellerProfilePage.test.js` |
+| §3.4, §3.5, §3.9 Manage listings page | Shop is the default; a Portfolio URL stays on Portfolio, with no "Add New"/"Manage", no pills and no pagination; a count above 0 → the "collections are saved" message, 0 or a failed count → the short one, loading → the loading message; **the counted listing is never rendered** | the Portfolio tab shows the collections and both buttons; a URL with no tab is rewritten to Shop (§9) | new `src/containers/ManageListingsPage/ManageListingsPage.test.js` (render) |
 | §3.7 gate | redirect to the profile with no search | with the portfolio search | new `src/containers/ListingPage/TheLuupeListingPageGate.test.js` |
 | §3.10 website on the profile | **The same with both values** (it isn't behind the flag): with a website, the labelled link, opening it in a new tab; without one, nothing; on the creative's own profile, the link too | same | `SellerProfilePage.test.js` (renders `ProfileInfo`) |
 | §3.8 routes | both render `NotFoundPage`; no `auth` on New, no `loadData` on Edit | today's components, `auth` and `loadData` | new `src/routing/routeConfiguration.test.js` |
@@ -384,8 +393,8 @@ Babel compiles each import of the constant into a property read at call time, so
 at baseline (an older duck API and state shape); a new test added there would sit in a red suite. The render tests
 render `SellerProfilePage` and `ProfileInfo` directly, with the Topbar and Footer mocked.
 
-**Existing tests run against the shipped value, `false`.** Any that assumed Portfolio is the default tab are updated to
-expect Shop. They are not mocked back to `true`: they describe what ships.
+**Existing tests run against the shipped value** (`false` from 2026-10-16, `true` since 2026-11-19). Any that assumed
+Portfolio is the default tab were updated to expect Shop, which is the default with both values.
 
 **Prove each flag-off test can fail:** run it once with the mock set to `true`; it must go red. A flag-off test that
 stays green is testing something other than the flag (CLAUDE.md, "prove the test can fail").
@@ -414,7 +423,8 @@ from the loader alone, so it gets a render test.
   labelled link (A) is kept; the button (B) was removed with its copy key.
 - **Ships with the next Marketplace release.** QA first, then PROD, as usual. No data step, no env var.
 - **Turning it back on:** set `PORTFOLIO_ENABLED = true` and deploy. It's a hardcoded constant, so this is a code
-  change and a deploy, not a runtime switch. Existing portfolios reappear as they were (decision 6).
+  change and a deploy, not a runtime switch. Existing portfolios reappear as they were (decision 6). **Done
+  2026-11-19 (§9).** Turning it off again is the same in reverse: `false` and a deploy.
 
 ---
 
@@ -423,3 +433,54 @@ from the loader alone, so it gets a render test.
 **None, by Rafael's decision (2026-10-16)**, an exception to CLAUDE.md's rule for this small spec. He checked the
 profile in a browser when he picked the website link (§3.10); the gates are covered by the tests of §5, with both flag
 values.
+
+---
+
+## 9. Back on (2026-11-19)
+
+Portfolio is switched back on while the wider review of the Marketplace (the Sharetribe cost review) is pending.
+Decided by Rafael, 2026-11-19:
+
+| # | Decision |
+|---|---|
+| 13 | **Keep the switch.** `PORTFOLIO_ENABLED = true`; every flag-off path stays, so `false` and a deploy hides Portfolio again. Rejected for now: removing the switch and its paused-tab code, until the review decides whether Portfolio stays. |
+| 14 | **Shop stays the default tab**, on the profile and on Manage listings, with Portfolio on. Why: the profile's Portfolio query asks Sharetribe for every image of every collection (no `limit.images`, unlike Shop's one image per card), and about 80% of active creatives have no collections (snapshot of 2026-11-09). Rejected: Portfolio as the default, as before 2026-10-16. |
+| 15 | **No new spec:** this section and the docs update. |
+
+**What changed in code:**
+
+- `src/util/featureFlags.js`: `true`, and its comment says both values.
+- `src/util/types.js`: `LISTING_GRID_DEFAULTS.TYPE` returns Shop for every role (§3.2).
+- `SellerProfilePage.js` and `ManageListingsPage.js`: the `default:` branch of the URL-fixing `useEffect` is one
+  branch for both flag values (§3.5). A missing or unknown tab now goes to Shop with Portfolio on too (it went to
+  Portfolio). A Portfolio URL with no collection still opens the first collection. The pages no longer import the
+  flag; they read it through the helpers.
+- Tests: 2 new (a URL with no tab opens Shop, with the flag on, on each page), 3 updated (the default with the flag
+  on, in `types.test.js` and `ProfilePage.duck.test.js`). All 5 were run red against the old code first.
+
+**Unchanged:** the labelled website link (§3.10), the data, the server scripts, and everything the switch does when
+it's `false`.
+
+**Image loading (same day, decided with Rafael):** most portfolio images are seen in the grid and few previews are
+opened, so the grid gets a smaller file and the 750 px image loads only on demand.
+
+- **Only what's on screen:** `ImageCard.js` loads images as they near the screen (`loading="lazy"`). In masonry each
+  image keeps its height free before it loads (CSS `aspect-ratio` from its size), or every unsized image would count
+  as on screen.
+- **One 400 px grid file for both layouts:** a custom variant, `portfolio-grid` (`src/util/portfolioImage.js`):
+  uncropped, 400 px wide (box 400 × 1200, `fit: scale`). Both Portfolio queries (profile, Manage listings) ask for it;
+  Shop queries don't. Masonry shows it as is; the square layout crops it in CSS (`object-fit: cover`), so switching
+  layouts downloads nothing new. It replaces `scaled-medium` in masonry and the `listing-card` crop (400 × 400 on QA,
+  where the Console's listing image ratio is 1:1) in the square layout.
+- **The preview:** `scaled-medium` (a 750 px box), loaded only when opened. It used to ask for `scaled-xlarge`, which
+  the profile's query never requested, so the profile previewed the grid image; Manage listings previewed 2400 px.
+- **Masonry columns match the square grids:** `MasonryGridWrapper.js` uses two columns from 550 px (was 750 px), on
+  every page that uses it (profile, Manage listings, search). Between 550 and 750 px masonry was one column up to
+  ~700 px wide, too wide for a 400 px file.
+
+Tests: new `ImageCard.test.js`; both loaders' tests check that a Portfolio query, and not a Shop one, asks for
+`portfolio-grid`.
+
+**Still open, for the cost review:** the profile's query still lists every image of every collection (one API call;
+nothing downloads until shown). On the radar, for later (Rafael, 2026-11-19): the Shop cards' 3-second load-anyway
+fallback (`ListingCard.js`).

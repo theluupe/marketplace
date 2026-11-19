@@ -9,6 +9,7 @@ import { AspectRatioWrapperMaybe } from '../../../components';
 
 import css from './ImageCard.module.css';
 import { GRID_STYLE_MASONRY, GRID_STYLE_SQUARE } from '../../../util/types';
+import { PORTFOLIO_GRID_VARIANT } from '../../../util/portfolioImage';
 
 export const ImageCard = props => {
   const config = useConfiguration();
@@ -20,10 +21,21 @@ export const ImageCard = props => {
   const { aspectWidth = 1, aspectHeight = 1 } = config.layout.listingImage;
 
   const isSquareLayout = gridLayout === GRID_STYLE_SQUARE;
-  const variantPrefix = isSquareLayout ? 'listing-card' : 'scaled-medium';
   const imageVariants = item?.attributes?.variants || {};
-  const previewSrc = imageVariants['scaled-xlarge']?.url;
-  const thumbnailSrc = imageVariants[variantPrefix]?.url;
+  // Both layouts show the same uncropped 400 px file (util/portfolioImage.js), so switching layouts downloads nothing
+  // new. The 750 px image (scaled-medium) loads only when the preview opens.
+  const gridImage = imageVariants[PORTFOLIO_GRID_VARIANT];
+  const previewSrc = imageVariants['scaled-medium']?.url;
+  // Images load only when they near the screen (loading="lazy"). Masonry: each one keeps its height free before it
+  // loads; unsized, a lazy image is 0 px tall, so every one counts as on screen and they all load at once. Square:
+  // AspectRatioWrapperMaybe keeps the space, and the image is cropped to it here. Inline styles, so AntD's own image
+  // CSS (width 100%, height auto) doesn't win.
+  const imageStyle = isSquareLayout
+    ? { width: '100%', height: '100%', objectFit: 'cover' }
+    : gridImage?.width && gridImage?.height
+    ? { aspectRatio: `${gridImage.width} / ${gridImage.height}` }
+    : undefined;
+  const wrapperStyle = isSquareLayout ? { width: '100%', height: '100%' } : undefined;
 
   return (
     <div className={classes}>
@@ -33,8 +45,11 @@ export const ImageCard = props => {
         isSquareLayout={isSquareLayout}
       >
         <Image
-          src={thumbnailSrc}
+          src={gridImage?.url}
           alt={title}
+          loading="lazy"
+          style={imageStyle}
+          wrapperStyle={wrapperStyle}
           fallback={imagePlaceholder}
           preview={{ src: previewSrc }}
         />

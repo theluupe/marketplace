@@ -67,6 +67,14 @@ describe('SellerProfilePage tabs', () => {
     expect(tabNames()).toEqual(['Shop', 'Portfolio', 'About', 'Reviews']);
     expect(selectedTab()).toHaveTextContent('Portfolio');
   });
+
+  it('Portfolio switched on: a URL with no tab opens on Shop and is rewritten to it', async () => {
+    mockPortfolioEnabled = true;
+    await renderProfile({});
+    expect(selectedTab()).toHaveTextContent('Shop');
+    expect(location.search).toContain('pub_listingType=product-listing');
+    expect(location.search).not.toContain('portfolio-showcase');
+  });
 });
 
 // §3.10: permanent, not behind the flag — the same with both values.

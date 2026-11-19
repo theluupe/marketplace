@@ -5,6 +5,7 @@ import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoade
 import { PROFILE_PAGE_PENDING_APPROVAL_VARIANT, parse } from '../../util/urlHelpers';
 import { denormalisedResponseEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
+import { portfolioGridImageField, portfolioGridImageVariant } from '../../util/portfolioImage';
 import {
   hasPermissionToViewData,
   isUserAuthorized,
@@ -123,10 +124,12 @@ const queryUserListingsPayloadCreator = (
       // Cropped variants for listing thumbnail images
       `variants.${variantPrefix}`,
       `variants.${variantPrefix}-2x`,
+      // Portfolio (the query without the image limit) also asks for its 400 px grid image — util/portfolioImage.js.
+      ...(withImageLimit ? [] : [portfolioGridImageField]),
     ],
     ...createImageVariantConfig(`${variantPrefix}`, 400, aspectRatio),
     ...createImageVariantConfig(`${variantPrefix}-2x`, 800, aspectRatio),
-    ...(withImageLimit ? { 'limit.images': 1 } : {}),
+    ...(withImageLimit ? { 'limit.images': 1 } : portfolioGridImageVariant),
   };
   const params = { ...rest, perPage, ...listingCardImageParams };
 
