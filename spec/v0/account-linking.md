@@ -1,6 +1,7 @@
 # Account linking: one account per email, linked by the person, through the Marketplace
 
-> **Status:** 🟡 Pending. Written 2026-11-11 from Rafael's decisions of that day (§2); updated 2026-11-12 with the
+> **Status:** ✅ Implemented (2026-11-19): live on PROD since 19:40 UTC that day, smoke-tested the same evening, and
+> closed at Rafael's ask (§10, phases 7–8). Written 2026-11-11 from Rafael's decisions of that day (§2); updated 2026-11-12 with the
 > build plan (§10), the Auth0 apps and APIs audit (§1.4) and his answers to it (D8–D10), then with the step-0 review
 > (D11–D16, §7.0 written out step by step) and a correction: Auth0 stops running Rules on 2028-01-31, not on
 > 2026-11-18 as first written (§1.1); the plan stands (D8). Step 0 (§7.0) done and confirmed on QA (2026-11-12)
@@ -9,9 +10,9 @@
 > on QA and confirmed, and the copy of Auth0's logs in Google Cloud was dropped: the linking code logs its own steps
 > instead (D15, §5.6). Side track A and phase 1 built the same day; side track A committed on the webapp 2026-11-17
 > (`2c12a8a9`), and a broken setup now stops the login instead of failing silently (D29); phase 2 (the Marketplace
-> server) built the same day, uncommitted, and phase 3 (the linking page) too. Next: phase 4, the first real run of a
-> local Marketplace against QA's Auth0, which starts with Rafael's Auth0 steps (4.1); the specs stay uncommitted until
-> he says.
+> server) built the same day, uncommitted, and phase 3 (the linking page) too. Phase 4 (a local Marketplace against
+> QA's Auth0) and phase 5 (QA) passed; PROD's old pairs were sorted on 2026-11-19 (phase 6), and the go-live followed
+> that evening (phase 7). What is left after the close is listed in §10, phase 8.
 >
 > **Goal:** replace the Auth0 "Account Link" extension, a deprecated Rule whose leaked secret can't be changed (§1.4),
 > with our own flow: a person who logs in with a second method (Google after a password, say) must link it to the
@@ -666,7 +667,9 @@ it as a limit. *Until 2026-11-16 this said to add `delete:users` to that line.*
 
 ### 7.3 When this work ends (after §8)
 
-Delete the `Claude read-only` apps on both tenants and the local file holding their credentials. The Rule, the
+Delete the `Claude read-only` apps on both tenants and the local file holding their credentials. *2026-11-19, Rafael's
+call: kept. The `Claude read-only` apps stay on both tenants, and so does the file, which also holds the webapp
+database's read-only role, for future testing.* The Rule, the
 extension and its apps went in step 0 (§7.0), which retired the hard-coded secret (login spec S9); the Rule's repo
 copies went with the Action (§4.1).
 
@@ -946,12 +949,38 @@ webapp's release)
   setup and reads PROD's Auth0 logs with the read-only app that day and again a few days later, inside Auth0's 5
   days, next to the Marketplace's own linking lines in Google Cloud (D15, §5.6).
 - 7.5 (Claude): the second sweep, for the minutes between 7.2 and 7.3.
+- As done, 2026-11-19 (UTC). Rafael set up PROD's Auth0 and started both PROD builds (Marketplace; webapp v10.6.0,
+  with #1278 and #1279); the Action went first in the Login flow at 19:40, about 9 minutes before the Marketplace
+  page answered (19:49). The only login in that gap had no duplicate. Claude's check with the read-only app: the
+  deployed code is the repo's, the 5 secrets are set, `Account linking (Action)` has `read:users` and `update:users`
+  only, `Sharetribe` gained `delete:users` only, the cancelled logout URL is allowed, no Rules; a webapp login at
+  19:43 ran the Action and finished (its domain and credentials work). Sweeps at 19:45 and 20:02: no account created
+  since the inventory except the test one, so no new pair. Smoke test on theluupe.com, one test email: a password
+  sign-up; Google, then Cancel on the page (the new account deleted by `Sharetribe`, logged out); Google again, the
+  password login on the page, linked by `Account linking (Action)` and back in the Marketplace as the password
+  account (one Auth0 user, two methods). Row 4 (Google again, straight in) isn't in the logs yet. The webapp's live
+  bundle carries the new `/error-account` copy. Open: the localhost logout URL on PROD's `Sharetribe` app, and the
+  Marketplace's own log lines (gcloud session expired) for the later log read.
 - **Gate:** clean logs.
 
 **Phase 8: close**
 
 - 8.1 (Claude): this spec to ✅ Implemented, its rows in TL_README and `spec/v0/README.md`, the login spec's amendment
   notes; the pending accounts counted once, for Rafael (D28); §7.3.
+  ✅ Done 2026-11-19, at Rafael's ask, right after the smoke test: this spec, its two README rows, the login spec's two
+  notes, and the webapp's rate-limit spec (on PROD in v10.6.0; its row 5 found no `api_limit` entries in the first
+  half hour). **The pending accounts (D28)**, counted once at 20:07 UTC with the read-only app: 199 emails with two
+  accounts each, out of 6,094 users. All 199 are §8's pairs left to the Action: none linked yet, none new since the
+  inventory, none of the 17 sorted by hand. Each links when its person next logs in with the newer account.
+- After the close, Rafael's calls (2026-11-19): the `http://localhost:3000/account-linking?state=cancelled` logout URL
+  stays on both `Sharetribe` apps (PROD's and QA's); the `Claude read-only` apps stay, with the database role (§7.3).
+  The smoke test's account is deleted (gone from Auth0 and from the Marketplace; Claude checked). TL_CHANGELOG has
+  the entry.
+- Log reads (Claude, D15, §5.6). The first, on go-live evening: the Marketplace's own lines (Cloud Run `marketplace`,
+  `jsonPayload.source="account-linking"`) match Auth0's step by step for the smoke test (offered, cancelled, offered,
+  continue, then the Action's link); no Marketplace errors since 19:40; in Auth0, one link (the smoke test), no
+  failures other than two wrong passwords, no `api_limit`. Next, inside Auth0's 5 days, with the webapp's rate-limit
+  row 5.
 
 *Until 2026-11-13 the PROD go-live was phase 6 and the old pairs a later phase 8, with a go-live date exempting them
 (D20).*

@@ -4,6 +4,30 @@ This file tracks changes made to TheLuupe's fork of [Sharetribe Web Template](ht
 
 ---
 
+## [Account linking: one account per email] — 2026-11-19
+
+Spec: `spec/v0/account-linking.md`. Replaces Auth0's "Account Link" extension, a deprecated Rule whose leaked secret couldn't be changed. A new post-login Action in Auth0 stops a login whose email already has an older account and sends it here; the Action's code lives in the webapp and Studio repos, not in this one.
+
+### Added
+
+- **The `/account-linking` page** (`src/containers/AccountLinkingPage/`). It shows the email and one button per login method of the older account (password or Google), and **Cancel**. A button leads to Auth0's login for that method only; once the person logs in with it, the Action joins the new login into the older account. Cancel deletes the new Auth0 user and logs out ("No new account was created"). It also shows the expired (15 minutes), wrong-account, blocked and unavailable messages. Public, loads in the browser only, takes the token out of the address bar, not indexed.
+- **Three public endpoints** (`server/api/account-linking.js`, routed in `server/apiRouter.js`): `POST /api/account-linking/session` (what the page shows), `/continue` (Auth0's login address for one of the older account's methods, with the token in `link_token`, because Auth0 refuses `ext-` values over 255 characters) and `/cancel`. Each needs the token the Action signed, checked in `server/api-util/accountLinking.js`. Cancel deletes only an account that is still waiting: it exists, has one login method and the token's email, and is newer than the older account.
+- **`AUTH0_LINKING_TOKEN_SECRET`**, the Action's signing secret, one per environment: on QA and PROD in the Marketplace's Secret Manager secret, locally in `.env`.
+- **`log.info`** (`server/log.js`): one JSON line on stdout, which Cloud Run stores as a log entry searchable by its fields. Each linking step logs one line with `source: "account-linking"` and the Auth0 ids, never the email or the token.
+- **`getAuth0User` and `deleteAuth0User`** in `server/api-util/auth0Helper.js`, for Cancel. On the client, the page's three calls in `src/util/api.js` and `leaveFor` in `src/util/browserNavigation.js`, which leaves the app for Auth0's login or logout.
+
+### Changed
+
+- **The login error pages look like the 404 page** (new `PageMessage` component): second login, unfinished sign-up, both invitation errors and the expired sign-up session show a small label, the title, the text and the button, centered, without the sign-up's box and banner. The generic login failure stays as it was.
+- **The second-login page's copy** is the safety net's: "This email already has a Luupe account", which explains the other login method and starts with Log out. It uses new keys (`AuthenticationPage.existingAccount*`) because Sharetribe Console holds its own values for the old `secondLogin*` ones. With the Action live, the page shows only if a second account gets past it.
+- **`auth0Helper.js` no longer passes a `scope`**: node-auth0 v4 ignores it, so the token carries every scope the `Sharetribe` app is granted in Auth0 (now `read:users`, `update:users` and `delete:users`). That grant is the only limit.
+
+### Rollout
+
+- Live on PROD since 2026-11-19, with Auth0's setup (the Action first in the Login flow; its own app with `read:users` and `update:users`; `delete:users` on the `Sharetribe` app; the logout URL `https://theluupe.com/account-linking?state=cancelled`). PROD's existing duplicate accounts were sorted first: 17 by hand, and 199 left to the Action, which links each one the next time its person logs in with the newer account.
+
+---
+
 ## [Portfolio back on, Shop stays the default tab] — 2026-11-19
 
 Spec: `spec/v0/hide-portfolio.md` §9.

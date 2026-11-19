@@ -25,7 +25,7 @@
 > §9.3, §10.2.4, §11.8) describe the job before that removal and are left as they were. J9 (§9.2) is resolved by it.
 >
 > **⚠️ Amended 2026-11-11:** account linking (§8.3) now has its own spec,
-> [`account-linking.md`](./account-linking.md) (🟡 Pending): a forced link through a Marketplace page replaces the
+> [`account-linking.md`](./account-linking.md) (✅ Implemented, live on PROD since 2026-11-19): a forced link through a Marketplace page replaces the
 > Rule and its extension. Its step 0 (2026-11-12) removes the Rule and deletes the extension's apps ahead of the rest,
 > which retires S9 (§10.1); the Rule's repo copies go when the Action is added.
 >
@@ -665,7 +665,7 @@ elsewhere: the notice for a brand link (§4.5.5), Try again for an unfinished br
 
 ### 8.3 Account linking
 
-> **⚠️ 2026-11-11:** designed in [`account-linking.md`](./account-linking.md) (🟡 Pending). Once it ships, a second
+> **⚠️ 2026-11-11:** designed in [`account-linking.md`](./account-linking.md) (✅ Implemented, live on PROD since 2026-11-19). Since then, a second
 > login method goes to a linking page instead of the page below, which stays as its safety net. The text below is as
 > written on 2026-10-15/16.
 >
