@@ -771,6 +771,10 @@ change in Auth0, every deploy and every commit. Each phase ends at a gate, and t
 - A. The webapp's rate-limit fix (D14, [webapp `spec/role-lookup-rate-limit.md`](../../../webapp/spec/role-lookup-rate-limit.md)):
   a failing test first, then the fix; Rafael deploys QA, then PROD. It doesn't depend on phases 1–5, and is on PROD
   before phase 7 (its gate). Built 2026-11-16 on the webapp's `dev`, uncommitted; next, Rafael's commit and deploys.
+  Merged into the webapp's `dev` 2026-11-17 (#1278); the Action's copy and the `/error-account` copy followed on
+  2026-11-18 (#1279). The webapp reaches PROD only through a version tag, and the last one (v10.5.2, 2026-11-09) came
+  before both, so the next tag carries the fix and the new copy together. It is cut in phase 7.1, not earlier: the copy
+  promises a link that only the Action makes.
 
 *Until 2026-11-16 a side track B copied Auth0's logs into Google Cloud; D15 dropped it.*
 
@@ -880,7 +884,7 @@ change in Auth0, every deploy and every commit. Each phase ends at a gate, and t
   a password sign-up on the Marketplace, then Google from the webapp, linked by the Action into the password account
   (`Link a User Account` by `Account linking (Action)`), and the login finishing in the webapp as the original:
   rows 1–3 and row 5 for the webapp. Not in the logs since the switch: a Studio (QA) login, a run started from the
-  Marketplace site, and row 4's Google login after the link.
+  Marketplace site, and row 4's Google login after the link. Waived (Rafael, 2026-11-19).
 - 5.3 (Claude): the results written into this spec.
 - **Gate:** QA passes.
 
@@ -912,19 +916,29 @@ change in Auth0, every deploy and every commit. Each phase ends at a gate, and t
   roles, given by Circle's paywall webhook to the account the webapp user pointed to then (`manageMembership`,
   `webapp/server/lib/circle.ts`). One of the 5 is Pro in Sharetribe and its kept account had no `role-pro`; Founding
   Member can't be told for a deleted account. Deleting rather than linking also leaves one login method; a later login
-  with the other creates a new account, which the Action links once it's live. For the other 12, no older account
-  holds a role; deleting the older account (it holds nothing) avoids linking an unverified password account into a
-  real one (D26).
-- 6.3 (Rafael, with Claude): the Circle test (§8.4), before any real merge.
-- 6.4 (Rafael): PROD's merges, from his decisions; a login per app on a merged pair.
+  with the other creates a new account, which the Action links once it's live. `role-pro` was then given back to the
+  Pro one (seen on its account the same evening).
+  The other 12, the same evening: one (a past member, "not part of the platform anymore") had both accounts deleted;
+  it held nothing in the webapp or the Marketplace. The 11 others were **linked**, the newer account kept as the
+  primary (its id unchanged, so the webapp, the Marketplace and Circle see no change). Six of them had an older
+  password account whose email was never verified, so to keep D26 Rafael first set a random password on each (18:37
+  to 18:41 UTC): the login survives but only Forgot password, which proves the email, opens it. Claude then made the
+  11 calls (`POST /api/v2/users/{newer}/identities`) with `update:users` lent to its PROD app for this alone, after a
+  pre-check of each pair, the first pair alone; then checked: each email has one Auth0 user with two logins, the
+  roles unchanged (no older account held any), the older ids gone as users of their own. Needs you is empty.
+- 6.3: dropped (Rafael, 2026-11-19). The hand merges didn't need it: all 16 kept the account the webapp points to.
+  What Circle does when the Action links (the original survives, the newer id goes) shows in production instead.
+  Founding Member for the 5 deleted accounts isn't looked into either (Rafael).
+- 6.4 (Rafael): PROD's merges, from his decisions; a login per app on a merged pair. ✅ Done 2026-11-19 (above).
 - **Gate:** Rafael has reviewed every pair's outcome.
 
-**Phase 7: PROD go-live, in one sitting** (starts once side track A is on PROD and phase 6 is done)
+**Phase 7: PROD go-live, in one sitting** (starts once phase 6 is done; side track A reaches PROD in 7.1, with the
+webapp's release)
 
 - 7.1 (Rafael): PROD's §7.1 steps 1–2, the Marketplace's PROD variable and its deploy. The page sits unused until the
   Action is attached. Also the webapp's deploy carrying the new `/error-account` copy (1.5): it promises that logging
   in the same way again connects the accounts, true only once the Action is live, so it reaches PROD here, not with an
-  earlier webapp release.
+  earlier webapp release. That release (the next version tag) also carries side track A (#1278), ahead of the Action.
 - 7.2 (Claude): the final sweep: pairs made since 6.2's inventory. Rafael decides on any whose newer account holds
   data, before 7.3.
 - 7.3 (Rafael): PROD's Action, first in the flow; the logout URL (§7.1, steps 3–4).
